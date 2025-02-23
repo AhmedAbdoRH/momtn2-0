@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useState } from "react";
 import { ImagePlus } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 
 interface CreateNewDialogProps {
   open: boolean;
@@ -15,12 +16,12 @@ const CreateNewDialog = ({ open, onOpenChange }: CreateNewDialogProps) => {
   const [image, setImage] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string>("");
   const [gratitudeText, setGratitudeText] = useState("");
+  const { toast } = useToast();
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
       setImage(file);
-      // Create preview URL for the selected image
       const url = URL.createObjectURL(file);
       setPreviewUrl(url);
     }
@@ -28,9 +29,26 @@ const CreateNewDialog = ({ open, onOpenChange }: CreateNewDialogProps) => {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    // TODO: Add the new photo to the grid
-    console.log("New photo:", { image, gratitudeText });
-    onOpenChange(false);
+    if (!image || !gratitudeText) return;
+
+    // @ts-ignore - Using window.addPhoto from PhotoGrid
+    if (typeof window.addPhoto === 'function') {
+      window.addPhoto({
+        imageUrl: previewUrl,
+        gratitudeText: gratitudeText,
+      });
+
+      toast({
+        title: "تمت الإضافة بنجاح",
+        description: "تمت إضافة الصورة الجديدة إلى المعرض",
+      });
+
+      // Reset form
+      setImage(null);
+      setPreviewUrl("");
+      setGratitudeText("");
+      onOpenChange(false);
+    }
   };
 
   return (
