@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useState } from "react";
+import { ImagePlus } from "lucide-react";
 
 interface CreateNewDialogProps {
   open: boolean;
@@ -11,13 +12,24 @@ interface CreateNewDialogProps {
 }
 
 const CreateNewDialog = ({ open, onOpenChange }: CreateNewDialogProps) => {
-  const [imageUrl, setImageUrl] = useState("");
+  const [image, setImage] = useState<File | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string>("");
   const [gratitudeText, setGratitudeText] = useState("");
+
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setImage(file);
+      // Create preview URL for the selected image
+      const url = URL.createObjectURL(file);
+      setPreviewUrl(url);
+    }
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     // TODO: Add the new photo to the grid
-    console.log("New photo:", { imageUrl, gratitudeText });
+    console.log("New photo:", { image, gratitudeText });
     onOpenChange(false);
   };
 
@@ -29,14 +41,33 @@ const CreateNewDialog = ({ open, onOpenChange }: CreateNewDialogProps) => {
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="imageUrl">رابط الصورة</Label>
-            <Input
-              id="imageUrl"
-              value={imageUrl}
-              onChange={(e) => setImageUrl(e.target.value)}
-              placeholder="أدخل رابط الصورة هنا"
-              required
-            />
+            <Label htmlFor="image">الصورة</Label>
+            <div className="flex flex-col items-center gap-4">
+              <Input
+                id="image"
+                type="file"
+                accept="image/*"
+                onChange={handleImageChange}
+                className="hidden"
+              />
+              <div 
+                className="w-full h-48 border-2 border-dashed border-gray-300 rounded-lg flex flex-col items-center justify-center cursor-pointer hover:border-gray-400 transition-colors"
+                onClick={() => document.getElementById('image')?.click()}
+              >
+                {previewUrl ? (
+                  <img 
+                    src={previewUrl} 
+                    alt="Preview" 
+                    className="w-full h-full object-contain rounded-lg"
+                  />
+                ) : (
+                  <>
+                    <ImagePlus className="w-10 h-10 text-gray-400" />
+                    <p className="mt-2 text-sm text-gray-500">اضغط لاختيار صورة</p>
+                  </>
+                )}
+              </div>
+            </div>
           </div>
           <div className="space-y-2">
             <Label htmlFor="gratitudeText">رسالة الامتنان</Label>
@@ -49,10 +80,19 @@ const CreateNewDialog = ({ open, onOpenChange }: CreateNewDialogProps) => {
             />
           </div>
           <div className="flex justify-end gap-3">
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+            <Button 
+              type="button" 
+              variant="outline" 
+              onClick={() => {
+                onOpenChange(false);
+                setPreviewUrl("");
+                setImage(null);
+                setGratitudeText("");
+              }}
+            >
               إلغاء
             </Button>
-            <Button type="submit">
+            <Button type="submit" disabled={!image}>
               حفظ
             </Button>
           </div>
