@@ -2,11 +2,14 @@
 import { Camera, Plus } from "lucide-react";
 import PhotoGrid from "@/components/PhotoGrid";
 import { Button } from "@/components/ui/button";
+import CreateNewDialog from "@/components/CreateNewDialog";
+import { useState } from "react";
 
 const Index = () => {
+  const [dialogOpen, setDialogOpen] = useState(false);
+
   const handleCreateNew = () => {
-    // TODO: Implement create new functionality
-    console.log("Create new clicked");
+    setDialogOpen(true);
   };
 
   return (
@@ -32,6 +35,7 @@ const Index = () => {
         </div>
 
         <PhotoGrid />
+        <CreateNewDialog open={dialogOpen} onOpenChange={setDialogOpen} />
       </main>
     </div>
   );
