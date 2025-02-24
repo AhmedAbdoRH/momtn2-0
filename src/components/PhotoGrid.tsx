@@ -17,41 +17,53 @@ const PhotoGrid = () => {
   }, []);
 
   const fetchPhotos = async () => {
-    const { data, error } = await supabase
-      .from('photos')
-      .select('*')
-      .order('created_at', { ascending: false });
+    try {
+      const { data, error } = await supabase
+        .from('photos')
+        .select('*')
+        .order('created_at', { ascending: false });
 
-    if (error) {
-      console.error('Error fetching photos:', error);
-      return;
+      if (error) {
+        console.error('Error fetching photos:', error);
+        return;
+      }
+
+      console.log('Fetched photos:', data); // للتحقق من البيانات المستردة
+      setPhotos(data || []);
+    } catch (error) {
+      console.error('Error in fetchPhotos:', error);
     }
-
-    setPhotos(data || []);
   };
 
   const addPhoto = async (imageUrl: string, gratitudeText: string) => {
-    const { data, error } = await supabase
-      .from('photos')
-      .insert([
-        {
-          image_url: imageUrl,
-          gratitude_text: gratitudeText,
-        }
-      ])
-      .select()
-      .single();
+    try {
+      console.log('Adding photo with URL:', imageUrl); // للتحقق من الـURL قبل الإضافة
+      
+      const { data, error } = await supabase
+        .from('photos')
+        .insert([
+          {
+            image_url: imageUrl,
+            gratitude_text: gratitudeText,
+          }
+        ])
+        .select()
+        .single();
 
-    if (error) {
-      console.error('Error adding photo:', error);
+      if (error) {
+        console.error('Error adding photo:', error);
+        return false;
+      }
+
+      setPhotos(prevPhotos => [data, ...prevPhotos]);
+      return true;
+    } catch (error) {
+      console.error('Error in addPhoto:', error);
       return false;
     }
-
-    setPhotos(prevPhotos => [data, ...prevPhotos]);
-    return true;
   };
 
-  // @ts-ignore - Adding to window for demo purposes
+  // إضافة وظيفة addPhoto إلى window للوصول إليها من CreateNewDialog
   window.addPhoto = async ({ imageUrl, gratitudeText }) => {
     return await addPhoto(imageUrl, gratitudeText);
   };
