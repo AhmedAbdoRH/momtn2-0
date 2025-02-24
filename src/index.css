@@ -1,4 +1,3 @@
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -33,6 +32,20 @@
 
   img {
     @apply select-none;
+  }
+}
+
+@layer utilities {
+  @keyframes gradientAnimation {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+  }
+
+  .animated-gradient {
+    background-size: 200% 200%;
+    background-image: linear-gradient(45deg, #ff9a9e, #fad0c4, #fad0c4, #ffdde1);
+    animation: gradientAnimation 6s ease infinite;
   }
 }
 
