@@ -43,17 +43,36 @@ const Index = () => {
 
 export default Index;
 
-/* إضافة تأثير تدرج متحرك دائم وقوي */
-<style>
-@keyframes gradientAnimation {
-  0% { background-position: 0% 50%; }
-  50% { background-position: 100% 50%; }
-  100% { background-position: 0% 50%; }
+/* إضافة تأثير تدرج متحرك دائم وقوي داخل Tailwind */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: linear-gradient(45deg, #1A1F2C, #2D1F3D, #3D1F2C, #ff535f);
+    --background-size: 400% 400%;
+  }
+
+  body {
+    @apply bg-background text-foreground antialiased;
+  }
+
+  img {
+    @apply select-none;
+  }
 }
 
-.animate-gradient {
-  background: linear-gradient(45deg, #1A1F2C, #2D1F3D, #3D1F2C, #ff535f);
-  background-size: 300% 300%;
-  animation: gradientAnimation 6s linear infinite;
+@layer utilities {
+  @keyframes gradientAnimation {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+  }
+
+  .animate-gradient {
+    background: var(--background);
+    background-size: var(--background-size);
+    animation: gradientAnimation 6s linear infinite;
+  }
 }
-</style>
