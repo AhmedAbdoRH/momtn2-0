@@ -1,5 +1,5 @@
 
-import { Camera, Plus } from "lucide-react";
+import { Plus } from "lucide-react";
 import PhotoGrid from "@/components/PhotoGrid";
 import { Button } from "@/components/ui/button";
 import CreateNewDialog from "@/components/CreateNewDialog";
@@ -13,15 +13,16 @@ const Index = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[#1A1F2C]">
+    <div className="min-h-screen bg-gradient-to-br from-[#1A1F2C] via-[#2D1F3D] to-[#3D1F2C]">
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <div className="text-center mb-16">
-          <div className="inline-flex items-center justify-center p-2 bg-pink-500/20 rounded-full mb-6 animate-float">
-            <Camera className="w-6 h-6 text-pink-200" />
+          <div className="inline-block mb-8 w-40 h-40 sm:w-48 sm:h-48">
+            <img 
+              src="/lovable-uploads/f39108e3-15cc-458c-bb92-7e6b18e100cc.png" 
+              alt="Logo"
+              className="w-full h-full object-contain animate-float"
+            />
           </div>
-          <h1 className="text-4xl sm:text-5xl font-bold tracking-tight text-white mb-4">
-            Photo Gallery
-          </h1>
           <p className="text-lg text-gray-300 max-w-2xl mx-auto mb-8">
             Share your favorite moments with the world
           </p>
@@ -42,4 +43,3 @@ const Index = () => {
 };
 
 export default Index;
-

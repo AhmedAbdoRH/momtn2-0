@@ -9,6 +9,12 @@ interface Photo {
   likes: number;
 }
 
+declare global {
+  interface Window {
+    addPhoto: (params: { imageUrl: string }) => Promise<boolean>;
+  }
+}
+
 const PhotoGrid = () => {
   const [photos, setPhotos] = useState<Photo[]>([]);
 
@@ -65,4 +71,3 @@ const PhotoGrid = () => {
 };
 
 export default PhotoGrid;
-
