@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { useState } from "react";
 import { ImagePlus } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 
 interface CreateNewDialogProps {
   open: boolean;
@@ -35,9 +36,25 @@ const CreateNewDialog = ({ open, onOpenChange }: CreateNewDialogProps) => {
     setIsSubmitting(true);
 
     try {
+      // Upload image to Supabase Storage
+      const fileExt = image.name.split('.').pop();
+      const filePath = `${crypto.randomUUID()}.${fileExt}`;
+      
+      const { error: uploadError, data } = await supabase.storage
+        .from('photos')
+        .upload(filePath, image);
+
+      if (uploadError) {
+        throw uploadError;
+      }
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('photos')
+        .getPublicUrl(filePath);
+
       // @ts-ignore - Using window.addPhoto from PhotoGrid
       const success = await window.addPhoto({
-        imageUrl: previewUrl,
+        imageUrl: publicUrl,
         gratitudeText: gratitudeText,
       });
 
