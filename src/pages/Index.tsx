@@ -47,12 +47,14 @@ export default Index;
 <style>
 @keyframes gradientAnimation {
   0% { background-position: 0% 50%; }
+  25% { background-position: 50% 100%; }
   50% { background-position: 100% 50%; }
+  75% { background-position: 50% 0%; }
   100% { background-position: 0% 50%; }
 }
 
 .animate-gradient {
-  background-size: 200% 200%;
-  animation: gradientAnimation 10s ease infinite;
+  background-size: 300% 300%;
+  animation: gradientAnimation 5s linear infinite;
 }
 </style>
