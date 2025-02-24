@@ -12,7 +12,7 @@ const Index = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#1A1F2C] via-[#2D1F3D] to-[#3D1F2C] transition-all duration-[4000ms]">
+    <div className="min-h-screen bg-gradient-to-br from-[#1A1F2C] via-[#2D1F3D] to-[#3D1F2C] animate-gradient">
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <div className="text-center mb-16">
           <div className="inline-block mb-8 w-40 h-40 sm:w-48 sm:h-48">
@@ -42,3 +42,17 @@ const Index = () => {
 };
 
 export default Index;
+
+/* إضافة تأثير تدرج متحرك دائم */
+<style>
+@keyframes gradientAnimation {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+.animate-gradient {
+  background-size: 200% 200%;
+  animation: gradientAnimation 10s ease infinite;
+}
+</style>
