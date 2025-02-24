@@ -1,46 +1,69 @@
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import PhotoCard from "./PhotoCard";
+import { supabase } from "@/integrations/supabase/client";
 
 interface Photo {
-  imageUrl: string;
-  gratitudeText: string;
+  id: string;
+  image_url: string;
+  gratitude_text: string;
 }
 
-const initialPhotos = [
-  {
-    imageUrl: "https://images.unsplash.com/photo-1581091226825-a6a2a5aee158",
-    gratitudeText: "Grateful for moments of focus and creativity in my workspace",
-  },
-  {
-    imageUrl: "https://images.unsplash.com/photo-1581090464777-f3220bbe1b8b",
-    gratitudeText: "Finding inspiration in the smallest things",
-  },
-  {
-    imageUrl: "https://images.unsplash.com/photo-1501854140801-50d01698950b",
-    gratitudeText: "Nature's beauty reminds me to stay grateful",
-  },
-  {
-    imageUrl: "https://images.unsplash.com/photo-1721322800607-8c38375eef04",
-    gratitudeText: "Thankful for the comfort of home",
-  },
-];
-
 const PhotoGrid = () => {
-  const [photos, setPhotos] = useState<Photo[]>(initialPhotos);
+  const [photos, setPhotos] = useState<Photo[]>([]);
 
-  // Add this function to expose it to parent components
-  const addPhoto = (newPhoto: Photo) => {
-    setPhotos(prevPhotos => [newPhoto, ...prevPhotos]);
+  useEffect(() => {
+    fetchPhotos();
+  }, []);
+
+  const fetchPhotos = async () => {
+    const { data, error } = await supabase
+      .from('photos')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.error('Error fetching photos:', error);
+      return;
+    }
+
+    setPhotos(data || []);
+  };
+
+  const addPhoto = async (imageUrl: string, gratitudeText: string) => {
+    const { data, error } = await supabase
+      .from('photos')
+      .insert([
+        {
+          image_url: imageUrl,
+          gratitude_text: gratitudeText,
+        }
+      ])
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Error adding photo:', error);
+      return false;
+    }
+
+    setPhotos(prevPhotos => [data, ...prevPhotos]);
+    return true;
   };
 
   // @ts-ignore - Adding to window for demo purposes
-  window.addPhoto = addPhoto;
+  window.addPhoto = async ({ imageUrl, gratitudeText }) => {
+    return await addPhoto(imageUrl, gratitudeText);
+  };
 
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 p-6">
-      {photos.map((photo, index) => (
-        <PhotoCard key={index} {...photo} />
+      {photos.map((photo) => (
+        <PhotoCard 
+          key={photo.id} 
+          imageUrl={photo.image_url} 
+          gratitudeText={photo.gratitude_text} 
+        />
       ))}
     </div>
   );

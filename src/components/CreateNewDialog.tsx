@@ -16,6 +16,7 @@ const CreateNewDialog = ({ open, onOpenChange }: CreateNewDialogProps) => {
   const [image, setImage] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string>("");
   const [gratitudeText, setGratitudeText] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -27,27 +28,46 @@ const CreateNewDialog = ({ open, onOpenChange }: CreateNewDialogProps) => {
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!image || !gratitudeText) return;
+    if (!image || !gratitudeText || isSubmitting) return;
 
-    // @ts-ignore - Using window.addPhoto from PhotoGrid
-    if (typeof window.addPhoto === 'function') {
-      window.addPhoto({
+    setIsSubmitting(true);
+
+    try {
+      // @ts-ignore - Using window.addPhoto from PhotoGrid
+      const success = await window.addPhoto({
         imageUrl: previewUrl,
         gratitudeText: gratitudeText,
       });
 
-      toast({
-        title: "تمت الإضافة بنجاح",
-        description: "تمت إضافة الصورة الجديدة إلى المعرض",
-      });
+      if (success) {
+        toast({
+          title: "تمت الإضافة بنجاح",
+          description: "تمت إضافة الصورة الجديدة إلى المعرض",
+        });
 
-      // Reset form
-      setImage(null);
-      setPreviewUrl("");
-      setGratitudeText("");
-      onOpenChange(false);
+        // Reset form
+        setImage(null);
+        setPreviewUrl("");
+        setGratitudeText("");
+        onOpenChange(false);
+      } else {
+        toast({
+          title: "حدث خطأ",
+          description: "لم نتمكن من إضافة الصورة. يرجى المحاولة مرة أخرى.",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error('Error submitting photo:', error);
+      toast({
+        title: "حدث خطأ",
+        description: "لم نتمكن من إضافة الصورة. يرجى المحاولة مرة أخرى.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -110,8 +130,8 @@ const CreateNewDialog = ({ open, onOpenChange }: CreateNewDialogProps) => {
             >
               إلغاء
             </Button>
-            <Button type="submit" disabled={!image}>
-              حفظ
+            <Button type="submit" disabled={!image || isSubmitting}>
+              {isSubmitting ? "جاري الحفظ..." : "حفظ"}
             </Button>
           </div>
         </form>
