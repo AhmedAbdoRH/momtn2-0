@@ -56,6 +56,6 @@ export default Index;
 
 .animate-gradient {
   background-size: 400% 400%;
-  animation: gradientAnimation 3s ease-in-out infinite;
+  animation: gradientAnimation 1s ease-in-out infinite;
 }
 </style>
