@@ -1,4 +1,3 @@
-
 import { Plus } from "lucide-react";
 import PhotoGrid from "@/components/PhotoGrid";
 import { Button } from "@/components/ui/button";
@@ -13,7 +12,7 @@ const Index = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#1A1F2C] via-[#2D1F3D] to-[#3D1F2C]">
+    <div className="min-h-screen bg-gradient-to-br from-[#1A1F2C] via-[#2D1F3D] to-[#3D1F2C] transition-all duration-[4000ms]">
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <div className="text-center mb-16">
           <div className="inline-block mb-8 w-40 h-40 sm:w-48 sm:h-48">
