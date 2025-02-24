@@ -30,7 +30,7 @@ const Index = () => {
             className="bg-[#ff535f] hover:bg-[#e04a56] text-white"
           >
             <Plus className="w-5 h-5 mr-2" />
-            إضافة امتنان جديد
+             امتنان جديد
           </Button>
         </div>
 
