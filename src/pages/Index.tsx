@@ -43,18 +43,19 @@ const Index = () => {
 
 export default Index;
 
-/* إضافة تأثير تدرج متحرك دائم */
+/* إضافة تأثير تدرج متحرك دائم وقوي */
 <style>
 @keyframes gradientAnimation {
   0% { background-position: 0% 50%; }
-  25% { background-position: 50% 100%; }
-  50% { background-position: 100% 50%; }
-  75% { background-position: 50% 0%; }
+  20% { background-position: 25% 75%; }
+  40% { background-position: 50% 100%; }
+  60% { background-position: 75% 50%; }
+  80% { background-position: 100% 25%; }
   100% { background-position: 0% 50%; }
 }
 
 .animate-gradient {
-  background-size: 300% 300%;
-  animation: gradientAnimation 5s linear infinite;
+  background-size: 400% 400%;
+  animation: gradientAnimation 3s ease-in-out infinite;
 }
 </style>
