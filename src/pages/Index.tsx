@@ -30,7 +30,7 @@ const Index = () => {
             className="bg-[#ff535f] hover:bg-[#e04a56] text-white"
           >
             <Plus className="w-5 h-5 mr-2" />
-            إضافة صورة جديدة
+            إضافة امتنان جديد
           </Button>
         </div>
 
@@ -42,19 +42,3 @@ const Index = () => {
 };
 
 export default Index;
-
-/* إضافة تأثير تدرج متحرك دائم */
-<style>
-@keyframes gradientAnimation {
-  0% { background-position: 0% 50%; }
-  25% { background-position: 50% 100%; }
-  50% { background-position: 100% 50%; }
-  75% { background-position: 50% 0%; }
-  100% { background-position: 0% 50%; }
-}
-
-.animate-gradient {
-  background-size: 300% 300%;
-  animation: gradientAnimation 5s linear infinite;
-}
-</style>
