@@ -12,7 +12,7 @@ const Index = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#1A1F2C] via-[#2D1F3D] to-[#3D1F2C] animate-gradient">
+    <div className="min-h-screen animate-gradient">
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <div className="text-center mb-16">
           <div className="inline-block mb-8 w-40 h-40 sm:w-48 sm:h-48">
@@ -47,15 +47,13 @@ export default Index;
 <style>
 @keyframes gradientAnimation {
   0% { background-position: 0% 50%; }
-  20% { background-position: 25% 75%; }
-  40% { background-position: 50% 100%; }
-  60% { background-position: 75% 50%; }
-  80% { background-position: 100% 25%; }
+  50% { background-position: 100% 50%; }
   100% { background-position: 0% 50%; }
 }
 
 .animate-gradient {
-  background-size: 400% 400%;
-  animation: gradientAnimation 1s ease-in-out infinite;
+  background: linear-gradient(45deg, #1A1F2C, #2D1F3D, #3D1F2C, #ff535f);
+  background-size: 300% 300%;
+  animation: gradientAnimation 6s linear infinite;
 }
 </style>
