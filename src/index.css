@@ -1,3 +1,4 @@
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -35,21 +36,6 @@
   }
 }
 
-@layer utilities {
-  @keyframes gradientAnimation {
-    0% { background-position: 0% 50%; }
-    50% { background-position: 100% 50%; }
-    100% { background-position: 0% 50%; }
-  }
-
-  .animated-gradient {
-    background-size: 200% 200%;
-    background-image: linear-gradient(180deg, #fad0c4, #fad0c4, #ffdde1#, ff9a9e,);
-    animation: gradientAnimation 6s ease infinite;
-  }
-}
-
 .glass-effect {
   @apply backdrop-blur-lg bg-white/10;
 }
-
