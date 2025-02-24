@@ -12,21 +12,21 @@ export type Database = {
       photos: {
         Row: {
           created_at: string
-          gratitude_text: string
           id: string
           image_url: string
+          likes: number | null
         }
         Insert: {
           created_at?: string
-          gratitude_text: string
           id?: string
           image_url: string
+          likes?: number | null
         }
         Update: {
           created_at?: string
-          gratitude_text?: string
           id?: string
           image_url?: string
+          likes?: number | null
         }
         Relationships: []
       }

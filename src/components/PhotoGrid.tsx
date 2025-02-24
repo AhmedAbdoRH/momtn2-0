@@ -1,12 +1,12 @@
 
-import { useEffect, useState } from "react";
+import { useState, useEffect } from "react";
 import PhotoCard from "./PhotoCard";
 import { supabase } from "@/integrations/supabase/client";
 
 interface Photo {
   id: string;
   image_url: string;
-  gratitude_text: string;
+  likes: number;
 }
 
 const PhotoGrid = () => {
@@ -17,64 +17,47 @@ const PhotoGrid = () => {
   }, []);
 
   const fetchPhotos = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('photos')
-        .select('*')
-        .order('created_at', { ascending: false });
+    const { data, error } = await supabase
+      .from('photos')
+      .select('*')
+      .order('created_at', { ascending: false });
 
-      if (error) {
-        console.error('Error fetching photos:', error);
-        return;
-      }
-
-      console.log('Fetched photos:', data); // للتحقق من البيانات المستردة
-      setPhotos(data || []);
-    } catch (error) {
-      console.error('Error in fetchPhotos:', error);
+    if (error) {
+      console.error('Error fetching photos:', error);
+      return;
     }
+
+    setPhotos(data || []);
   };
 
-  const addPhoto = async (imageUrl: string, gratitudeText: string) => {
-    try {
-      console.log('Adding photo with URL:', imageUrl); // للتحقق من الـURL قبل الإضافة
-      
-      const { data, error } = await supabase
-        .from('photos')
-        .insert([
-          {
-            image_url: imageUrl,
-            gratitude_text: gratitudeText,
-          }
-        ])
-        .select()
-        .single();
+  const addPhoto = async (imageUrl: string) => {
+    const { data, error } = await supabase
+      .from('photos')
+      .insert([{ image_url: imageUrl }])
+      .select()
+      .single();
 
-      if (error) {
-        console.error('Error adding photo:', error);
-        return false;
-      }
-
-      setPhotos(prevPhotos => [data, ...prevPhotos]);
-      return true;
-    } catch (error) {
-      console.error('Error in addPhoto:', error);
+    if (error) {
+      console.error('Error adding photo:', error);
       return false;
     }
+
+    setPhotos(prevPhotos => [data, ...prevPhotos]);
+    return true;
   };
 
-  // إضافة وظيفة addPhoto إلى window للوصول إليها من CreateNewDialog
-  window.addPhoto = async ({ imageUrl, gratitudeText }) => {
-    return await addPhoto(imageUrl, gratitudeText);
+  // Add to window for CreateNewDialog access
+  window.addPhoto = async ({ imageUrl }) => {
+    return await addPhoto(imageUrl);
   };
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 p-6">
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
       {photos.map((photo) => (
         <PhotoCard 
           key={photo.id} 
           imageUrl={photo.image_url} 
-          gratitudeText={photo.gratitude_text} 
+          likes={photo.likes} 
         />
       ))}
     </div>
@@ -82,3 +65,4 @@ const PhotoGrid = () => {
 };
 
 export default PhotoGrid;
+

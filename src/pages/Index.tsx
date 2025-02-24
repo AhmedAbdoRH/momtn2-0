@@ -13,24 +13,24 @@ const Index = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-white to-soft-gray">
+    <div className="min-h-screen bg-[#1A1F2C]">
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <div className="text-center mb-16">
-          <div className="inline-flex items-center justify-center p-2 bg-soft-pink rounded-full mb-6 animate-float">
-            <Camera className="w-6 h-6 text-white" />
+          <div className="inline-flex items-center justify-center p-2 bg-pink-500/20 rounded-full mb-6 animate-float">
+            <Camera className="w-6 h-6 text-pink-200" />
           </div>
-          <h1 className="text-4xl sm:text-5xl font-bold tracking-tight text-gray-900 mb-4">
-            Photo Gratitude
+          <h1 className="text-4xl sm:text-5xl font-bold tracking-tight text-white mb-4">
+            Photo Gallery
           </h1>
-          <p className="text-lg text-gray-600 max-w-2xl mx-auto mb-8">
-            Capture and celebrate moments of gratitude through beautiful photographs. Share what makes your heart full.
+          <p className="text-lg text-gray-300 max-w-2xl mx-auto mb-8">
+            Share your favorite moments with the world
           </p>
           <Button 
             onClick={handleCreateNew}
-            className="bg-soft-pink hover:bg-soft-pink/90 text-white"
+            className="bg-pink-500 hover:bg-pink-600 text-white"
           >
             <Plus className="w-5 h-5 mr-2" />
-            إنشاء جديد
+            إضافة صورة جديدة
           </Button>
         </div>
 
@@ -42,3 +42,4 @@ const Index = () => {
 };
 
 export default Index;
+
