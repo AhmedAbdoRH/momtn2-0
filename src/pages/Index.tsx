@@ -24,7 +24,7 @@ const Index = () => {
             />
           </div>
           <p className="text-lg text-gray-300 max-w-2xl mx-auto mb-8">
-            Share your favorite moments with the world
+             ﴾ يَا أَيُّهَا النَّاسُ اذْكُرُوا نِعْمَتَ اللَّهِ عَلَيْكُمْ ﴿ 
           </p>
           <Button 
             onClick={handleCreateNew}
