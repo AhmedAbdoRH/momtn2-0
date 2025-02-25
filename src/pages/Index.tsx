@@ -1,3 +1,4 @@
+
 import { Plus } from "lucide-react";
 import PhotoGrid from "@/components/PhotoGrid";
 import { Button } from "@/components/ui/button";
@@ -25,17 +26,18 @@ const Index = () => {
           <p className="text-lg text-gray-300 max-w-2xl mx-auto mb-8">
              ﴾ يَا أَيُّهَا النَّاسُ اذْكُرُوا نِعْمَتَ اللَّهِ عَلَيْكُمْ ﴿ 
           </p>
-          <Button 
-            onClick={handleCreateNew}
-            className="bg-[#ff535f] hover:bg-[#e04a56] text-white"
-          >
-            <Plus className="w-5 h-5 mr-2" />
-             امتنان جديد أوي
-          </Button>
         </div>
 
         <PhotoGrid />
         <CreateNewDialog open={dialogOpen} onOpenChange={setDialogOpen} />
+
+        {/* Floating Action Button */}
+        <Button
+          onClick={handleCreateNew}
+          className="fixed bottom-6 left-6 w-14 h-14 rounded-full bg-[#ff535f] hover:bg-[#e04a56] text-white shadow-lg"
+        >
+          <Plus className="w-6 h-6" />
+        </Button>
       </main>
     </div>
   );
