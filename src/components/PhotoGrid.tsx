@@ -9,8 +9,9 @@ interface Photo {
   id: string;
   image_url: string;
   likes: number;
-  caption?: string;
-  hashtags?: string[];
+  caption?: string | null;
+  hashtags?: string[] | null;
+  created_at: string;
 }
 
 declare global {
@@ -55,7 +56,12 @@ const PhotoGrid = () => {
   const addPhoto = async (imageUrl: string) => {
     const { data, error } = await supabase
       .from('photos')
-      .insert([{ image_url: imageUrl }])
+      .insert([{ 
+        image_url: imageUrl,
+        likes: 0,
+        caption: null,
+        hashtags: []
+      }])
       .select()
       .single();
 
@@ -187,9 +193,9 @@ const PhotoGrid = () => {
                     >
                       <PhotoCard 
                         imageUrl={photo.image_url}
-                        likes={photo.likes}
-                        caption={photo.caption}
-                        hashtags={photo.hashtags}
+                        likes={photo.likes || 0}
+                        caption={photo.caption || ''}
+                        hashtags={photo.hashtags || []}
                         dragHandleProps={provided.dragHandleProps}
                         onDelete={() => handleDelete(photo.id, photo.image_url)}
                         onUpdateCaption={(caption, hashtags) => 

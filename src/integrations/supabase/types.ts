@@ -11,19 +11,25 @@ export type Database = {
     Tables: {
       photos: {
         Row: {
+          caption: string | null
           created_at: string
+          hashtags: string[] | null
           id: string
           image_url: string
           likes: number | null
         }
         Insert: {
+          caption?: string | null
           created_at?: string
+          hashtags?: string[] | null
           id?: string
           image_url: string
           likes?: number | null
         }
         Update: {
+          caption?: string | null
           created_at?: string
+          hashtags?: string[] | null
           id?: string
           image_url?: string
           likes?: number | null
