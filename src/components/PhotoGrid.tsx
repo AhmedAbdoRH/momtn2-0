@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
@@ -35,10 +34,44 @@ const PhotoGrid = () => {
     // Update unique hashtags whenever photos change
     const tags = new Set<string>();
     photos.forEach(photo => {
-      photo.hashtags?.forEach(tag => tags.add(tag));
+      if (photo.hashtags) {
+        photo.hashtags.forEach(tag => {
+          if (tag.trim()) { // Only add non-empty hashtags
+            tags.add(tag.trim());
+          }
+        });
+      }
     });
     setAllHashtags(tags);
+
+    // Update sidebar with new hashtags
+    const hashtagsContainer = document.getElementById('hashtags-container');
+    if (hashtagsContainer) {
+      renderHashtags();
+    }
   }, [photos]);
+
+  const renderHashtags = () => {
+    const hashtagsContainer = document.getElementById('hashtags-container');
+    if (!hashtagsContainer) return null;
+
+    return createPortal(
+      Array.from(allHashtags).map(tag => (
+        <button
+          key={tag}
+          onClick={() => setSelectedHashtag(tag === selectedHashtag ? null : tag)}
+          className={`block w-full text-right px-3 py-2 rounded-lg transition-colors ${
+            tag === selectedHashtag
+              ? 'bg-pink-500/20 text-pink-200'
+              : 'text-gray-300 hover:bg-gray-700/50'
+          }`}
+        >
+          {tag}
+        </button>
+      )),
+      hashtagsContainer
+    );
+  };
 
   const fetchPhotos = async () => {
     const { data, error } = await supabase
@@ -119,9 +152,12 @@ const PhotoGrid = () => {
   };
 
   const handleUpdateCaption = async (id: string, caption: string, hashtags: string[]) => {
+    // Clean hashtags before saving
+    const cleanedHashtags = hashtags.map(tag => tag.trim()).filter(tag => tag);
+
     const { error } = await supabase
       .from('photos')
-      .update({ caption, hashtags })
+      .update({ caption, hashtags: cleanedHashtags })
       .eq('id', id);
 
     if (error) {
@@ -135,7 +171,7 @@ const PhotoGrid = () => {
 
     setPhotos(prevPhotos => 
       prevPhotos.map(photo => 
-        photo.id === id ? { ...photo, caption, hashtags } : photo
+        photo.id === id ? { ...photo, caption, hashtags: cleanedHashtags } : photo
       )
     );
 
@@ -155,26 +191,8 @@ const PhotoGrid = () => {
     : photos;
 
   return (
-    <div className="flex gap-6">
-      {/* Hashtags Sidebar */}
-      <div className="hidden lg:block w-64 bg-gray-800/50 backdrop-blur-sm p-4 rounded-xl h-fit sticky top-6">
-        <h3 className="text-white font-semibold mb-4">الهاشتاجات</h3>
-        <div className="space-y-2">
-          {Array.from(allHashtags).map(tag => (
-            <button
-              key={tag}
-              onClick={() => setSelectedHashtag(tag === selectedHashtag ? null : tag)}
-              className={`block w-full text-right px-3 py-2 rounded-lg transition-colors ${
-                tag === selectedHashtag
-                  ? 'bg-pink-500/20 text-pink-200'
-                  : 'text-gray-300 hover:bg-gray-700/50'
-              }`}
-            >
-              {tag}
-            </button>
-          ))}
-        </div>
-      </div>
+    <div className="w-full">
+      {renderHashtags()}
 
       {/* Photos Grid */}
       <DragDropContext onDragEnd={handleDragEnd}>
@@ -183,7 +201,7 @@ const PhotoGrid = () => {
             <div 
               {...provided.droppableProps}
               ref={provided.innerRef}
-              className="flex-1 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6"
+              className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6"
             >
               {filteredPhotos.map((photo, index) => (
                 <Draggable key={photo.id} draggableId={photo.id} index={index}>
