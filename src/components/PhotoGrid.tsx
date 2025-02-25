@@ -1,5 +1,6 @@
 
 import { useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
 import PhotoCard from "./PhotoCard";
 import { supabase } from "@/integrations/supabase/client";

@@ -1,5 +1,5 @@
 
-import { Plus } from "lucide-react";
+import { Plus, Menu } from "lucide-react";
 import PhotoGrid from "@/components/PhotoGrid";
 import { Button } from "@/components/ui/button";
 import CreateNewDialog from "@/components/CreateNewDialog";
@@ -7,6 +7,7 @@ import { useState } from "react";
 
 const Index = () => {
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const handleCreateNew = () => {
     setDialogOpen(true);
@@ -14,6 +15,30 @@ const Index = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#2D1F3D] via-[#1A1F2C] to-[#3D1F2C] animate-gradient">
+      {/* Sidebar Toggle Button */}
+      <Button
+        variant="ghost"
+        size="icon"
+        onClick={() => setSidebarOpen(!sidebarOpen)}
+        className="fixed top-4 right-4 z-50 bg-white/10 backdrop-blur-lg hover:bg-white/20 text-white"
+      >
+        <Menu className="h-5 w-5" />
+      </Button>
+
+      {/* Sidebar */}
+      <div
+        className={`fixed top-0 right-0 h-full bg-gray-800/90 backdrop-blur-md w-72 transform transition-transform duration-300 ease-in-out z-40 
+          ${sidebarOpen ? 'translate-x-0' : 'translate-x-full'}`}
+      >
+        <div className="p-6 pt-20">
+          <h3 className="text-white font-semibold mb-4 text-right">الهاشتاجات</h3>
+          <div className="space-y-2" id="hashtags-container">
+            {/* Hashtags will be rendered here by PhotoGrid component */}
+          </div>
+        </div>
+      </div>
+
+      {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <div className="text-center mb-16">
           <div className="inline-block mb-8 w-40 h-40 sm:w-48 sm:h-48">
@@ -24,7 +49,7 @@ const Index = () => {
             />
           </div>
           <p className="text-lg text-gray-300 max-w-2xl mx-auto mb-8">
-             ﴾ يَا أَيُّهَا النَّاسُ اذْكُرُوا نِعْمَتَ اللَّهِ عَلَيْكُمْ ﴿ 
+            ﴾ يَا أَيُّهَا النَّاسُ اذْكُرُوا نِعْمَتَ اللَّهِ عَلَيْكُمْ ﴿ 
           </p>
         </div>
 
@@ -39,6 +64,14 @@ const Index = () => {
           <Plus className="w-6 h-6" />
         </Button>
       </main>
+
+      {/* Overlay */}
+      {sidebarOpen && (
+        <div
+          className="fixed inset-0 bg-black/20 backdrop-blur-sm z-30"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
     </div>
   );
 };
