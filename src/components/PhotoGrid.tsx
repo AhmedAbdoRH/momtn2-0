@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
@@ -36,19 +37,13 @@ const PhotoGrid = () => {
     photos.forEach(photo => {
       if (photo.hashtags) {
         photo.hashtags.forEach(tag => {
-          if (tag.trim()) { // Only add non-empty hashtags
+          if (tag.trim()) {
             tags.add(tag.trim());
           }
         });
       }
     });
     setAllHashtags(tags);
-
-    // Update sidebar with new hashtags
-    const hashtagsContainer = document.getElementById('hashtags-container');
-    if (hashtagsContainer) {
-      renderHashtags();
-    }
   }, [photos]);
 
   const renderHashtags = () => {
@@ -59,7 +54,10 @@ const PhotoGrid = () => {
       Array.from(allHashtags).map(tag => (
         <button
           key={tag}
-          onClick={() => setSelectedHashtag(tag === selectedHashtag ? null : tag)}
+          onClick={() => {
+            setSelectedHashtag(prevTag => tag === prevTag ? null : tag);
+            console.log('Selected hashtag:', tag); // للتأكد من تحديث الهاشتاج
+          }}
           className={`block w-full text-right px-3 py-2 rounded-lg transition-colors ${
             tag === selectedHashtag
               ? 'bg-pink-500/20 text-pink-200'
@@ -152,7 +150,6 @@ const PhotoGrid = () => {
   };
 
   const handleUpdateCaption = async (id: string, caption: string, hashtags: string[]) => {
-    // Clean hashtags before saving
     const cleanedHashtags = hashtags.map(tag => tag.trim()).filter(tag => tag);
 
     const { error } = await supabase
@@ -186,8 +183,11 @@ const PhotoGrid = () => {
     return await addPhoto(imageUrl);
   };
 
+  // تصفية الصور حسب الهاشتاج المحدد
   const filteredPhotos = selectedHashtag
-    ? photos.filter(photo => photo.hashtags?.includes(selectedHashtag))
+    ? photos.filter(photo => photo.hashtags?.some(tag => 
+        tag.trim() === selectedHashtag.trim()
+      ))
     : photos;
 
   return (
