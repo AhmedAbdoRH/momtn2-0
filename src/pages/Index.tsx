@@ -34,7 +34,7 @@ const Index = () => {
         {/* Floating Action Button */}
         <Button
           onClick={handleCreateNew}
-          className="fixed bottom-6 left-6 w-14 h-14 rounded-full bg-[#ff535f] hover:bg-[#e04a56] text-white shadow-lg"
+          className="fixed bottom-6 left-6 w-14 h-14 rounded-full bg-white/10 backdrop-blur-lg hover:bg-white/20 text-white shadow-lg border border-white/20"
         >
           <Plus className="w-6 h-6" />
         </Button>
