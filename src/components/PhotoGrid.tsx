@@ -1,10 +1,11 @@
-
 import { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
 import PhotoCard from "./PhotoCard";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { Plus } from "lucide-react";
+import { Button } from "./ui/button";
 
 interface Photo {
   id: string;
@@ -13,6 +14,7 @@ interface Photo {
   caption?: string | null;
   hashtags?: string[] | null;
   created_at: string;
+  order?: number;
 }
 
 declare global {
@@ -26,13 +28,13 @@ const PhotoGrid = () => {
   const { toast } = useToast();
   const [selectedHashtag, setSelectedHashtag] = useState<string | null>(null);
   const [allHashtags, setAllHashtags] = useState<Set<string>>(new Set());
+  const [sidebarVisible, setSidebarVisible] = useState(true);
 
   useEffect(() => {
     fetchPhotos();
   }, []);
 
   useEffect(() => {
-    // Update unique hashtags whenever photos change
     const tags = new Set<string>();
     photos.forEach(photo => {
       if (photo.hashtags) {
@@ -51,22 +53,35 @@ const PhotoGrid = () => {
     if (!hashtagsContainer) return null;
 
     return createPortal(
-      Array.from(allHashtags).map(tag => (
+      <>
         <button
-          key={tag}
           onClick={() => {
-            setSelectedHashtag(prevTag => tag === prevTag ? null : tag);
-            console.log('Selected hashtag:', tag); // للتأكد من تحديث الهاشتاج
+            setSelectedHashtag(null);
+            setSidebarVisible(false);
           }}
-          className={`block w-full text-right px-3 py-2 rounded-lg transition-colors ${
-            tag === selectedHashtag
-              ? 'bg-pink-500/20 text-pink-200'
-              : 'text-gray-300 hover:bg-gray-700/50'
-          }`}
+          className="block w-full text-right px-3 py-2 mb-4 rounded-lg transition-colors bg-white/10 text-white hover:bg-white/20"
         >
-          {tag}
+          إظهار الكل
         </button>
-      )),
+        <div className="flex flex-wrap gap-2 justify-end">
+          {Array.from(allHashtags).map(tag => (
+            <button
+              key={tag}
+              onClick={() => {
+                setSelectedHashtag(prevTag => tag === prevTag ? null : tag);
+                setSidebarVisible(false);
+              }}
+              className={`px-3 py-2 rounded-lg transition-colors ${
+                tag === selectedHashtag
+                  ? 'bg-pink-500/20 text-pink-200'
+                  : 'text-gray-300 hover:bg-gray-700/50'
+              }`}
+            >
+              {tag}
+            </button>
+          ))}
+        </div>
+      </>,
       hashtagsContainer
     );
   };
@@ -75,6 +90,7 @@ const PhotoGrid = () => {
     const { data, error } = await supabase
       .from('photos')
       .select('*')
+      .order('order', { ascending: true })
       .order('created_at', { ascending: false });
 
     if (error) {
@@ -83,6 +99,34 @@ const PhotoGrid = () => {
     }
 
     setPhotos(data || []);
+  };
+
+  const handleDragEnd = async (result: any) => {
+    if (!result.destination) return;
+
+    const items = Array.from(photos);
+    const [reorderedItem] = items.splice(result.source.index, 1);
+    items.splice(result.destination.index, 0, reorderedItem);
+
+    setPhotos(items);
+
+    const updates = items.map((photo, index) => ({
+      id: photo.id,
+      order: index
+    }));
+
+    const { error } = await supabase
+      .from('photos')
+      .upsert(updates, { onConflict: 'id' });
+
+    if (error) {
+      console.error('Error updating order:', error);
+      toast({
+        title: "خطأ في الترتيب",
+        description: "حدث خطأ أثناء حفظ الترتيب الجديد",
+        variant: "destructive",
+      });
+    }
   };
 
   const addPhoto = async (imageUrl: string) => {
@@ -104,16 +148,6 @@ const PhotoGrid = () => {
 
     setPhotos(prevPhotos => [data, ...prevPhotos]);
     return true;
-  };
-
-  const handleDragEnd = (result: any) => {
-    if (!result.destination) return;
-
-    const items = Array.from(photos);
-    const [reorderedItem] = items.splice(result.source.index, 1);
-    items.splice(result.destination.index, 0, reorderedItem);
-
-    setPhotos(items);
   };
 
   const handleDelete = async (id: string, imageUrl: string) => {
@@ -178,12 +212,13 @@ const PhotoGrid = () => {
     });
   };
 
-  // Add to window for CreateNewDialog access
-  window.addPhoto = async ({ imageUrl }) => {
-    return await addPhoto(imageUrl);
+  const handleCreateNew = () => {
+    const createNewDialog = document.getElementById('create-new-dialog');
+    if (createNewDialog) {
+      createNewDialog.click();
+    }
   };
 
-  // تصفية الصور حسب الهاشتاج المحدد
   const filteredPhotos = selectedHashtag
     ? photos.filter(photo => photo.hashtags?.some(tag => 
         tag.trim() === selectedHashtag.trim()
@@ -192,16 +227,31 @@ const PhotoGrid = () => {
 
   return (
     <div className="w-full">
+      <div className="mb-8 text-center">
+        <Button
+          onClick={handleCreateNew}
+          className="bg-red-500 hover:bg-red-600 text-white px-6 py-2 rounded-full transition-all duration-300 transform hover:scale-105"
+        >
+          <Plus className="w-5 h-5 mr-2" />
+          إضافة امتنان جديد
+        </Button>
+      </div>
+
+      {selectedHashtag && (
+        <h2 className="text-2xl font-semibold text-white/90 text-center mb-8 bg-white/5 backdrop-blur-sm py-3 rounded-lg">
+          {selectedHashtag}
+        </h2>
+      )}
+
       {renderHashtags()}
 
-      {/* Photos Grid */}
       <DragDropContext onDragEnd={handleDragEnd}>
         <Droppable droppableId="photos">
           {(provided) => (
             <div 
               {...provided.droppableProps}
               ref={provided.innerRef}
-              className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6"
+              className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8"
             >
               {filteredPhotos.map((photo, index) => (
                 <Draggable key={photo.id} draggableId={photo.id} index={index}>
@@ -209,18 +259,21 @@ const PhotoGrid = () => {
                     <div
                       ref={provided.innerRef}
                       {...provided.draggableProps}
+                      className="transform transition-all duration-300 hover:scale-[0.98]"
                     >
-                      <PhotoCard 
-                        imageUrl={photo.image_url}
-                        likes={photo.likes || 0}
-                        caption={photo.caption || ''}
-                        hashtags={photo.hashtags || []}
-                        dragHandleProps={provided.dragHandleProps}
-                        onDelete={() => handleDelete(photo.id, photo.image_url)}
-                        onUpdateCaption={(caption, hashtags) => 
-                          handleUpdateCaption(photo.id, caption, hashtags)
-                        }
-                      />
+                      <div className="bg-white/5 backdrop-blur-sm rounded-xl shadow-lg border border-white/10">
+                        <PhotoCard 
+                          imageUrl={photo.image_url}
+                          likes={photo.likes || 0}
+                          caption={photo.caption || ''}
+                          hashtags={photo.hashtags || []}
+                          dragHandleProps={provided.dragHandleProps}
+                          onDelete={() => handleDelete(photo.id, photo.image_url)}
+                          onUpdateCaption={(caption, hashtags) => 
+                            handleUpdateCaption(photo.id, caption, hashtags)
+                          }
+                        />
+                      </div>
                     </div>
                   )}
                 </Draggable>

@@ -1,6 +1,6 @@
 
-import { GripVertical, Heart, MessageCircle, Trash2 } from "lucide-react";
 import { useState } from "react";
+import { GripVertical, Heart, MessageCircle, Trash2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Dialog, DialogContent } from "./ui/dialog";
 
@@ -25,12 +25,14 @@ const PhotoCard = ({
 }: PhotoCardProps) => {
   const [isLoved, setIsLoved] = useState(false);
   const [likes, setLikes] = useState(initialLikes);
-  const [isHovered, setIsHovered] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [caption, setCaption] = useState(initialCaption);
   const [hashtags, setHashtags] = useState(initialHashtags);
+  const [isControlsVisible, setIsControlsVisible] = useState(false);
+  const [isHeartAnimating, setIsHeartAnimating] = useState(false);
 
   const handleLike = async () => {
+    setIsHeartAnimating(true);
     const newLikeCount = likes + (isLoved ? -1 : 1);
     setIsLoved(!isLoved);
     setLikes(newLikeCount);
@@ -45,6 +47,8 @@ const PhotoCard = ({
       setIsLoved(isLoved);
       setLikes(likes);
     }
+
+    setTimeout(() => setIsHeartAnimating(false), 1000);
   };
 
   const handleCaptionSubmit = async () => {
@@ -59,12 +63,15 @@ const PhotoCard = ({
     setHashtags(tags);
   };
 
+  const toggleControls = () => {
+    setIsControlsVisible(!isControlsVisible);
+  };
+
   return (
     <>
       <div 
-        className="relative group overflow-hidden rounded-xl bg-gray-800/50"
-        onMouseEnter={() => setIsHovered(true)}
-        onMouseLeave={() => setIsHovered(false)}
+        className="relative group overflow-hidden rounded-xl"
+        onClick={toggleControls}
       >
         <div className="relative aspect-square overflow-hidden">
           <img
@@ -73,24 +80,29 @@ const PhotoCard = ({
             className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
             loading="lazy"
           />
-          <div className="absolute inset-0 bg-gradient-to-b from-black/30 via-transparent to-black/50 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+          <div className={`absolute inset-0 bg-gradient-to-b from-black/30 via-transparent to-black/50 transition-opacity duration-300 ${
+            isControlsVisible ? 'opacity-100' : 'opacity-0'
+          }`} />
         </div>
         
         {/* Drag Handle */}
         <div 
           {...dragHandleProps}
-          className={`absolute top-2 right-2 p-2 rounded-full bg-black/50 backdrop-blur-sm transition-opacity duration-300 cursor-move ${
-            isHovered ? 'opacity-100' : 'opacity-0'
-          }`}
+          className={`absolute top-2 right-2 p-2 rounded-full bg-black/30 backdrop-blur-sm transition-opacity duration-300 cursor-move ${
+            isControlsVisible ? 'opacity-70' : 'opacity-0'
+          } hover:opacity-100`}
         >
           <GripVertical className="w-4 h-4 text-white" />
         </div>
 
         {/* Caption Button */}
         <button
-          onClick={() => setIsEditing(true)}
-          className={`absolute top-2 left-2 p-2 rounded-full bg-black/50 backdrop-blur-sm transition-opacity duration-300 hover:bg-white/20 ${
-            isHovered ? 'opacity-100' : 'opacity-0'
+          onClick={(e) => {
+            e.stopPropagation();
+            setIsEditing(true);
+          }}
+          className={`absolute top-2 left-2 p-2 rounded-full bg-black/30 backdrop-blur-sm transition-opacity duration-300 hover:opacity-100 ${
+            isControlsVisible ? 'opacity-70' : 'opacity-0'
           }`}
         >
           <MessageCircle className="w-4 h-4 text-white" />
@@ -98,10 +110,13 @@ const PhotoCard = ({
 
         {/* Delete Button */}
         <button
-          onClick={onDelete}
-          className={`absolute bottom-2 right-2 p-2 rounded-full bg-black/50 backdrop-blur-sm transition-opacity duration-300 hover:bg-red-500/50 ${
-            isHovered ? 'opacity-100' : 'opacity-0'
-          }`}
+          onClick={(e) => {
+            e.stopPropagation();
+            onDelete?.();
+          }}
+          className={`absolute bottom-2 right-2 p-2 rounded-full bg-black/30 backdrop-blur-sm transition-opacity duration-300 hover:bg-red-500/50 ${
+            isControlsVisible ? 'opacity-70' : 'opacity-0'
+          } hover:opacity-100`}
         >
           <Trash2 className="w-4 h-4 text-white" />
         </button>
@@ -109,23 +124,37 @@ const PhotoCard = ({
         {/* Heart Button */}
         <div className="absolute bottom-2 left-2">
           <button
-            onClick={handleLike}
+            onClick={(e) => {
+              e.stopPropagation();
+              handleLike();
+            }}
             className="flex items-center gap-2 text-white/90 hover:text-white transition-colors p-2"
           >
-            <Heart
-              className={`w-6 h-6 transition-all duration-700 transform ${
-                isLoved ? "fill-pink-500 text-pink-500 scale-125" : "hover:scale-110"
-              } ${isLoved ? "animate-heartBeat" : ""}`}
-            />
-            <span className="text-sm font-medium bg-black/50 px-2 py-1 rounded-full backdrop-blur-sm">
+            <div className="relative">
+              <Heart
+                className={`w-6 h-6 transition-all duration-300 transform ${
+                  isLoved ? "fill-red-500 text-red-500 scale-125" : "hover:scale-110"
+                }`}
+              />
+              {isHeartAnimating && (
+                <div className="absolute inset-0 animate-ping">
+                  <Heart className="w-6 h-6 text-red-500/30" />
+                </div>
+              )}
+            </div>
+            <span className={`text-sm font-medium bg-black/30 backdrop-blur-sm px-2 py-1 rounded-full transition-opacity duration-300 ${
+              isControlsVisible ? 'opacity-70' : 'opacity-0'
+            }`}>
               {likes}
             </span>
           </button>
         </div>
 
         {/* Caption and Hashtags Display */}
-        {(caption || hashtags.length > 0) && isHovered && (
-          <div className="absolute left-2 right-2 bottom-14 p-2 bg-black/50 backdrop-blur-sm rounded-lg transition-opacity duration-300">
+        {(caption || hashtags.length > 0) && (
+          <div className={`absolute left-2 right-2 bottom-14 p-2 bg-black/30 backdrop-blur-sm rounded-lg transition-opacity duration-300 ${
+            isControlsVisible ? 'opacity-70' : 'opacity-0'
+          }`}>
             {caption && <p className="text-white text-sm mb-1">{caption}</p>}
             {hashtags.length > 0 && (
               <div className="flex flex-wrap gap-1">
@@ -141,14 +170,14 @@ const PhotoCard = ({
       </div>
 
       <Dialog open={isEditing} onOpenChange={setIsEditing}>
-        <DialogContent className="bg-gray-900 text-white">
+        <DialogContent className="bg-gray-900/95 backdrop-blur-md text-white border border-white/10">
           <div className="space-y-4">
             <div>
               <label className="block text-sm font-medium mb-2">التعليق</label>
               <textarea
                 value={caption}
                 onChange={(e) => setCaption(e.target.value)}
-                className="w-full px-3 py-2 bg-gray-800 rounded-md text-white"
+                className="w-full px-3 py-2 bg-white/10 backdrop-blur-sm rounded-md text-white border border-white/10"
                 rows={3}
                 placeholder="أضف تعليقاً..."
               />
@@ -159,20 +188,20 @@ const PhotoCard = ({
                 type="text"
                 value={hashtags.join(' ')}
                 onChange={(e) => handleHashtagsChange(e.target.value)}
-                className="w-full px-3 py-2 bg-gray-800 rounded-md text-white"
+                className="w-full px-3 py-2 bg-white/10 backdrop-blur-sm rounded-md text-white border border-white/10"
                 placeholder="#رمضان #عبادة"
               />
             </div>
             <div className="flex justify-end gap-2">
               <button
                 onClick={() => setIsEditing(false)}
-                className="px-4 py-2 rounded-md bg-gray-800 text-white hover:bg-gray-700 transition-colors"
+                className="px-4 py-2 rounded-md bg-white/10 backdrop-blur-sm text-white hover:bg-white/20 transition-colors"
               >
                 إلغاء
               </button>
               <button
                 onClick={handleCaptionSubmit}
-                className="px-4 py-2 rounded-md bg-pink-500 text-white hover:bg-pink-600 transition-colors"
+                className="px-4 py-2 rounded-md bg-pink-500/80 backdrop-blur-sm text-white hover:bg-pink-600/80 transition-colors"
               >
                 حفظ
               </button>
