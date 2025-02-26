@@ -112,12 +112,19 @@ const PhotoGrid = () => {
 
     const updates = items.map((photo, index) => ({
       id: photo.id,
+      image_url: photo.image_url,
+      likes: photo.likes,
+      caption: photo.caption,
+      hashtags: photo.hashtags,
       order: index
     }));
 
     const { error } = await supabase
       .from('photos')
-      .upsert(updates, { onConflict: 'id' });
+      .upsert(updates, { 
+        onConflict: 'id',
+        defaultToNull: false 
+      });
 
     if (error) {
       console.error('Error updating order:', error);
