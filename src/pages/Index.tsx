@@ -27,39 +27,49 @@ const Index = () => {
 
       {/* Sidebar */}
       <div
-        className={`fixed top-0 right-0 h-full bg-gray-800/90 backdrop-blur-md w-72 transform transition-transform duration-300 ease-in-out z-40 
+        className={`fixed top-0 right-0 h-full bg-gray-800/90 backdrop-blur-md w-72 transform transition-transform duration-300 ease-in-out z-40 flex flex-col
           ${sidebarOpen ? 'translate-x-0' : 'translate-x-full'}`}
       >
-        <div className="p-6 pt-20">
+        <div className="flex-1 p-6 pt-20">
           <h3 className="text-white font-semibold mb-4 text-right">الهاشتاجات</h3>
-          <div className="space-y-2" id="hashtags-container">
+          <div className="space-y-2 flex flex-col items-end" id="hashtags-container">
             {/* Hashtags will be rendered here by PhotoGrid component */}
           </div>
+        </div>
+        <div className="p-4 text-center text-white/50 text-sm border-t border-white/10 backdrop-blur-sm">
+          الإصدار 0.9
         </div>
       </div>
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <div className="text-center mb-16">
-          <div className="inline-block mb-8 w-40 h-40 sm:w-48 sm:h-48">
+        <div className="text-center mb-8">
+          <div className="inline-block mb-6 w-40 h-40 sm:w-48 sm:h-48">
             <img 
               src="/lovable-uploads/f39108e3-15cc-458c-bb92-7e6b18e100cc.png" 
               alt="Logo"
               className="w-full h-full object-contain animate-float"
             />
           </div>
-          <p className="text-lg text-gray-300 max-w-2xl mx-auto mb-8">
+          <p className="text-lg text-gray-300 max-w-2xl mx-auto mb-6">
             ﴾ يَا أَيُّهَا النَّاسُ اذْكُرُوا نِعْمَتَ اللَّهِ عَلَيْكُمْ ﴿ 
           </p>
+          <Button
+            onClick={handleCreateNew}
+            className="bg-white/10 backdrop-blur-lg hover:bg-white/20 text-white px-6 py-2 rounded-full transition-all duration-300 transform hover:scale-105 border border-white/20"
+          >
+            <Plus className="w-5 h-5 mr-2" />
+            إضافة امتنان جديد
+          </Button>
         </div>
 
         <PhotoGrid />
         <CreateNewDialog open={dialogOpen} onOpenChange={setDialogOpen} />
 
-        {/* Floating Action Button */}
+        {/* Floating Action Button - Hidden on desktop */}
         <Button
           onClick={handleCreateNew}
-          className="fixed bottom-6 left-6 w-14 h-14 rounded-full bg-white/10 backdrop-blur-lg hover:bg-white/20 text-white shadow-lg border border-white/20"
+          className="fixed bottom-6 left-6 w-14 h-14 rounded-full bg-white/10 backdrop-blur-lg hover:bg-white/20 text-white shadow-lg border border-white/20 md:hidden"
         >
           <Plus className="w-6 h-6" />
         </Button>
@@ -72,6 +82,11 @@ const Index = () => {
           onClick={() => setSidebarOpen(false)}
         />
       )}
+
+      {/* Version number at the bottom */}
+      <div className="fixed bottom-4 right-4 text-white/50 text-sm">
+        الإصدار 0.9
+      </div>
     </div>
   );
 };

@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { GripVertical, Heart, MessageCircle, Trash2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -70,7 +69,7 @@ const PhotoCard = ({
   return (
     <>
       <div 
-        className="relative group overflow-hidden rounded-xl shadow-xl transition-all duration-300 transform hover:shadow-2xl border border-white/10"
+        className="relative group overflow-hidden rounded-xl shadow-xl transition-all duration-300 transform hover:scale-[0.98] hover:shadow-2xl border border-white/10"
         onClick={toggleControls}
       >
         <div className="relative aspect-square overflow-hidden">
@@ -80,22 +79,20 @@ const PhotoCard = ({
             className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
             loading="lazy"
           />
-          <div className={`absolute inset-0 bg-gradient-to-b from-black/30 via-transparent to-black/50 transition-opacity duration-300 ${
+          <div className={`absolute inset-0 bg-gradient-to-b from-black/30 via-transparent to-black/70 transition-opacity duration-300 ${
             isControlsVisible ? 'opacity-100' : 'opacity-0'
           }`} />
         </div>
         
-        {/* Drag Handle */}
         <div 
           {...dragHandleProps}
           className={`absolute top-2 right-2 p-2 rounded-full bg-black/20 backdrop-blur-sm transition-opacity duration-300 cursor-move ${
             isControlsVisible ? 'opacity-50' : 'opacity-0'
-          } hover:opacity-100`}
+          }`}
         >
           <GripVertical className="w-4 h-4 text-white" />
         </div>
 
-        {/* Caption Button */}
         <button
           onClick={(e) => {
             e.stopPropagation();
@@ -108,7 +105,6 @@ const PhotoCard = ({
           <MessageCircle className="w-4 h-4 text-white" />
         </button>
 
-        {/* Delete Button */}
         <button
           onClick={(e) => {
             e.stopPropagation();
@@ -121,7 +117,6 @@ const PhotoCard = ({
           <Trash2 className="w-4 h-4 text-white" />
         </button>
 
-        {/* Heart Button and Counter */}
         <div className="absolute bottom-2 left-2 flex items-center gap-1">
           <button
             onClick={(e) => {
@@ -148,16 +143,14 @@ const PhotoCard = ({
               )}
             </div>
           </button>
-          {/* Always visible counter */}
           <span className="text-sm font-medium bg-black/30 backdrop-blur-sm px-2 py-1 rounded-full text-white/90">
             {likes}
           </span>
         </div>
 
-        {/* Caption and Hashtags Display */}
         {(caption || hashtags.length > 0) && (
-          <div className={`absolute left-2 right-2 bottom-14 p-2 bg-black/20 backdrop-blur-sm rounded-lg transition-opacity duration-300 ${
-            isControlsVisible ? 'opacity-50' : 'opacity-0'
+          <div className={`absolute left-2 right-2 bottom-14 p-2 bg-black/50 backdrop-blur-md rounded-lg transition-opacity duration-300 ${
+            isControlsVisible ? 'opacity-80' : 'opacity-0'
           }`}>
             {caption && <p className="text-white text-sm mb-1">{caption}</p>}
             {hashtags.length > 0 && (
