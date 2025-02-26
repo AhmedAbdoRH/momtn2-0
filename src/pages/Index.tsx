@@ -56,7 +56,7 @@ const Index = () => {
           </p>
           <Button
             onClick={handleCreateNew}
-            className="bg-white/10 backdrop-blur-lg hover:bg-white/20 text-white px-6 py-2 rounded-full transition-all duration-300 transform hover:scale-105 border border-white/20"
+            className="bg-white/10 backdrop-blur-lg hover:bg-white/20 text-white px-6 py-2 rounded-full transition-all duration-300 transform hover:scale-105"
           >
             <Plus className="w-5 h-5 mr-2" />
             إضافة امتنان جديد
@@ -69,7 +69,7 @@ const Index = () => {
         {/* Floating Action Button - Hidden on desktop */}
         <Button
           onClick={handleCreateNew}
-          className="fixed bottom-6 left-6 w-14 h-14 rounded-full bg-white/10 backdrop-blur-lg hover:bg-white/20 text-white shadow-lg border border-white/20 md:hidden"
+          className="fixed bottom-6 left-6 w-14 h-14 rounded-full bg-white/10 backdrop-blur-lg hover:bg-white/20 text-white shadow-lg md:hidden"
         >
           <Plus className="w-6 h-6" />
         </Button>
@@ -82,11 +82,6 @@ const Index = () => {
           onClick={() => setSidebarOpen(false)}
         />
       )}
-
-      {/* Version number at the bottom */}
-      <div className="fixed bottom-4 right-4 text-white/50 text-sm">
-        الإصدار 0.9
-      </div>
     </div>
   );
 };

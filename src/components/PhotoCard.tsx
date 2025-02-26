@@ -69,7 +69,7 @@ const PhotoCard = ({
   return (
     <>
       <div 
-        className="relative group overflow-hidden rounded-xl shadow-xl transition-all duration-300 transform hover:scale-[0.98] hover:shadow-2xl border border-white/10"
+        className="relative group overflow-hidden rounded-xl shadow-xl transition-all duration-300 transform hover:scale-[0.98] hover:shadow-2xl"
         onClick={toggleControls}
       >
         <div className="relative aspect-square overflow-hidden">
@@ -167,14 +167,14 @@ const PhotoCard = ({
       </div>
 
       <Dialog open={isEditing} onOpenChange={setIsEditing}>
-        <DialogContent className="bg-gray-900/95 backdrop-blur-md text-white border border-white/10">
+        <DialogContent className="bg-gray-900/95 backdrop-blur-xl text-white">
           <div className="space-y-4">
             <div>
               <label className="block text-sm font-medium mb-2">التعليق</label>
               <textarea
                 value={caption}
                 onChange={(e) => setCaption(e.target.value)}
-                className="w-full px-3 py-2 bg-white/10 backdrop-blur-sm rounded-md text-white border border-white/10"
+                className="w-full px-3 py-2 bg-white/10 backdrop-blur-sm rounded-md text-white"
                 rows={3}
                 placeholder="أضف تعليقاً..."
               />
@@ -185,7 +185,7 @@ const PhotoCard = ({
                 type="text"
                 value={hashtags.join(' ')}
                 onChange={(e) => handleHashtagsChange(e.target.value)}
-                className="w-full px-3 py-2 bg-white/10 backdrop-blur-sm rounded-md text-white border border-white/10"
+                className="w-full px-3 py-2 bg-white/10 backdrop-blur-sm rounded-md text-white"
                 placeholder="#رمضان #عبادة"
               />
             </div>
@@ -198,7 +198,7 @@ const PhotoCard = ({
               </button>
               <button
                 onClick={handleCaptionSubmit}
-                className="px-4 py-2 rounded-md bg-pink-500/80 backdrop-blur-sm text-white hover:bg-pink-600/80 transition-colors"
+                className="px-4 py-2 rounded-md bg-white/20 backdrop-blur-sm text-white hover:bg-white/30 transition-colors"
               >
                 حفظ
               </button>
