@@ -70,7 +70,7 @@ const PhotoCard = ({
   return (
     <>
       <div 
-        className="relative group overflow-hidden rounded-xl"
+        className="relative group overflow-hidden rounded-xl shadow-xl transition-all duration-300 transform hover:shadow-2xl border border-white/10"
         onClick={toggleControls}
       >
         <div className="relative aspect-square overflow-hidden">
@@ -88,8 +88,8 @@ const PhotoCard = ({
         {/* Drag Handle */}
         <div 
           {...dragHandleProps}
-          className={`absolute top-2 right-2 p-2 rounded-full bg-black/30 backdrop-blur-sm transition-opacity duration-300 cursor-move ${
-            isControlsVisible ? 'opacity-70' : 'opacity-0'
+          className={`absolute top-2 right-2 p-2 rounded-full bg-black/20 backdrop-blur-sm transition-opacity duration-300 cursor-move ${
+            isControlsVisible ? 'opacity-50' : 'opacity-0'
           } hover:opacity-100`}
         >
           <GripVertical className="w-4 h-4 text-white" />
@@ -101,8 +101,8 @@ const PhotoCard = ({
             e.stopPropagation();
             setIsEditing(true);
           }}
-          className={`absolute top-2 left-2 p-2 rounded-full bg-black/30 backdrop-blur-sm transition-opacity duration-300 hover:opacity-100 ${
-            isControlsVisible ? 'opacity-70' : 'opacity-0'
+          className={`absolute top-2 left-2 p-2 rounded-full bg-black/20 backdrop-blur-sm transition-opacity duration-300 hover:opacity-100 ${
+            isControlsVisible ? 'opacity-50' : 'opacity-0'
           }`}
         >
           <MessageCircle className="w-4 h-4 text-white" />
@@ -114,46 +114,50 @@ const PhotoCard = ({
             e.stopPropagation();
             onDelete?.();
           }}
-          className={`absolute bottom-2 right-2 p-2 rounded-full bg-black/30 backdrop-blur-sm transition-opacity duration-300 hover:bg-red-500/50 ${
-            isControlsVisible ? 'opacity-70' : 'opacity-0'
+          className={`absolute bottom-2 right-2 p-2 rounded-full bg-black/20 backdrop-blur-sm transition-opacity duration-300 hover:bg-red-500/50 ${
+            isControlsVisible ? 'opacity-50' : 'opacity-0'
           } hover:opacity-100`}
         >
           <Trash2 className="w-4 h-4 text-white" />
         </button>
 
-        {/* Heart Button */}
-        <div className="absolute bottom-2 left-2">
+        {/* Heart Button and Counter */}
+        <div className="absolute bottom-2 left-2 flex items-center gap-1">
           <button
             onClick={(e) => {
               e.stopPropagation();
               handleLike();
             }}
-            className="flex items-center gap-2 text-white/90 hover:text-white transition-colors p-2"
+            className="relative group flex items-center gap-2 text-white/90 hover:text-white transition-colors p-2"
           >
             <div className="relative">
               <Heart
                 className={`w-6 h-6 transition-all duration-300 transform ${
-                  isLoved ? "fill-red-500 text-red-500 scale-125" : "hover:scale-110"
+                  isLoved ? "fill-[#ea384c] text-[#ea384c] scale-125" : "hover:scale-110"
                 }`}
               />
               {isHeartAnimating && (
-                <div className="absolute inset-0 animate-ping">
-                  <Heart className="w-6 h-6 text-red-500/30" />
-                </div>
+                <>
+                  <div className="absolute inset-0 animate-ping">
+                    <Heart className="w-6 h-6 text-[#ea384c]/30" />
+                  </div>
+                  <div className="absolute inset-0 animate-pulse">
+                    <Heart className="w-6 h-6 text-[#ea384c]/20" />
+                  </div>
+                </>
               )}
             </div>
-            <span className={`text-sm font-medium bg-black/30 backdrop-blur-sm px-2 py-1 rounded-full transition-opacity duration-300 ${
-              isControlsVisible ? 'opacity-70' : 'opacity-0'
-            }`}>
-              {likes}
-            </span>
           </button>
+          {/* Always visible counter */}
+          <span className="text-sm font-medium bg-black/30 backdrop-blur-sm px-2 py-1 rounded-full text-white/90">
+            {likes}
+          </span>
         </div>
 
         {/* Caption and Hashtags Display */}
         {(caption || hashtags.length > 0) && (
-          <div className={`absolute left-2 right-2 bottom-14 p-2 bg-black/30 backdrop-blur-sm rounded-lg transition-opacity duration-300 ${
-            isControlsVisible ? 'opacity-70' : 'opacity-0'
+          <div className={`absolute left-2 right-2 bottom-14 p-2 bg-black/20 backdrop-blur-sm rounded-lg transition-opacity duration-300 ${
+            isControlsVisible ? 'opacity-50' : 'opacity-0'
           }`}>
             {caption && <p className="text-white text-sm mb-1">{caption}</p>}
             {hashtags.length > 0 && (
