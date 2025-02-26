@@ -17,6 +17,7 @@ export type Database = {
           id: string
           image_url: string
           likes: number | null
+          order: number | null
         }
         Insert: {
           caption?: string | null
@@ -25,6 +26,7 @@ export type Database = {
           id?: string
           image_url: string
           likes?: number | null
+          order?: number | null
         }
         Update: {
           caption?: string | null
@@ -33,6 +35,7 @@ export type Database = {
           id?: string
           image_url?: string
           likes?: number | null
+          order?: number | null
         }
         Relationships: []
       }
