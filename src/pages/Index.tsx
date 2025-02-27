@@ -1,13 +1,15 @@
 
-import { Plus, Menu } from "lucide-react";
+import { Plus, Menu, LogOut } from "lucide-react";
 import PhotoGrid from "@/components/PhotoGrid";
 import { Button } from "@/components/ui/button";
 import CreateNewDialog from "@/components/CreateNewDialog";
 import { useState } from "react";
+import { useAuth } from "@/components/AuthProvider";
 
 const Index = () => {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const { signOut, user } = useAuth();
 
   const handleCreateNew = () => {
     setDialogOpen(true);
@@ -24,6 +26,22 @@ const Index = () => {
       >
         <Menu className="h-5 w-5" />
       </Button>
+
+      {/* User Info & Logout Button */}
+      <div className="fixed top-4 left-4 z-50 flex items-center gap-2">
+        <div className="bg-white/10 backdrop-blur-lg text-white px-3 py-1 rounded-lg text-sm">
+          {user?.email}
+        </div>
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={signOut}
+          className="bg-white/10 backdrop-blur-lg hover:bg-white/20 text-white"
+          title="تسجيل الخروج"
+        >
+          <LogOut className="h-5 w-5" />
+        </Button>
+      </div>
 
       {/* Sidebar */}
       <div

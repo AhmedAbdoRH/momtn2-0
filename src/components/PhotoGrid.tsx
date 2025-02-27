@@ -5,8 +5,7 @@ import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
 import PhotoCard from "./PhotoCard";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { Plus } from "lucide-react";
-import { Button } from "./ui/button";
+import { useAuth } from "./AuthProvider";
 
 interface Photo {
   id: string;
@@ -16,6 +15,7 @@ interface Photo {
   hashtags?: string[] | null;
   created_at: string;
   order?: number;
+  user_id?: string;
 }
 
 declare global {
@@ -30,10 +30,13 @@ const PhotoGrid = () => {
   const [selectedHashtag, setSelectedHashtag] = useState<string | null>(null);
   const [allHashtags, setAllHashtags] = useState<Set<string>>(new Set());
   const [sidebarVisible, setSidebarVisible] = useState(true);
+  const { user } = useAuth();
 
   useEffect(() => {
-    fetchPhotos();
-  }, []);
+    if (user) {
+      fetchPhotos();
+    }
+  }, [user]);
 
   useEffect(() => {
     const tags = new Set<string>();
@@ -88,9 +91,12 @@ const PhotoGrid = () => {
   };
 
   const fetchPhotos = async () => {
+    if (!user) return;
+    
     const { data, error } = await supabase
       .from('photos')
       .select('*')
+      .eq('user_id', user.id)
       .order('order', { ascending: true })
       .order('created_at', { ascending: false });
 
@@ -117,7 +123,8 @@ const PhotoGrid = () => {
       likes: photo.likes,
       caption: photo.caption,
       hashtags: photo.hashtags,
-      order: index
+      order: index,
+      user_id: user?.id
     }));
 
     const { error } = await supabase
@@ -137,9 +144,17 @@ const PhotoGrid = () => {
     }
   };
 
-  // تحديث وظيفة إضافة الصور لتوفير معلومات إضافية للتصحيح
   const addPhoto = async (params: { imageUrl: string }) => {
     try {
+      if (!user) {
+        toast({
+          title: "لم تسجل الدخول",
+          description: "يجب تسجيل الدخول لإضافة صور",
+          variant: "destructive",
+        });
+        return false;
+      }
+      
       console.log('Adding photo to database:', params.imageUrl);
       
       const { data, error } = await supabase
@@ -148,7 +163,8 @@ const PhotoGrid = () => {
           image_url: params.imageUrl,
           likes: 0,
           caption: null,
-          hashtags: []
+          hashtags: [],
+          user_id: user.id
         }])
         .select()
         .single();
@@ -167,20 +183,20 @@ const PhotoGrid = () => {
     }
   };
 
-  // تعريف وظيفة addPhoto على نافذة المتصفح
   useEffect(() => {
     window.addPhoto = addPhoto;
     return () => {
       // @ts-ignore
       delete window.addPhoto;
     };
-  }, []);
+  }, [user]);
 
   const handleDelete = async (id: string, imageUrl: string) => {
     const { error } = await supabase
       .from('photos')
       .delete()
-      .eq('id', id);
+      .eq('id', id)
+      .eq('user_id', user?.id);
 
     if (error) {
       toast({
@@ -215,7 +231,8 @@ const PhotoGrid = () => {
     const { error } = await supabase
       .from('photos')
       .update({ caption, hashtags: cleanedHashtags })
-      .eq('id', id);
+      .eq('id', id)
+      .eq('user_id', user?.id);
 
     if (error) {
       toast({
