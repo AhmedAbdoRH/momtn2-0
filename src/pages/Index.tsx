@@ -43,6 +43,15 @@ const Index = () => {
         </Button>
       </div>
 
+      {/* Add New Gratitude Button (Red) */}
+      <Button
+        onClick={handleCreateNew}
+        className="fixed top-16 left-4 z-50 px-4 py-2 bg-[#ea384c] hover:bg-[#ea384c]/90 text-white shadow-md rounded-lg"
+      >
+        <Plus className="w-4 h-4 mr-2" />
+        إضافة امتنان جديد
+      </Button>
+
       {/* Sidebar */}
       <div
         className={`fixed top-0 right-0 h-full bg-gray-800/90 backdrop-blur-md w-72 transform transition-transform duration-300 ease-in-out z-40 flex flex-col

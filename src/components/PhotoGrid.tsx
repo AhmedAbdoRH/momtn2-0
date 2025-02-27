@@ -183,6 +183,7 @@ const PhotoGrid = () => {
     }
   };
 
+  // تعريف وظيفة addPhoto على نافذة المتصفح
   useEffect(() => {
     window.addPhoto = addPhoto;
     return () => {

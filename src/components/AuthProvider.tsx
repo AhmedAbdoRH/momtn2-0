@@ -47,11 +47,16 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         setSession(session);
         setUser(session?.user ?? null);
         setLoading(false);
+
+        // إعادة توجيه المستخدم عند تسجيل الدخول
+        if (session && window.location.pathname === '/auth') {
+          navigate('/');
+        }
       }
     );
 
     return () => subscription.unsubscribe();
-  }, []);
+  }, [navigate]);
 
   const signUp = async (email: string, password: string) => {
     try {
