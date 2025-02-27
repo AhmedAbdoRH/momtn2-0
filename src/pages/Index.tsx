@@ -62,15 +62,10 @@ const Index = () => {
         {/* Floating Action Button - Fixed position */}
         <Button
           onClick={handleCreateNew}
-          className="fixed bottom-6 left-6 w-14 h-14 rounded-full bg-[#ea384c] hover:bg-[#ea384c]/90 text-white shadow-lg"
+          className="fixed bottom-6 left-6 w-14 h-14 rounded-full bg-white/10 backdrop-blur-lg hover:bg-white/20 text-white shadow-lg"
         >
           <Plus className="w-6 h-6" />
         </Button>
-        
-        {/* Version display at the bottom */}
-        <div className="fixed bottom-6 left-24 bg-[#ea384c] text-white px-3 py-1 rounded-full text-xs shadow-lg">
-          الإصدار 0.9
-        </div>
       </main>
 
       {/* Overlay */}

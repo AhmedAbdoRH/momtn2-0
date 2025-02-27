@@ -168,7 +168,7 @@ const PhotoCard = ({
       </div>
 
       <Dialog open={isEditing} onOpenChange={setIsEditing}>
-        <DialogContent className="bg-gray-900/80 backdrop-blur-xl text-white border-0">
+        <DialogContent className="bg-gray-900/60 backdrop-blur-xl text-white border-0">
           <div className="space-y-4">
             <div>
               <label className="block text-sm font-medium mb-2">التعليق</label>
@@ -199,7 +199,7 @@ const PhotoCard = ({
               </button>
               <button
                 onClick={handleCaptionSubmit}
-                className="px-4 py-2 rounded-md bg-[#ea384c] text-white hover:bg-[#ea384c]/90 transition-colors"
+                className="px-4 py-2 rounded-md bg-white/20 backdrop-blur-sm text-white hover:bg-white/30 transition-colors"
               >
                 حفظ
               </button>

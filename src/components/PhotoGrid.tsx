@@ -260,7 +260,7 @@ const PhotoGrid = () => {
             <div 
               {...provided.droppableProps}
               ref={provided.innerRef}
-              className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8"
+              className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6"
             >
               {filteredPhotos.map((photo, index) => (
                 <Draggable key={photo.id} draggableId={photo.id} index={index}>
@@ -270,7 +270,7 @@ const PhotoGrid = () => {
                       {...provided.draggableProps}
                       className="transform transition-all duration-300 hover:scale-[0.98]"
                     >
-                      <div className="bg-white/5 backdrop-blur-sm rounded-xl shadow-lg">
+                      <div className="rounded-xl overflow-hidden shadow-lg scale-95">
                         <PhotoCard 
                           imageUrl={photo.image_url}
                           likes={photo.likes || 0}

@@ -100,7 +100,7 @@ const CreateNewDialog = ({ open, onOpenChange }: CreateNewDialogProps) => {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[425px] bg-gray-900/80 backdrop-blur-xl text-white border-0">
+      <DialogContent className="sm:max-w-[425px] bg-gray-900/60 backdrop-blur-xl text-white border-0 shadow-xl">
         <DialogHeader>
           <DialogTitle>إضافة صورة جديدة</DialogTitle>
         </DialogHeader>
@@ -147,7 +147,7 @@ const CreateNewDialog = ({ open, onOpenChange }: CreateNewDialogProps) => {
             <Button 
               type="submit" 
               disabled={!image || isSubmitting}
-              className="bg-[#ea384c] hover:bg-[#ea384c]/90 text-white"
+              className="bg-white/20 backdrop-blur-md hover:bg-white/30 text-white"
             >
               {isSubmitting ? "جاري الحفظ..." : "حفظ"}
             </Button>
