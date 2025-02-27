@@ -32,7 +32,7 @@ const Index = () => {
       >
         <div className="flex-1 p-6 pt-20">
           <h3 className="text-white font-semibold mb-4 text-right">الهاشتاجات</h3>
-          <div className="flex flex-col space-y-2 items-end" id="hashtags-container">
+          <div className="flex flex-col space-y-3 items-end" id="hashtags-container">
             {/* Hashtags will be rendered here by PhotoGrid component */}
           </div>
         </div>
@@ -54,25 +54,23 @@ const Index = () => {
           <p className="text-lg text-gray-300 max-w-2xl mx-auto mb-6">
             ﴾ يَا أَيُّهَا النَّاسُ اذْكُرُوا نِعْمَتَ اللَّهِ عَلَيْكُمْ ﴿ 
           </p>
-          <Button
-            onClick={handleCreateNew}
-            className="bg-pink-500/80 hover:bg-pink-600/80 text-white px-6 py-2 rounded-full transition-all duration-300 transform hover:scale-105"
-          >
-            <Plus className="w-5 h-5 mr-2" />
-            إضافة امتنان جديد
-          </Button>
         </div>
 
         <PhotoGrid />
         <CreateNewDialog open={dialogOpen} onOpenChange={setDialogOpen} />
 
-        {/* Floating Action Button - Hidden on desktop */}
+        {/* Floating Action Button - Fixed position */}
         <Button
           onClick={handleCreateNew}
-          className="fixed bottom-6 left-6 w-14 h-14 rounded-full bg-pink-500/80 hover:bg-pink-600/80 text-white shadow-lg md:hidden"
+          className="fixed bottom-6 left-6 w-14 h-14 rounded-full bg-[#ea384c] hover:bg-[#ea384c]/90 text-white shadow-lg"
         >
           <Plus className="w-6 h-6" />
         </Button>
+        
+        {/* Version display at the bottom */}
+        <div className="fixed bottom-6 left-24 bg-[#ea384c] text-white px-3 py-1 rounded-full text-xs shadow-lg">
+          الإصدار 0.9
+        </div>
       </main>
 
       {/* Overlay */}

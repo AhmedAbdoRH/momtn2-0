@@ -33,20 +33,36 @@ const CreateNewDialog = ({ open, onOpenChange }: CreateNewDialogProps) => {
     setIsSubmitting(true);
 
     try {
-      const fileExt = image.name.split('.').pop();
-      const filePath = `${crypto.randomUUID()}.${fileExt}`;
+      // تسجيل معلومات عن الملف للتصحيح
+      console.log('File info:', {
+        name: image.name,
+        type: image.type,
+        size: image.size
+      });
+
+      // التأكد من امتداد الملف
+      const fileExt = image.name.split('.').pop()?.toLowerCase() || 'jpg';
+      const fileName = `${crypto.randomUUID()}.${fileExt}`;
       
-      const { error: uploadError, data } = await supabase.storage
+      console.log('Uploading file:', fileName);
+      
+      const { error: uploadError } = await supabase.storage
         .from('photos')
-        .upload(filePath, image);
+        .upload(fileName, image, {
+          cacheControl: '3600',
+          upsert: false
+        });
 
       if (uploadError) {
+        console.error('Upload error:', uploadError);
         throw uploadError;
       }
 
       const { data: { publicUrl } } = supabase.storage
         .from('photos')
-        .getPublicUrl(filePath);
+        .getPublicUrl(fileName);
+
+      console.log('Public URL:', publicUrl);
 
       // @ts-ignore - Using window.addPhoto from PhotoGrid
       const success = await window.addPhoto({
@@ -131,7 +147,7 @@ const CreateNewDialog = ({ open, onOpenChange }: CreateNewDialogProps) => {
             <Button 
               type="submit" 
               disabled={!image || isSubmitting}
-              className="bg-pink-500/80 hover:bg-pink-600/80 text-white"
+              className="bg-[#ea384c] hover:bg-[#ea384c]/90 text-white"
             >
               {isSubmitting ? "جاري الحفظ..." : "حفظ"}
             </Button>

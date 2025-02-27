@@ -199,7 +199,7 @@ const PhotoCard = ({
               </button>
               <button
                 onClick={handleCaptionSubmit}
-                className="px-4 py-2 rounded-md bg-white/20 backdrop-blur-sm text-white hover:bg-white/30 transition-colors"
+                className="px-4 py-2 rounded-md bg-[#ea384c] text-white hover:bg-[#ea384c]/90 transition-colors"
               >
                 حفظ
               </button>

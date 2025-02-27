@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
@@ -63,7 +64,7 @@ const PhotoGrid = () => {
         >
           إظهار الكل
         </button>
-        <div className="flex flex-wrap gap-2 justify-end">
+        <div className="flex flex-col space-y-2 items-end w-full">
           {Array.from(allHashtags).map(tag => (
             <button
               key={tag}
@@ -71,9 +72,9 @@ const PhotoGrid = () => {
                 setSelectedHashtag(prevTag => tag === prevTag ? null : tag);
                 setSidebarVisible(false);
               }}
-              className={`px-3 py-2 rounded-lg transition-colors ${
+              className={`px-3 py-2 rounded-lg transition-colors w-full text-right ${
                 tag === selectedHashtag
-                  ? 'bg-pink-500/20 text-pink-200'
+                  ? 'bg-[#ea384c]/20 text-pink-200'
                   : 'text-gray-300 hover:bg-gray-700/50'
               }`}
             >
@@ -136,26 +137,44 @@ const PhotoGrid = () => {
     }
   };
 
-  const addPhoto = async (imageUrl: string) => {
-    const { data, error } = await supabase
-      .from('photos')
-      .insert([{ 
-        image_url: imageUrl,
-        likes: 0,
-        caption: null,
-        hashtags: []
-      }])
-      .select()
-      .single();
+  // تحديث وظيفة إضافة الصور لتوفير معلومات إضافية للتصحيح
+  const addPhoto = async (params: { imageUrl: string }) => {
+    try {
+      console.log('Adding photo to database:', params.imageUrl);
+      
+      const { data, error } = await supabase
+        .from('photos')
+        .insert([{ 
+          image_url: params.imageUrl,
+          likes: 0,
+          caption: null,
+          hashtags: []
+        }])
+        .select()
+        .single();
 
-    if (error) {
-      console.error('Error adding photo:', error);
+      if (error) {
+        console.error('Error adding photo to database:', error);
+        return false;
+      }
+
+      console.log('Photo added successfully:', data);
+      setPhotos(prevPhotos => [data, ...prevPhotos]);
+      return true;
+    } catch (error) {
+      console.error('Exception when adding photo:', error);
       return false;
     }
-
-    setPhotos(prevPhotos => [data, ...prevPhotos]);
-    return true;
   };
+
+  // تعريف وظيفة addPhoto على نافذة المتصفح
+  useEffect(() => {
+    window.addPhoto = addPhoto;
+    return () => {
+      // @ts-ignore
+      delete window.addPhoto;
+    };
+  }, []);
 
   const handleDelete = async (id: string, imageUrl: string) => {
     const { error } = await supabase
@@ -219,13 +238,6 @@ const PhotoGrid = () => {
     });
   };
 
-  const handleCreateNew = () => {
-    const createNewDialog = document.getElementById('create-new-dialog');
-    if (createNewDialog) {
-      createNewDialog.click();
-    }
-  };
-
   const filteredPhotos = selectedHashtag
     ? photos.filter(photo => photo.hashtags?.some(tag => 
         tag.trim() === selectedHashtag.trim()
@@ -234,16 +246,6 @@ const PhotoGrid = () => {
 
   return (
     <div className="w-full">
-      <div className="mb-8 text-center">
-        <Button
-          onClick={handleCreateNew}
-          className="bg-red-500 hover:bg-red-600 text-white px-6 py-2 rounded-full transition-all duration-300 transform hover:scale-105"
-        >
-          <Plus className="w-5 h-5 mr-2" />
-          إضافة امتنان جديد
-        </Button>
-      </div>
-
       {selectedHashtag && (
         <h2 className="text-2xl font-semibold text-white/90 text-center mb-8 bg-white/5 backdrop-blur-sm py-3 rounded-lg">
           {selectedHashtag}
@@ -268,7 +270,7 @@ const PhotoGrid = () => {
                       {...provided.draggableProps}
                       className="transform transition-all duration-300 hover:scale-[0.98]"
                     >
-                      <div className="bg-white/5 backdrop-blur-sm rounded-xl shadow-lg border border-white/10">
+                      <div className="bg-white/5 backdrop-blur-sm rounded-xl shadow-lg">
                         <PhotoCard 
                           imageUrl={photo.image_url}
                           likes={photo.likes || 0}
