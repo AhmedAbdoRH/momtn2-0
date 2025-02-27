@@ -32,7 +32,7 @@ const Index = () => {
       >
         <div className="flex-1 p-6 pt-20">
           <h3 className="text-white font-semibold mb-4 text-right">الهاشتاجات</h3>
-          <div className="space-y-2 flex flex-col items-end" id="hashtags-container">
+          <div className="flex flex-col space-y-2 items-end" id="hashtags-container">
             {/* Hashtags will be rendered here by PhotoGrid component */}
           </div>
         </div>
@@ -56,7 +56,7 @@ const Index = () => {
           </p>
           <Button
             onClick={handleCreateNew}
-            className="bg-white/10 backdrop-blur-lg hover:bg-white/20 text-white px-6 py-2 rounded-full transition-all duration-300 transform hover:scale-105"
+            className="bg-pink-500/80 hover:bg-pink-600/80 text-white px-6 py-2 rounded-full transition-all duration-300 transform hover:scale-105"
           >
             <Plus className="w-5 h-5 mr-2" />
             إضافة امتنان جديد
@@ -69,7 +69,7 @@ const Index = () => {
         {/* Floating Action Button - Hidden on desktop */}
         <Button
           onClick={handleCreateNew}
-          className="fixed bottom-6 left-6 w-14 h-14 rounded-full bg-white/10 backdrop-blur-lg hover:bg-white/20 text-white shadow-lg md:hidden"
+          className="fixed bottom-6 left-6 w-14 h-14 rounded-full bg-pink-500/80 hover:bg-pink-600/80 text-white shadow-lg md:hidden"
         >
           <Plus className="w-6 h-6" />
         </Button>

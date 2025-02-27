@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { GripVertical, Heart, MessageCircle, Trash2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -69,14 +70,14 @@ const PhotoCard = ({
   return (
     <>
       <div 
-        className="relative group overflow-hidden rounded-xl shadow-xl transition-all duration-300 transform hover:scale-[0.98] hover:shadow-2xl"
+        className="relative group overflow-hidden rounded-xl shadow-xl transition-all duration-300"
         onClick={toggleControls}
       >
-        <div className="relative aspect-square overflow-hidden">
+        <div className="relative overflow-hidden rounded-xl">
           <img
             src={imageUrl}
             alt="Gallery"
-            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+            className="w-full h-auto object-contain transition-transform duration-500 group-hover:scale-105"
             loading="lazy"
           />
           <div className={`absolute inset-0 bg-gradient-to-b from-black/30 via-transparent to-black/70 transition-opacity duration-300 ${
@@ -167,7 +168,7 @@ const PhotoCard = ({
       </div>
 
       <Dialog open={isEditing} onOpenChange={setIsEditing}>
-        <DialogContent className="bg-gray-900/95 backdrop-blur-xl text-white">
+        <DialogContent className="bg-gray-900/80 backdrop-blur-xl text-white border-0">
           <div className="space-y-4">
             <div>
               <label className="block text-sm font-medium mb-2">التعليق</label>
