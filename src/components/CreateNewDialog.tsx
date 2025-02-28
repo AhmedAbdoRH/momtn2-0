@@ -48,30 +48,41 @@ const CreateNewDialog = ({ open, onOpenChange }: CreateNewDialogProps) => {
       
       console.log('Uploading file:', fileName);
 
-      // إنشاء سياسة RLS للدلو إذا لم يكن موجودًا
+      // التأكد من وجود دلو التخزين
       try {
-        // محاولة إنشاء دلو التخزين إذا لم يكن موجودًا
-        await supabase.storage.createBucket('photos', {
-          public: true
-        });
-        console.log('Created photos bucket or it already exists');
+        const { data: buckets } = await supabase.storage.listBuckets();
+        console.log('Existing buckets:', buckets);
+        
+        const photosBucketExists = buckets?.some(bucket => bucket.name === 'photos');
+        
+        if (!photosBucketExists) {
+          console.log('Creating photos bucket');
+          const { data, error } = await supabase.storage.createBucket('photos', {
+            public: true
+          });
+          console.log('Bucket creation result:', { data, error });
+        } else {
+          console.log('Photos bucket already exists');
+        }
       } catch (bucketError) {
-        console.log('Bucket already exists or error creating bucket:', bucketError);
-        // استمر في التنفيذ حتى لو فشل إنشاء الدلو (قد يكون موجودًا بالفعل)
+        console.log('Error checking/creating bucket:', bucketError);
       }
       
       // تحميل الملف
+      console.log('Starting file upload...');
       const { error: uploadError, data: uploadData } = await supabase.storage
         .from('photos')
         .upload(fileName, image, {
           cacheControl: '3600',
-          upsert: true // استخدام upsert بدلاً من false
+          upsert: true
         });
 
       if (uploadError) {
         console.error('Upload error:', uploadError);
         throw uploadError;
       }
+
+      console.log('Upload completed:', uploadData);
 
       // الحصول على رابط عام للصورة
       const { data: { publicUrl } } = supabase.storage
@@ -81,17 +92,15 @@ const CreateNewDialog = ({ open, onOpenChange }: CreateNewDialogProps) => {
       console.log('Public URL:', publicUrl);
 
       // إضافة الصورة إلى قاعدة البيانات
+      console.log('About to call window.addPhoto');
       if (typeof window.addPhoto === 'function') {
         const success = await window.addPhoto({
           imageUrl: publicUrl,
         });
 
-        if (success) {
-          toast({
-            title: "تمت الإضافة بنجاح",
-            description: "تمت إضافة الصورة الجديدة إلى المعرض",
-          });
+        console.log('addPhoto result:', success);
 
+        if (success) {
           // إعادة تعيين النموذج
           setImage(null);
           setPreviewUrl("");
@@ -100,6 +109,7 @@ const CreateNewDialog = ({ open, onOpenChange }: CreateNewDialogProps) => {
           throw new Error("فشل في إضافة الصورة إلى قاعدة البيانات");
         }
       } else {
+        console.error('window.addPhoto is not a function');
         throw new Error("وظيفة addPhoto غير متوفرة");
       }
     } catch (error) {

@@ -14,7 +14,7 @@ interface Photo {
   caption?: string | null;
   hashtags?: string[] | null;
   created_at: string;
-  order?: number;
+  sort_order?: number;
   user_id?: string;
 }
 
@@ -98,7 +98,7 @@ const PhotoGrid = () => {
       .from('photos')
       .select('*')
       .eq('user_id', user.id)
-      .order('order', { ascending: true })
+      .order('sort_order', { ascending: true })
       .order('created_at', { ascending: false });
 
     if (error) {
@@ -124,7 +124,7 @@ const PhotoGrid = () => {
       likes: photo.likes,
       caption: photo.caption,
       hashtags: photo.hashtags,
-      order: index,
+      sort_order: index,
       user_id: user?.id
     }));
 
@@ -167,12 +167,18 @@ const PhotoGrid = () => {
           likes: 0,
           caption: null,
           hashtags: [],
-          user_id: user.id
+          user_id: user.id,
+          sort_order: 0
         })
         .select();
 
       if (error) {
         console.error('Error adding photo to database:', error);
+        toast({
+          title: "خطأ في الإضافة",
+          description: "لم نتمكن من إضافة الصورة إلى قاعدة البيانات",
+          variant: "destructive",
+        });
         return false;
       }
 
@@ -181,19 +187,28 @@ const PhotoGrid = () => {
       // تحديث واجهة المستخدم بالصورة الجديدة
       if (data && data.length > 0) {
         setPhotos(prevPhotos => [data[0], ...prevPhotos]);
+        
+        toast({
+          title: "تمت الإضافة بنجاح",
+          description: "تمت إضافة الصورة الجديدة إلى المعرض",
+        });
       }
       
       return true;
     } catch (error) {
       console.error('Exception when adding photo:', error);
+      toast({
+        title: "خطأ غير متوقع",
+        description: "حدث خطأ غير متوقع أثناء إضافة الصورة",
+        variant: "destructive",
+      });
       return false;
     }
   };
 
   // تسجيل وظيفة addPhoto في كائن النافذة
   useEffect(() => {
-    const addPhotoHandler = addPhoto;
-    window.addPhoto = addPhotoHandler;
+    window.addPhoto = addPhoto;
     
     return () => {
       // @ts-ignore - تنظيف عند تفكيك المكون
