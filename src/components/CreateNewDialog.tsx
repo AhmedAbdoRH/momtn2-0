@@ -5,6 +5,7 @@ import { useState } from "react";
 import { ImagePlus } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "./AuthProvider";
 
 interface CreateNewDialogProps {
   open: boolean;
@@ -16,6 +17,7 @@ const CreateNewDialog = ({ open, onOpenChange }: CreateNewDialogProps) => {
   const [previewUrl, setPreviewUrl] = useState<string>("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
+  const { user } = useAuth();
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -28,7 +30,7 @@ const CreateNewDialog = ({ open, onOpenChange }: CreateNewDialogProps) => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!image || isSubmitting) return;
+    if (!image || isSubmitting || !user) return;
 
     setIsSubmitting(true);
 
@@ -46,7 +48,18 @@ const CreateNewDialog = ({ open, onOpenChange }: CreateNewDialogProps) => {
       
       console.log('Uploading file:', fileName);
       
-      const { error: uploadError } = await supabase.storage
+      // تأكد من وجود دلو التخزين
+      const { data: buckets } = await supabase.storage.listBuckets();
+      const photosBucketExists = buckets?.some(bucket => bucket.name === 'photos');
+      
+      if (!photosBucketExists) {
+        console.log('Creating photos bucket');
+        await supabase.storage.createBucket('photos', {
+          public: true
+        });
+      }
+      
+      const { error: uploadError, data: uploadData } = await supabase.storage
         .from('photos')
         .upload(fileName, image, {
           cacheControl: '3600',
@@ -100,7 +113,7 @@ const CreateNewDialog = ({ open, onOpenChange }: CreateNewDialogProps) => {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[425px] bg-gray-900/60 backdrop-blur-xl text-white border-0 shadow-xl">
+      <DialogContent className="sm:max-w-[425px] bg-gray-900/40 backdrop-blur-xl text-white border-0 shadow-xl">
         <DialogHeader>
           <DialogTitle>إضافة صورة جديدة</DialogTitle>
         </DialogHeader>

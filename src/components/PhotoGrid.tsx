@@ -166,8 +166,7 @@ const PhotoGrid = () => {
           hashtags: [],
           user_id: user.id
         }])
-        .select()
-        .single();
+        .select();
 
       if (error) {
         console.error('Error adding photo to database:', error);
@@ -175,7 +174,9 @@ const PhotoGrid = () => {
       }
 
       console.log('Photo added successfully:', data);
-      setPhotos(prevPhotos => [data, ...prevPhotos]);
+      if (data && data.length > 0) {
+        setPhotos(prevPhotos => [data[0], ...prevPhotos]);
+      }
       return true;
     } catch (error) {
       console.error('Exception when adding photo:', error);
@@ -183,7 +184,7 @@ const PhotoGrid = () => {
     }
   };
 
-  // تعريف وظيفة addPhoto على نافذة المتصفح
+  // Register the addPhoto function to the window object
   useEffect(() => {
     window.addPhoto = addPhoto;
     return () => {
