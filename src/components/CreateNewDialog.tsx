@@ -47,23 +47,25 @@ const CreateNewDialog = ({ open, onOpenChange }: CreateNewDialogProps) => {
       const fileName = `${crypto.randomUUID()}.${fileExt}`;
       
       console.log('Uploading file:', fileName);
-      
-      // تأكد من وجود دلو التخزين
-      const { data: buckets } = await supabase.storage.listBuckets();
-      const photosBucketExists = buckets?.some(bucket => bucket.name === 'photos');
-      
-      if (!photosBucketExists) {
-        console.log('Creating photos bucket');
+
+      // إنشاء سياسة RLS للدلو إذا لم يكن موجودًا
+      try {
+        // محاولة إنشاء دلو التخزين إذا لم يكن موجودًا
         await supabase.storage.createBucket('photos', {
           public: true
         });
+        console.log('Created photos bucket or it already exists');
+      } catch (bucketError) {
+        console.log('Bucket already exists or error creating bucket:', bucketError);
+        // استمر في التنفيذ حتى لو فشل إنشاء الدلو (قد يكون موجودًا بالفعل)
       }
       
+      // تحميل الملف
       const { error: uploadError, data: uploadData } = await supabase.storage
         .from('photos')
         .upload(fileName, image, {
           cacheControl: '3600',
-          upsert: false
+          upsert: true // استخدام upsert بدلاً من false
         });
 
       if (uploadError) {
@@ -71,33 +73,34 @@ const CreateNewDialog = ({ open, onOpenChange }: CreateNewDialogProps) => {
         throw uploadError;
       }
 
+      // الحصول على رابط عام للصورة
       const { data: { publicUrl } } = supabase.storage
         .from('photos')
         .getPublicUrl(fileName);
 
       console.log('Public URL:', publicUrl);
 
-      // @ts-ignore - Using window.addPhoto from PhotoGrid
-      const success = await window.addPhoto({
-        imageUrl: publicUrl,
-      });
-
-      if (success) {
-        toast({
-          title: "تمت الإضافة بنجاح",
-          description: "تمت إضافة الصورة الجديدة إلى المعرض",
+      // إضافة الصورة إلى قاعدة البيانات
+      if (typeof window.addPhoto === 'function') {
+        const success = await window.addPhoto({
+          imageUrl: publicUrl,
         });
 
-        // Reset form
-        setImage(null);
-        setPreviewUrl("");
-        onOpenChange(false);
+        if (success) {
+          toast({
+            title: "تمت الإضافة بنجاح",
+            description: "تمت إضافة الصورة الجديدة إلى المعرض",
+          });
+
+          // إعادة تعيين النموذج
+          setImage(null);
+          setPreviewUrl("");
+          onOpenChange(false);
+        } else {
+          throw new Error("فشل في إضافة الصورة إلى قاعدة البيانات");
+        }
       } else {
-        toast({
-          title: "حدث خطأ",
-          description: "لم نتمكن من إضافة الصورة. يرجى المحاولة مرة أخرى.",
-          variant: "destructive",
-        });
+        throw new Error("وظيفة addPhoto غير متوفرة");
       }
     } catch (error) {
       console.error('Error submitting photo:', error);

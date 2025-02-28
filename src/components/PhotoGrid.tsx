@@ -18,6 +18,7 @@ interface Photo {
   user_id?: string;
 }
 
+// إعلان عالمي لوظيفة addPhoto
 declare global {
   interface Window {
     addPhoto: (params: { imageUrl: string }) => Promise<boolean>;
@@ -144,7 +145,8 @@ const PhotoGrid = () => {
     }
   };
 
-  const addPhoto = async (params: { imageUrl: string }) => {
+  // تعريف وظيفة إضافة صورة جديدة
+  const addPhoto = async (params: { imageUrl: string }): Promise<boolean> => {
     try {
       if (!user) {
         toast({
@@ -157,15 +159,16 @@ const PhotoGrid = () => {
       
       console.log('Adding photo to database:', params.imageUrl);
       
+      // إضافة الصورة إلى الجدول
       const { data, error } = await supabase
         .from('photos')
-        .insert([{ 
+        .insert({
           image_url: params.imageUrl,
           likes: 0,
           caption: null,
           hashtags: [],
           user_id: user.id
-        }])
+        })
         .select();
 
       if (error) {
@@ -174,9 +177,12 @@ const PhotoGrid = () => {
       }
 
       console.log('Photo added successfully:', data);
+      
+      // تحديث واجهة المستخدم بالصورة الجديدة
       if (data && data.length > 0) {
         setPhotos(prevPhotos => [data[0], ...prevPhotos]);
       }
+      
       return true;
     } catch (error) {
       console.error('Exception when adding photo:', error);
@@ -184,11 +190,13 @@ const PhotoGrid = () => {
     }
   };
 
-  // Register the addPhoto function to the window object
+  // تسجيل وظيفة addPhoto في كائن النافذة
   useEffect(() => {
-    window.addPhoto = addPhoto;
+    const addPhotoHandler = addPhoto;
+    window.addPhoto = addPhotoHandler;
+    
     return () => {
-      // @ts-ignore
+      // @ts-ignore - تنظيف عند تفكيك المكون
       delete window.addPhoto;
     };
   }, [user]);
