@@ -94,19 +94,24 @@ const PhotoGrid = () => {
   const fetchPhotos = async () => {
     if (!user) return;
     
-    const { data, error } = await supabase
-      .from('photos')
-      .select('*')
-      .eq('user_id', user.id)
-      .order('sort_order', { ascending: true })
-      .order('created_at', { ascending: false });
+    try {
+      // ملاحظة: نحاول الحصول على الصور بترتيب created_at فقط، وليس sort_order
+      const { data, error } = await supabase
+        .from('photos')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false });
 
-    if (error) {
-      console.error('Error fetching photos:', error);
-      return;
+      if (error) {
+        console.error('Error fetching photos:', error);
+        return;
+      }
+
+      console.log('Successfully fetched photos:', data);
+      setPhotos(data || []);
+    } catch (err) {
+      console.error('Exception fetching photos:', err);
     }
-
-    setPhotos(data || []);
   };
 
   const handleDragEnd = async (result: any) => {
@@ -118,25 +123,21 @@ const PhotoGrid = () => {
 
     setPhotos(items);
 
-    const updates = items.map((photo, index) => ({
-      id: photo.id,
-      image_url: photo.image_url,
-      likes: photo.likes,
-      caption: photo.caption,
-      hashtags: photo.hashtags,
-      sort_order: index,
-      user_id: user?.id
-    }));
-
-    const { error } = await supabase
-      .from('photos')
-      .upsert(updates, { 
-        onConflict: 'id',
-        defaultToNull: false 
-      });
-
-    if (error) {
-      console.error('Error updating order:', error);
+    try {
+      // تحديث الصور بترتيبها الجديد
+      for (let i = 0; i < items.length; i++) {
+        const { error } = await supabase
+          .from('photos')
+          .update({ sort_order: i })
+          .eq('id', items[i].id)
+          .eq('user_id', user?.id);
+        
+        if (error) {
+          console.error(`Error updating order for photo ${items[i].id}:`, error);
+        }
+      }
+    } catch (err) {
+      console.error('Exception updating photo order:', err);
       toast({
         title: "خطأ في الترتيب",
         description: "حدث خطأ أثناء حفظ الترتيب الجديد",
@@ -217,67 +218,77 @@ const PhotoGrid = () => {
   }, [user]);
 
   const handleDelete = async (id: string, imageUrl: string) => {
-    const { error } = await supabase
-      .from('photos')
-      .delete()
-      .eq('id', id)
-      .eq('user_id', user?.id);
-
-    if (error) {
-      toast({
-        title: "خطأ في الحذف",
-        description: "حدث خطأ أثناء حذف الصورة",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    const fileName = imageUrl.split('/').pop();
-    if (fileName) {
-      const { error: storageError } = await supabase.storage
+    try {
+      const { error } = await supabase
         .from('photos')
-        .remove([fileName]);
+        .delete()
+        .eq('id', id)
+        .eq('user_id', user?.id);
 
-      if (storageError) {
-        console.error('Error deleting file from storage:', storageError);
+      if (error) {
+        console.error('Error deleting photo:', error);
+        toast({
+          title: "خطأ في الحذف",
+          description: "حدث خطأ أثناء حذف الصورة",
+          variant: "destructive",
+        });
+        return;
       }
-    }
 
-    setPhotos(prevPhotos => prevPhotos.filter(photo => photo.id !== id));
-    toast({
-      title: "تم الحذف بنجاح",
-      description: "تم حذف الصورة بنجاح",
-    });
+      const fileName = imageUrl.split('/').pop();
+      if (fileName) {
+        const { error: storageError } = await supabase.storage
+          .from('photos')
+          .remove([fileName]);
+
+        if (storageError) {
+          console.error('Error deleting file from storage:', storageError);
+        }
+      }
+
+      setPhotos(prevPhotos => prevPhotos.filter(photo => photo.id !== id));
+      toast({
+        title: "تم الحذف بنجاح",
+        description: "تم حذف الصورة بنجاح",
+      });
+    } catch (err) {
+      console.error('Exception deleting photo:', err);
+    }
   };
 
   const handleUpdateCaption = async (id: string, caption: string, hashtags: string[]) => {
-    const cleanedHashtags = hashtags.map(tag => tag.trim()).filter(tag => tag);
+    try {
+      const cleanedHashtags = hashtags.map(tag => tag.trim()).filter(tag => tag);
 
-    const { error } = await supabase
-      .from('photos')
-      .update({ caption, hashtags: cleanedHashtags })
-      .eq('id', id)
-      .eq('user_id', user?.id);
+      const { error } = await supabase
+        .from('photos')
+        .update({ caption, hashtags: cleanedHashtags })
+        .eq('id', id)
+        .eq('user_id', user?.id);
 
-    if (error) {
+      if (error) {
+        console.error('Error updating caption:', error);
+        toast({
+          title: "خطأ في التحديث",
+          description: "حدث خطأ أثناء تحديث التعليق",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      setPhotos(prevPhotos => 
+        prevPhotos.map(photo => 
+          photo.id === id ? { ...photo, caption, hashtags: cleanedHashtags } : photo
+        )
+      );
+
       toast({
-        title: "خطأ في التحديث",
-        description: "حدث خطأ أثناء تحديث التعليق",
-        variant: "destructive",
+        title: "تم التحديث بنجاح",
+        description: "تم تحديث التعليق والهاشتاجات بنجاح",
       });
-      return;
+    } catch (err) {
+      console.error('Exception updating caption:', err);
     }
-
-    setPhotos(prevPhotos => 
-      prevPhotos.map(photo => 
-        photo.id === id ? { ...photo, caption, hashtags: cleanedHashtags } : photo
-      )
-    );
-
-    toast({
-      title: "تم التحديث بنجاح",
-      description: "تم تحديث التعليق والهاشتاجات بنجاح",
-    });
   };
 
   const filteredPhotos = selectedHashtag

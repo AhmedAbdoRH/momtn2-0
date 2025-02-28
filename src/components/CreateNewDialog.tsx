@@ -1,5 +1,5 @@
 
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
 import { ImagePlus } from "lucide-react";
@@ -44,29 +44,9 @@ const CreateNewDialog = ({ open, onOpenChange }: CreateNewDialogProps) => {
 
       // التأكد من امتداد الملف
       const fileExt = image.name.split('.').pop()?.toLowerCase() || 'jpg';
-      const fileName = `${crypto.randomUUID()}.${fileExt}`;
+      const fileName = `photo_${Date.now()}.${fileExt}`;
       
       console.log('Uploading file:', fileName);
-
-      // التأكد من وجود دلو التخزين
-      try {
-        const { data: buckets } = await supabase.storage.listBuckets();
-        console.log('Existing buckets:', buckets);
-        
-        const photosBucketExists = buckets?.some(bucket => bucket.name === 'photos');
-        
-        if (!photosBucketExists) {
-          console.log('Creating photos bucket');
-          const { data, error } = await supabase.storage.createBucket('photos', {
-            public: true
-          });
-          console.log('Bucket creation result:', { data, error });
-        } else {
-          console.log('Photos bucket already exists');
-        }
-      } catch (bucketError) {
-        console.log('Error checking/creating bucket:', bucketError);
-      }
       
       // تحميل الملف
       console.log('Starting file upload...');
@@ -91,27 +71,42 @@ const CreateNewDialog = ({ open, onOpenChange }: CreateNewDialogProps) => {
 
       console.log('Public URL:', publicUrl);
 
-      // إضافة الصورة إلى قاعدة البيانات
-      console.log('About to call window.addPhoto');
-      if (typeof window.addPhoto === 'function') {
-        const success = await window.addPhoto({
-          imageUrl: publicUrl,
-        });
+      // إضافة الصورة إلى قاعدة البيانات مباشرة من هنا
+      console.log('Adding photo to database:', publicUrl);
+      
+      const { data, error } = await supabase
+        .from('photos')
+        .insert({
+          image_url: publicUrl,
+          likes: 0,
+          caption: null,
+          hashtags: [],
+          user_id: user.id,
+          sort_order: 0
+        })
+        .select();
 
-        console.log('addPhoto result:', success);
-
-        if (success) {
-          // إعادة تعيين النموذج
-          setImage(null);
-          setPreviewUrl("");
-          onOpenChange(false);
-        } else {
-          throw new Error("فشل في إضافة الصورة إلى قاعدة البيانات");
-        }
-      } else {
-        console.error('window.addPhoto is not a function');
-        throw new Error("وظيفة addPhoto غير متوفرة");
+      if (error) {
+        console.error('Error adding photo to database:', error);
+        throw error;
       }
+
+      console.log('Photo added successfully:', data);
+
+      // إعادة تعيين النموذج
+      setImage(null);
+      setPreviewUrl("");
+      onOpenChange(false);
+
+      // إظهار رسالة نجاح
+      toast({
+        title: "تمت الإضافة بنجاح",
+        description: "تمت إضافة الصورة الجديدة إلى المعرض",
+      });
+
+      // إعادة تحميل الصفحة لإظهار الصورة الجديدة
+      window.location.reload();
+
     } catch (error) {
       console.error('Error submitting photo:', error);
       toast({
@@ -129,6 +124,9 @@ const CreateNewDialog = ({ open, onOpenChange }: CreateNewDialogProps) => {
       <DialogContent className="sm:max-w-[425px] bg-gray-900/40 backdrop-blur-xl text-white border-0 shadow-xl">
         <DialogHeader>
           <DialogTitle>إضافة صورة جديدة</DialogTitle>
+          <DialogDescription className="text-gray-300">
+            قم بتحميل صورة لإضافتها إلى المعرض.
+          </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="flex flex-col items-center gap-4">
