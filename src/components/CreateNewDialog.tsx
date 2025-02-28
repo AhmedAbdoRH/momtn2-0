@@ -82,7 +82,7 @@ const CreateNewDialog = ({ open, onOpenChange }: CreateNewDialogProps) => {
           caption: null,
           hashtags: [],
           user_id: user.id,
-          sort_order: 0
+          order: 0
         })
         .select();
 

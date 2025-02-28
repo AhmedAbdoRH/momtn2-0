@@ -14,7 +14,7 @@ interface Photo {
   caption?: string | null;
   hashtags?: string[] | null;
   created_at: string;
-  sort_order?: number;
+  order?: number;
   user_id?: string;
 }
 
@@ -95,7 +95,7 @@ const PhotoGrid = () => {
     if (!user) return;
     
     try {
-      // ملاحظة: نحاول الحصول على الصور بترتيب created_at فقط، وليس sort_order
+      // ملاحظة: نحاول الحصول على الصور بترتيب created_at فقط، وليس order
       const { data, error } = await supabase
         .from('photos')
         .select('*')
@@ -128,7 +128,7 @@ const PhotoGrid = () => {
       for (let i = 0; i < items.length; i++) {
         const { error } = await supabase
           .from('photos')
-          .update({ sort_order: i })
+          .update({ order: i })
           .eq('id', items[i].id)
           .eq('user_id', user?.id);
         
@@ -169,7 +169,7 @@ const PhotoGrid = () => {
           caption: null,
           hashtags: [],
           user_id: user.id,
-          sort_order: 0
+          order: 0
         })
         .select();
 
