@@ -1,6 +1,6 @@
 
 import { useState } from "react";
-import { Heart, Trash2, Edit, DragHandle } from "lucide-react";
+import { Heart, Trash2, Edit, GripVertical } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -70,7 +70,7 @@ const PhotoCard = ({
         />
         <div className="absolute top-0 right-0 p-2">
           <div {...dragHandleProps} className="cursor-grab active:cursor-grabbing">
-            <DragHandle className="w-5 h-5 text-white opacity-70 hover:opacity-100" />
+            <GripVertical className="w-5 h-5 text-white opacity-70 hover:opacity-100" />
           </div>
         </div>
         <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
