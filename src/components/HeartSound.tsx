@@ -22,7 +22,7 @@ export function HeartSoundProvider({ children }: { children: React.ReactNode }) 
       {children}
       <audio 
         ref={audioRef} 
-        src="https://assets.mixkit.co/active_storage/sfx/2003/2003-preview.mp3"
+        src="https://assets.mixkit.co/active_storage/sfx/214/214-preview.mp3"
         preload="auto"
       />
     </HeartSoundContext.Provider>

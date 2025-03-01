@@ -59,10 +59,10 @@ const PhotoCard = ({
 
   return (
     <>
-      <div className="overflow-hidden rounded-lg shadow-xl bg-gray-900/60 backdrop-blur-lg transition-all hover:shadow-2xl relative">
+      <div className="overflow-hidden rounded-lg bg-white shadow-lg transition-all duration-300 transform hover:-translate-y-1 hover:shadow-xl relative">
         <div
           {...dragHandleProps}
-          className="absolute top-2 right-2 cursor-grab active:cursor-grabbing z-10 p-1 rounded-full backdrop-blur-md bg-black/30 text-white"
+          className="absolute top-2 right-2 cursor-grab active:cursor-grabbing z-10 p-1 rounded-full bg-white/80 backdrop-blur-sm text-gray-600"
         >
           <GripVertical className="w-4 h-4" />
         </div>
@@ -76,9 +76,9 @@ const PhotoCard = ({
             className="w-full h-full object-cover transition-transform duration-300 hover:scale-110"
           />
         </div>
-        <div className="p-3 space-y-2">
+        <div className="p-4 space-y-3 bg-gradient-to-b from-[#FFDEE2] to-[#F1F0FB]">
           {caption && (
-            <p className="text-white text-sm line-clamp-2 min-h-[2.5rem]" dir="rtl">
+            <p className="text-gray-700 text-sm line-clamp-2 min-h-[2.5rem]" dir="rtl">
               {caption}
             </p>
           )}
@@ -88,7 +88,7 @@ const PhotoCard = ({
                 tag && (
                   <span
                     key={idx}
-                    className="text-xs bg-white/10 backdrop-blur-sm px-2 py-1 rounded-full text-gray-300"
+                    className="text-xs bg-white/50 backdrop-blur-sm px-2 py-1 rounded-full text-gray-600"
                   >
                     {tag}
                   </span>
@@ -101,17 +101,17 @@ const PhotoCard = ({
                 variant="ghost"
                 size="icon"
                 onClick={handleLike}
-                className="group relative"
+                className="group relative hover:bg-pink-100"
               >
                 <Heart
                   className={`h-5 w-5 transition-colors ${
                     isLiked
-                      ? "fill-red-500 text-red-500"
-                      : "fill-none text-gray-400 group-hover:text-red-400"
+                      ? "fill-pink-500 text-pink-500"
+                      : "fill-none text-gray-500 group-hover:text-pink-400"
                   } ${heartAnimation ? "animate-heartBeat" : ""}`}
                 />
               </Button>
-              <span className="text-gray-400 text-sm self-center">
+              <span className="text-gray-600 text-sm self-center">
                 {currentLikes}
               </span>
             </div>
@@ -120,7 +120,7 @@ const PhotoCard = ({
                 variant="ghost"
                 size="icon"
                 onClick={() => setEditDialogOpen(true)}
-                className="text-gray-400 hover:text-white"
+                className="text-gray-500 hover:text-gray-700 hover:bg-gray-100"
               >
                 <Pencil className="h-4 w-4" />
               </Button>
@@ -129,7 +129,7 @@ const PhotoCard = ({
                   variant="ghost"
                   size="icon"
                   onClick={onDelete}
-                  className="text-gray-400 hover:text-red-400"
+                  className="text-gray-500 hover:text-red-500 hover:bg-gray-100"
                 >
                   <Trash className="h-4 w-4" />
                 </Button>
@@ -141,18 +141,18 @@ const PhotoCard = ({
 
       {/* Edit Dialog */}
       <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
-        <DialogContent className="top-[20%] max-w-md bg-gray-900/70 backdrop-blur-xl text-white border-0 shadow-xl">
+        <DialogContent className="top-[30%] max-w-md bg-white/90 backdrop-blur-md border border-gray-200 shadow-lg">
           <DialogHeader>
-            <DialogTitle>تعديل التعليق والهاشتاجات</DialogTitle>
+            <DialogTitle className="text-gray-800">تعديل التعليق والهاشتاجات</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             <div>
-              <label htmlFor="caption" className="block text-sm text-gray-400 mb-1 text-right">
+              <label htmlFor="caption" className="block text-sm text-gray-600 mb-1 text-right">
                 التعليق
               </label>
               <textarea
                 id="caption"
-                className="w-full px-3 py-2 bg-black/20 border border-gray-700 rounded-md text-white resize-none focus:outline-none focus:ring-1 focus:ring-gray-500 text-right"
+                className="w-full px-3 py-2 bg-white/80 border border-gray-300 rounded-md text-gray-700 resize-none focus:outline-none focus:ring-1 focus:ring-pink-300 text-right"
                 value={newCaption}
                 onChange={(e) => setNewCaption(e.target.value)}
                 rows={3}
@@ -160,12 +160,12 @@ const PhotoCard = ({
               />
             </div>
             <div>
-              <label htmlFor="hashtags" className="block text-sm text-gray-400 mb-1 text-right">
+              <label htmlFor="hashtags" className="block text-sm text-gray-600 mb-1 text-right">
                 الهاشتاجات (مفصولة بمسافة)
               </label>
               <input
                 id="hashtags"
-                className="w-full px-3 py-2 bg-black/20 border border-gray-700 rounded-md text-white focus:outline-none focus:ring-1 focus:ring-gray-500 text-right"
+                className="w-full px-3 py-2 bg-white/80 border border-gray-300 rounded-md text-gray-700 focus:outline-none focus:ring-1 focus:ring-pink-300 text-right"
                 value={newHashtags}
                 onChange={(e) => setNewHashtags(e.target.value)}
                 dir="rtl"
@@ -175,7 +175,7 @@ const PhotoCard = ({
               <Button 
                 variant="outline" 
                 onClick={() => setEditDialogOpen(false)}
-                className="bg-transparent border-gray-700 text-gray-300 hover:bg-gray-800/70"
+                className="bg-transparent border-gray-300 text-gray-600 hover:bg-gray-100"
               >
                 إلغاء
               </Button>

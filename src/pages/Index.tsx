@@ -27,13 +27,13 @@ const Index = () => {
 
   return (
     <HeartSoundProvider>
-      <div className="min-h-screen bg-gradient-to-br from-[#2D1F3D] via-[#1A1F2C] to-[#3D1F2C] animate-gradient">
+      <div className="min-h-screen bg-gradient-to-br from-[#FFDEE2] via-[#F1F0FB] to-[#D3E4FD] animate-gradient">
         {/* Sidebar Toggle Button */}
         <Button
           variant="ghost"
           size="icon"
           onClick={() => setSidebarOpen(!sidebarOpen)}
-          className="fixed top-4 right-4 z-50 bg-white/10 backdrop-blur-lg hover:bg-white/20 text-white"
+          className="fixed top-4 right-4 z-50 bg-white/70 backdrop-blur-lg hover:bg-white/90 text-gray-700"
         >
           <Menu className="h-5 w-5" />
         </Button>
@@ -45,18 +45,18 @@ const Index = () => {
               <Button 
                 variant="ghost" 
                 size="icon" 
-                className="bg-white/10 backdrop-blur-lg hover:bg-white/20 text-white"
+                className="bg-white/70 backdrop-blur-lg hover:bg-white/90 text-gray-700"
               >
                 <User className="h-5 w-5" />
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="start" className="w-56 bg-gray-900/60 backdrop-blur-xl text-white border-gray-800">
-              <div className="px-2 py-1.5 text-sm font-medium text-gray-200 truncate">
+            <DropdownMenuContent align="start" className="w-56 bg-white/90 backdrop-blur-xl text-gray-700 border-gray-200">
+              <div className="px-2 py-1.5 text-sm font-medium text-gray-600 truncate">
                 {user?.email}
               </div>
               <DropdownMenuItem 
                 onClick={signOut}
-                className="text-red-400 focus:text-red-400 cursor-pointer focus:bg-gray-800/80"
+                className="text-red-500 focus:text-red-500 cursor-pointer focus:bg-gray-100"
               >
                 <LogOut className="mr-2 h-4 w-4" />
                 <span>تسجيل الخروج</span>
@@ -67,11 +67,11 @@ const Index = () => {
 
         {/* Sidebar */}
         <div
-          className={`fixed top-0 right-0 h-full bg-gray-800/70 backdrop-blur-md w-72 transform transition-transform duration-300 ease-in-out z-40 flex flex-col
+          className={`fixed top-0 right-0 h-full bg-white/70 backdrop-blur-md w-72 transform transition-transform duration-300 ease-in-out z-40 flex flex-col
             ${sidebarOpen ? 'translate-x-0' : 'translate-x-full'}`}
         >
           <div className="flex-1 p-6 pt-20">
-            <h3 className="text-white font-semibold mb-4 text-right">الهاشتاجات</h3>
+            <h3 className="text-gray-700 font-semibold mb-4 text-right">الهاشتاجات</h3>
             <div className="flex flex-col space-y-3 items-end" id="hashtags-container">
               {/* Hashtags will be rendered here by PhotoGrid component */}
             </div>
@@ -88,7 +88,7 @@ const Index = () => {
                 className="w-full h-full object-contain animate-float"
               />
             </div>
-            <p className="text-lg text-gray-300 max-w-2xl mx-auto mb-6">
+            <p className="text-lg text-gray-700 max-w-2xl mx-auto mb-6">
               ﴾ يَا أَيُّهَا النَّاسُ اذْكُرُوا نِعْمَتَ اللَّهِ عَلَيْكُمْ ﴿ 
             </p>
             
@@ -110,7 +110,7 @@ const Index = () => {
           {/* Floating Action Button - Fixed position */}
           <Button
             onClick={handleCreateNew}
-            className={`fixed bottom-6 left-6 w-14 h-14 rounded-full bg-white/10 backdrop-blur-lg hover:bg-white/20 hover:scale-110 text-white shadow-lg transition-all duration-300 ${
+            className={`fixed bottom-6 left-6 w-14 h-14 rounded-full bg-white/90 backdrop-blur-lg hover:bg-white hover:scale-110 text-pink-500 shadow-lg transition-all duration-300 ${
               btnAnimation ? 'scale-95 rotate-180' : ''
             }`}
           >
@@ -121,7 +121,7 @@ const Index = () => {
         {/* Overlay */}
         {sidebarOpen && (
           <div
-            className="fixed inset-0 bg-black/20 backdrop-blur-sm z-30"
+            className="fixed inset-0 bg-black/10 backdrop-blur-sm z-30"
             onClick={() => setSidebarOpen(false)}
           />
         )}
