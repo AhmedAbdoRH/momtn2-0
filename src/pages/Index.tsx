@@ -1,10 +1,11 @@
 
-import { Plus, Menu, LogOut, User } from "lucide-react";
+import { Plus, Menu, LogOut, User, Users } from "lucide-react";
 import PhotoGrid from "@/components/PhotoGrid";
 import { Button } from "@/components/ui/button";
 import CreateNewDialog from "@/components/CreateNewDialog";
 import { useState } from "react";
 import { useAuth } from "@/components/AuthProvider";
+import { Link, useNavigate } from "react-router-dom";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -17,11 +18,16 @@ const Index = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [btnAnimation, setBtnAnimation] = useState(false);
   const { signOut, user } = useAuth();
+  const navigate = useNavigate();
 
   const handleCreateNew = () => {
     setBtnAnimation(true);
     setTimeout(() => setBtnAnimation(false), 300);
     setDialogOpen(true);
+  };
+
+  const goToSharedSpaces = () => {
+    navigate('/spaces');
   };
 
   return (
@@ -52,6 +58,13 @@ const Index = () => {
             <div className="px-2 py-1.5 text-sm font-medium text-gray-200 truncate">
               {user?.email}
             </div>
+            <DropdownMenuItem 
+              onClick={goToSharedSpaces}
+              className="cursor-pointer focus:bg-gray-800/80"
+            >
+              <Users className="mr-2 h-4 w-4" />
+              <span>المساحات المشتركة</span>
+            </DropdownMenuItem>
             <DropdownMenuItem 
               onClick={signOut}
               className="text-red-400 focus:text-red-400 cursor-pointer focus:bg-gray-800/80"
@@ -100,6 +113,17 @@ const Index = () => {
             <Plus className="w-5 h-5 mr-2" />
             إضافة امتنان جديد
           </Button>
+          
+          <div className="mt-4">
+            <Button
+              onClick={goToSharedSpaces}
+              variant="outline"
+              className="bg-transparent border-gray-700 text-white hover:bg-white/10"
+            >
+              <Users className="w-5 h-5 mr-2" />
+              المساحات المشتركة
+            </Button>
+          </div>
         </div>
 
         <PhotoGrid />

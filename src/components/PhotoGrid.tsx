@@ -16,16 +16,21 @@ interface Photo {
   created_at: string;
   order?: number;
   user_id?: string;
+  space_id?: string | null;
 }
 
 // إعلان عالمي لوظيفة addPhoto
 declare global {
   interface Window {
-    addPhoto: (params: { imageUrl: string }) => Promise<boolean>;
+    addPhoto: (params: { imageUrl: string; spaceId?: string }) => Promise<boolean>;
   }
 }
 
-const PhotoGrid = () => {
+interface PhotoGridProps {
+  spaceId?: string;
+}
+
+const PhotoGrid = ({ spaceId }: PhotoGridProps) => {
   const [photos, setPhotos] = useState<Photo[]>([]);
   const { toast } = useToast();
   const [selectedHashtag, setSelectedHashtag] = useState<string | null>(null);
@@ -37,7 +42,7 @@ const PhotoGrid = () => {
     if (user) {
       fetchPhotos();
     }
-  }, [user]);
+  }, [user, spaceId]);
 
   useEffect(() => {
     const tags = new Set<string>();
@@ -95,12 +100,20 @@ const PhotoGrid = () => {
     if (!user) return;
     
     try {
-      // نقوم بترتيب الصور حسب حقل order
-      const { data, error } = await supabase
+      let query = supabase
         .from('photos')
         .select('*')
-        .eq('user_id', user.id)
         .order('order', { ascending: true });
+      
+      // إذا كان هناك معرف للمساحة المشتركة، نجلب صور هذه المساحة فقط
+      if (spaceId) {
+        query = query.eq('space_id', spaceId);
+      } else {
+        // وإلا نجلب الصور الشخصية للمستخدم (التي ليس لها مساحة مشتركة)
+        query = query.eq('user_id', user.id).is('space_id', null);
+      }
+
+      const { data, error } = await query;
 
       if (error) {
         console.error('Error fetching photos:', error);
@@ -143,11 +156,17 @@ const PhotoGrid = () => {
       
       // إرسال تحديثات متعددة إلى قاعدة البيانات
       for (const update of updates) {
-        const { error } = await supabase
+        let query = supabase
           .from('photos')
           .update({ order: update.order })
-          .eq('id', update.id)
-          .eq('user_id', user?.id);
+          .eq('id', update.id);
+        
+        // إضافة شرط user_id فقط إذا كنا في المساحة الشخصية
+        if (!spaceId) {
+          query = query.eq('user_id', user?.id);
+        }
+          
+        const { error } = await query;
           
         if (error) {
           console.error(`Error updating order for photo ${update.id}:`, error);
@@ -180,7 +199,7 @@ const PhotoGrid = () => {
   };
 
   // تعريف وظيفة إضافة صورة جديدة
-  const addPhoto = async (params: { imageUrl: string }): Promise<boolean> => {
+  const addPhoto = async (params: { imageUrl: string; spaceId?: string }): Promise<boolean> => {
     try {
       if (!user) {
         toast({
@@ -198,17 +217,21 @@ const PhotoGrid = () => {
         ? Math.max(...photos.map(p => p.order !== null ? p.order : -1))
         : -1;
       
+      // إعداد البيانات الأساسية للصورة
+      const photoData = {
+        image_url: params.imageUrl,
+        likes: 0,
+        caption: null,
+        hashtags: [],
+        order: maxOrder + 1, // إعطاء الصورة الجديدة أعلى قيمة order + 1
+        user_id: user.id,
+        space_id: params.spaceId || null // إضافة الصورة للمساحة المشتركة إذا تم تحديدها
+      };
+      
       // إضافة الصورة إلى الجدول
       const { data, error } = await supabase
         .from('photos')
-        .insert({
-          image_url: params.imageUrl,
-          likes: 0,
-          caption: null,
-          hashtags: [],
-          user_id: user.id,
-          order: maxOrder + 1 // إعطاء الصورة الجديدة أعلى قيمة order + 1
-        })
+        .insert(photoData)
         .select();
 
       if (error) {
@@ -257,11 +280,17 @@ const PhotoGrid = () => {
 
   const handleDelete = async (id: string, imageUrl: string) => {
     try {
-      const { error } = await supabase
+      let query = supabase
         .from('photos')
         .delete()
-        .eq('id', id)
-        .eq('user_id', user?.id);
+        .eq('id', id);
+      
+      // إضافة شرط user_id فقط إذا كنا في المساحة الشخصية
+      if (!spaceId) {
+        query = query.eq('user_id', user?.id);
+      }
+      
+      const { error } = await query;
 
       if (error) {
         console.error('Error deleting photo:', error);
@@ -298,11 +327,17 @@ const PhotoGrid = () => {
     try {
       const cleanedHashtags = hashtags.map(tag => tag.trim()).filter(tag => tag);
 
-      const { error } = await supabase
+      let query = supabase
         .from('photos')
         .update({ caption, hashtags: cleanedHashtags })
-        .eq('id', id)
-        .eq('user_id', user?.id);
+        .eq('id', id);
+      
+      // إضافة شرط user_id فقط إذا كنا في المساحة الشخصية
+      if (!spaceId) {
+        query = query.eq('user_id', user?.id);
+      }
+      
+      const { error } = await query;
 
       if (error) {
         console.error('Error updating caption:', error);
