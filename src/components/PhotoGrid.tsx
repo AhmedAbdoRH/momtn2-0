@@ -95,12 +95,12 @@ const PhotoGrid = () => {
     if (!user) return;
     
     try {
-      // ملاحظة: نحاول الحصول على الصور بترتيب created_at فقط، وليس order
+      // نقوم بترتيب الصور حسب حقل order
       const { data, error } = await supabase
         .from('photos')
         .select('*')
         .eq('user_id', user.id)
-        .order('created_at', { ascending: false });
+        .order('order', { ascending: true });
 
       if (error) {
         console.error('Error fetching photos:', error);
@@ -116,26 +116,57 @@ const PhotoGrid = () => {
 
   const handleDragEnd = async (result: any) => {
     if (!result.destination) return;
-
+    
+    const sourceIndex = result.source.index;
+    const destinationIndex = result.destination.index;
+    
+    if (sourceIndex === destinationIndex) return;
+    
+    // نسخة من مصفوفة الصور الحالية
     const items = Array.from(photos);
-    const [reorderedItem] = items.splice(result.source.index, 1);
-    items.splice(result.destination.index, 0, reorderedItem);
-
+    const [reorderedItem] = items.splice(sourceIndex, 1);
+    items.splice(destinationIndex, 0, reorderedItem);
+    
+    // نحدث واجهة المستخدم فورا لتحسين التجربة
     setPhotos(items);
-
+    
+    console.log(`Moving item from index ${sourceIndex} to ${destinationIndex}`);
+    
     try {
-      // تحديث الصور بترتيبها الجديد
-      for (let i = 0; i < items.length; i++) {
+      // تعيين قيم order جديدة لجميع العناصر
+      const updates = items.map((photo, index) => ({
+        id: photo.id,
+        order: index
+      }));
+      
+      console.log('Updating orders with:', updates);
+      
+      // إرسال تحديثات متعددة إلى قاعدة البيانات
+      for (const update of updates) {
         const { error } = await supabase
           .from('photos')
-          .update({ order: i })
-          .eq('id', items[i].id)
+          .update({ order: update.order })
+          .eq('id', update.id)
           .eq('user_id', user?.id);
-        
+          
         if (error) {
-          console.error(`Error updating order for photo ${items[i].id}:`, error);
+          console.error(`Error updating order for photo ${update.id}:`, error);
+          toast({
+            title: "خطأ في الترتيب",
+            description: `فشل تحديث الترتيب للصورة: ${error.message}`,
+            variant: "destructive",
+          });
+          // نعيد تحميل الصور في حالة الخطأ
+          fetchPhotos();
+          return;
         }
       }
+      
+      console.log('Successfully updated all photo orders');
+      toast({
+        title: "تم الحفظ",
+        description: "تم حفظ الترتيب الجديد بنجاح",
+      });
     } catch (err) {
       console.error('Exception updating photo order:', err);
       toast({
@@ -143,6 +174,8 @@ const PhotoGrid = () => {
         description: "حدث خطأ أثناء حفظ الترتيب الجديد",
         variant: "destructive",
       });
+      // نعيد تحميل الصور في حالة الخطأ
+      fetchPhotos();
     }
   };
 
@@ -160,6 +193,11 @@ const PhotoGrid = () => {
       
       console.log('Adding photo to database:', params.imageUrl);
       
+      // حساب أعلى قيمة order موجودة
+      const maxOrder = photos.length > 0 
+        ? Math.max(...photos.map(p => p.order !== null ? p.order : -1))
+        : -1;
+      
       // إضافة الصورة إلى الجدول
       const { data, error } = await supabase
         .from('photos')
@@ -169,7 +207,7 @@ const PhotoGrid = () => {
           caption: null,
           hashtags: [],
           user_id: user.id,
-          order: 0
+          order: maxOrder + 1 // إعطاء الصورة الجديدة أعلى قيمة order + 1
         })
         .select();
 
@@ -215,7 +253,7 @@ const PhotoGrid = () => {
       // @ts-ignore - تنظيف عند تفكيك المكون
       delete window.addPhoto;
     };
-  }, [user]);
+  }, [user, photos]);
 
   const handleDelete = async (id: string, imageUrl: string) => {
     try {
