@@ -71,7 +71,21 @@ const CreateNewDialog = ({ open, onOpenChange }: CreateNewDialogProps) => {
 
       console.log('Public URL:', publicUrl);
 
-      // إضافة الصورة إلى قاعدة البيانات
+      // حساب أعلى ترتيب موجود حالياً
+      const { data: photosData } = await supabase
+        .from('photos')
+        .select('order')
+        .eq('user_id', user.id)
+        .order('order', { ascending: false })
+        .limit(1);
+      
+      const maxOrder = photosData && photosData.length > 0 && photosData[0].order !== null
+        ? photosData[0].order
+        : -1;
+      
+      console.log('Max order:', maxOrder);
+      
+      // إضافة الصورة إلى قاعدة البيانات مباشرة من هنا
       console.log('Adding photo to database:', publicUrl);
       
       const { data, error } = await supabase
@@ -82,7 +96,7 @@ const CreateNewDialog = ({ open, onOpenChange }: CreateNewDialogProps) => {
           caption: null,
           hashtags: [],
           user_id: user.id,
-          order: 0
+          order: maxOrder + 1
         })
         .select();
 
@@ -121,7 +135,7 @@ const CreateNewDialog = ({ open, onOpenChange }: CreateNewDialogProps) => {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="top-[20%] sm:max-w-[400px] bg-gray-900/70 backdrop-blur-xl text-white border-0 shadow-xl">
+      <DialogContent className="sm:max-w-[350px] bg-gray-900/40 backdrop-blur-2xl text-white border-0 shadow-xl">
         <DialogHeader>
           <DialogTitle>إضافة صورة جديدة</DialogTitle>
           <DialogDescription className="text-gray-300">

@@ -14,7 +14,7 @@ interface Photo {
   caption?: string | null;
   hashtags?: string[] | null;
   created_at: string;
-  order?: number | null;
+  order?: number;
   user_id?: string;
 }
 
@@ -22,6 +22,7 @@ interface Photo {
 declare global {
   interface Window {
     addPhoto: (params: { imageUrl: string }) => Promise<boolean>;
+    playHeartSound: () => void;
   }
 }
 
@@ -95,7 +96,7 @@ const PhotoGrid = () => {
     if (!user) return;
     
     try {
-      // ترتيب الصور حسب الترتيب ثم تاريخ الإنشاء
+      // نحصل على الصور مرتبة حسب الحقل order
       const { data, error } = await supabase
         .from('photos')
         .select('*')
@@ -122,37 +123,34 @@ const PhotoGrid = () => {
     const [reorderedItem] = items.splice(result.source.index, 1);
     items.splice(result.destination.index, 0, reorderedItem);
 
-    // تحديث الترتيب المحلي
-    const updatedItems = items.map((photo, index) => ({
-      ...photo,
-      order: index
-    }));
-    
-    setPhotos(updatedItems);
+    // تحديث الترتيب في واجهة المستخدم أولاً
+    setPhotos(items);
 
     try {
-      // تحديث الصور بترتيبها الجديد في قاعدة البيانات
-      for (let i = 0; i < updatedItems.length; i++) {
+      console.log('Updating order for photos');
+      
+      // تحديث الصور بترتيبها الجديد
+      for (let i = 0; i < items.length; i++) {
+        console.log(`Setting order ${i} for photo ${items[i].id}`);
+        
         const { error } = await supabase
           .from('photos')
           .update({ order: i })
-          .eq('id', updatedItems[i].id);
+          .eq('id', items[i].id)
+          .eq('user_id', user?.id);
         
         if (error) {
-          console.error(`Error updating order for photo ${updatedItems[i].id}:`, error);
-          toast({
-            title: "خطأ في تحديث الترتيب",
-            description: `لم نتمكن من تحديث ترتيب الصورة: ${error.message}`,
-            variant: "destructive",
-          });
+          console.error(`Error updating order for photo ${items[i].id}:`, error);
         }
       }
       
+      // إعادة جلب الصور بعد التحديث
+      await fetchPhotos();
+      
       toast({
-        title: "تم الترتيب",
+        title: "تم تحديث الترتيب",
         description: "تم حفظ ترتيب الصور بنجاح",
       });
-      
     } catch (err) {
       console.error('Exception updating photo order:', err);
       toast({
@@ -177,6 +175,11 @@ const PhotoGrid = () => {
       
       console.log('Adding photo to database:', params.imageUrl);
       
+      // حساب أعلى ترتيب حالي للصور
+      const maxOrder = photos.length > 0 
+        ? Math.max(...photos.map(p => p.order !== undefined ? p.order : 0))
+        : -1;
+      
       // إضافة الصورة إلى الجدول
       const { data, error } = await supabase
         .from('photos')
@@ -186,7 +189,7 @@ const PhotoGrid = () => {
           caption: null,
           hashtags: [],
           user_id: user.id,
-          order: 0
+          order: maxOrder + 1  // وضع الصورة الجديدة في آخر الترتيب
         })
         .select();
 
@@ -232,7 +235,7 @@ const PhotoGrid = () => {
       // @ts-ignore - تنظيف عند تفكيك المكون
       delete window.addPhoto;
     };
-  }, [user]);
+  }, [user, photos]);
 
   const handleDelete = async (id: string, imageUrl: string) => {
     try {

@@ -1,14 +1,9 @@
 
 import { useState } from "react";
-import { Heart, Pencil, Trash, GripVertical } from "lucide-react";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { Heart, Trash2, Edit, GripVertical } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { useHeartSound } from "./HeartSound";
+import { Textarea } from "@/components/ui/textarea";
 
 interface PhotoCardProps {
   imageUrl: string;
@@ -22,166 +17,169 @@ interface PhotoCardProps {
 
 const PhotoCard = ({
   imageUrl,
-  likes,
-  caption,
-  hashtags,
+  likes = 0,
+  caption = '',
+  hashtags = [],
   dragHandleProps,
   onDelete,
   onUpdateCaption,
 }: PhotoCardProps) => {
-  const [isLiked, setIsLiked] = useState(false);
-  const [currentLikes, setCurrentLikes] = useState(likes);
-  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [liked, setLiked] = useState(false);
+  const [likeCount, setLikeCount] = useState(likes);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [newCaption, setNewCaption] = useState(caption);
-  const [newHashtags, setNewHashtags] = useState(hashtags.join(" "));
-  const [heartAnimation, setHeartAnimation] = useState(false);
-  const { playHeartSound } = useHeartSound();
+  const [newHashtags, setNewHashtags] = useState(hashtags.join(' '));
 
   const handleLike = () => {
-    setIsLiked(!isLiked);
-    setCurrentLikes(isLiked ? currentLikes - 1 : currentLikes + 1);
-    setHeartAnimation(true);
-    playHeartSound();
-    setTimeout(() => setHeartAnimation(false), 600);
+    // تشغيل الصوت عند الضغط على القلب
+    if (window.playHeartSound) {
+      window.playHeartSound();
+    }
+    
+    setLiked(!liked);
+    setLikeCount(prev => liked ? prev - 1 : prev + 1);
   };
 
-  const handleUpdateCaption = () => {
+  const handleCaptionChange = (event: React.ChangeEvent<HTMLTextAreaElement>) => {
+    setNewCaption(event.target.value);
+  };
+
+  const handleHashtagsChange = (event: React.ChangeEvent<HTMLTextAreaElement>) => {
+    setNewHashtags(event.target.value);
+  };
+
+  const handleSaveCaption = () => {
+    const hashtagsArray = newHashtags
+      .split(/[\s,]+/)
+      .map(tag => (tag.startsWith('#') ? tag : `#${tag}`))
+      .filter(tag => tag !== '#');
+
     if (onUpdateCaption) {
-      const hashtagsArray = newHashtags
-        .split(/\s+/)
-        .filter(tag => tag.trim() !== "")
-        .map(tag => tag.startsWith("#") ? tag : `#${tag}`);
-      
       onUpdateCaption(newCaption, hashtagsArray);
     }
-    setEditDialogOpen(false);
+    setIsDialogOpen(false);
   };
 
   return (
-    <>
-      <div className="overflow-hidden rounded-lg bg-white shadow-lg transition-all duration-300 transform hover:-translate-y-1 hover:shadow-xl relative">
-        <div
-          {...dragHandleProps}
-          className="absolute top-2 right-2 cursor-grab active:cursor-grabbing z-10 p-1 rounded-full bg-white/80 backdrop-blur-sm text-gray-600"
-        >
-          <GripVertical className="w-4 h-4" />
-        </div>
-        <div
-          className="relative w-full h-48 sm:h-56 cursor-pointer overflow-hidden"
-          onClick={() => setEditDialogOpen(true)}
-        >
-          <img
-            src={imageUrl}
-            alt={caption || "Gratitude image"}
-            className="w-full h-full object-cover transition-transform duration-300 hover:scale-110"
-          />
-        </div>
-        <div className="p-4 space-y-3 bg-gradient-to-b from-[#FFDEE2] to-[#F1F0FB]">
-          {caption && (
-            <p className="text-gray-700 text-sm line-clamp-2 min-h-[2.5rem]" dir="rtl">
-              {caption}
-            </p>
-          )}
-          <div className="flex flex-wrap gap-1 justify-end">
-            {hashtags.map(
-              (tag, idx) =>
-                tag && (
-                  <span
-                    key={idx}
-                    className="text-xs bg-white/50 backdrop-blur-sm px-2 py-1 rounded-full text-gray-600"
-                  >
-                    {tag}
-                  </span>
-                )
-            )}
+    <div className="bg-white/10 backdrop-blur-md rounded-xl overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300">
+      <div className="relative group">
+        <img
+          src={imageUrl}
+          alt="Photo"
+          className="w-full aspect-square object-cover transition-transform duration-300 group-hover:scale-105"
+        />
+        <div className="absolute top-0 right-0 p-2">
+          <div {...dragHandleProps} className="cursor-grab active:cursor-grabbing">
+            <GripVertical className="w-5 h-5 text-white opacity-70 hover:opacity-100" />
           </div>
-          <div className="flex justify-between items-center pt-2">
-            <div className="flex space-x-2">
+        </div>
+        <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+          <div className="flex space-x-2">
+            {onDelete && (
               <Button
-                variant="ghost"
+                onClick={onDelete}
+                variant="outline"
                 size="icon"
-                onClick={handleLike}
-                className="group relative hover:bg-pink-100"
+                className="rounded-full bg-black/50 border-0 hover:bg-black/70 text-white"
               >
-                <Heart
-                  className={`h-5 w-5 transition-colors ${
-                    isLiked
-                      ? "fill-pink-500 text-pink-500"
-                      : "fill-none text-gray-500 group-hover:text-pink-400"
-                  } ${heartAnimation ? "animate-heartBeat" : ""}`}
-                />
+                <Trash2 className="w-5 h-5" />
               </Button>
-              <span className="text-gray-600 text-sm self-center">
-                {currentLikes}
-              </span>
-            </div>
-            <div className="flex space-x-2">
+            )}
+            {onUpdateCaption && (
               <Button
-                variant="ghost"
+                onClick={() => setIsDialogOpen(true)}
+                variant="outline"
                 size="icon"
-                onClick={() => setEditDialogOpen(true)}
-                className="text-gray-500 hover:text-gray-700 hover:bg-gray-100"
+                className="rounded-full bg-black/50 border-0 hover:bg-black/70 text-white"
               >
-                <Pencil className="h-4 w-4" />
+                <Edit className="w-5 h-5" />
               </Button>
-              {onDelete && (
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={onDelete}
-                  className="text-gray-500 hover:text-red-500 hover:bg-gray-100"
-                >
-                  <Trash className="h-4 w-4" />
-                </Button>
-              )}
-            </div>
+            )}
           </div>
         </div>
       </div>
 
-      {/* Edit Dialog */}
-      <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
-        <DialogContent className="top-[30%] max-w-md bg-white/90 backdrop-blur-md border border-gray-200 shadow-lg">
+      <div className="p-4 space-y-2">
+        <div className="flex items-center justify-between">
+          <button
+            onClick={handleLike}
+            className="flex items-center space-x-1 group"
+          >
+            <Heart
+              className={`w-6 h-6 transition-all duration-300 ${
+                liked
+                  ? "fill-[#ea384c] text-[#ea384c] animate-heartBeat"
+                  : "text-gray-300 group-hover:scale-110"
+              }`}
+            />
+            <span
+              className={`text-sm font-medium ${
+                liked ? "text-[#ea384c]" : "text-gray-300"
+              }`}
+            >
+              {likeCount}
+            </span>
+          </button>
+
+          <div className="text-right flex-1">
+            {caption && (
+              <p className="text-gray-200 text-sm line-clamp-2">{caption}</p>
+            )}
+          </div>
+        </div>
+
+        {hashtags.length > 0 && (
+          <div className="flex flex-wrap justify-end gap-1">
+            {hashtags.map((tag, index) => (
+              <span
+                key={index}
+                className="text-xs text-gray-300 bg-white/10 px-2 py-1 rounded-full"
+              >
+                {!tag.startsWith('#') ? '#' : ''}
+                {tag.startsWith('#') ? tag.substring(1) : tag}
+              </span>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Edit Caption Dialog */}
+      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <DialogContent className="max-w-sm bg-gray-900/40 backdrop-blur-2xl text-white border-0 shadow-xl">
           <DialogHeader>
-            <DialogTitle className="text-gray-800">تعديل التعليق والهاشتاجات</DialogTitle>
+            <DialogTitle className="text-lg font-semibold">تعديل التعليق</DialogTitle>
           </DialogHeader>
-          <div className="space-y-4">
-            <div>
-              <label htmlFor="caption" className="block text-sm text-gray-600 mb-1 text-right">
-                التعليق
-              </label>
-              <textarea
-                id="caption"
-                className="w-full px-3 py-2 bg-white/80 border border-gray-300 rounded-md text-gray-700 resize-none focus:outline-none focus:ring-1 focus:ring-pink-300 text-right"
+          <div className="space-y-3">
+            <div className="space-y-1">
+              <label className="text-sm text-gray-300 text-right block">التعليق</label>
+              <Textarea
                 value={newCaption}
-                onChange={(e) => setNewCaption(e.target.value)}
-                rows={3}
-                dir="rtl"
+                onChange={handleCaptionChange}
+                placeholder="اكتب تعليقًا..."
+                className="resize-none h-20 bg-white/10 border-gray-700 text-white placeholder:text-gray-500 text-right"
               />
             </div>
-            <div>
-              <label htmlFor="hashtags" className="block text-sm text-gray-600 mb-1 text-right">
-                الهاشتاجات (مفصولة بمسافة)
-              </label>
-              <input
-                id="hashtags"
-                className="w-full px-3 py-2 bg-white/80 border border-gray-300 rounded-md text-gray-700 focus:outline-none focus:ring-1 focus:ring-pink-300 text-right"
+            <div className="space-y-1">
+              <label className="text-sm text-gray-300 text-right block">الوسوم</label>
+              <Textarea
                 value={newHashtags}
-                onChange={(e) => setNewHashtags(e.target.value)}
-                dir="rtl"
+                onChange={handleHashtagsChange}
+                placeholder="#قلب #امتنان #شكر"
+                className="resize-none h-20 bg-white/10 border-gray-700 text-white placeholder:text-gray-500 text-right dir-rtl"
               />
+              <p className="text-xs text-gray-400 text-right">افصل بين الوسوم بمسافات</p>
             </div>
-            <div className="flex justify-end space-x-3">
+            <div className="flex justify-end space-x-2">
               <Button 
+                onClick={() => setIsDialogOpen(false)}
                 variant="outline" 
-                onClick={() => setEditDialogOpen(false)}
-                className="bg-transparent border-gray-300 text-gray-600 hover:bg-gray-100"
+                className="bg-transparent border-gray-600 text-gray-300 hover:bg-gray-800"
               >
                 إلغاء
               </Button>
               <Button 
-                onClick={handleUpdateCaption}
-                className="bg-[#ea384c] hover:bg-[#ea384c]/90 text-white"
+                onClick={handleSaveCaption}
+                className="bg-[#ea384c] hover:bg-[#ea384c]/90 text-white border-0"
               >
                 حفظ
               </Button>
@@ -189,7 +187,7 @@ const PhotoCard = ({
           </div>
         </DialogContent>
       </Dialog>
-    </>
+    </div>
   );
 };
 
