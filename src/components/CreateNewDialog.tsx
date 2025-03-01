@@ -71,7 +71,7 @@ const CreateNewDialog = ({ open, onOpenChange }: CreateNewDialogProps) => {
 
       console.log('Public URL:', publicUrl);
 
-      // إضافة الصورة إلى قاعدة البيانات مباشرة من هنا
+      // إضافة الصورة إلى قاعدة البيانات
       console.log('Adding photo to database:', publicUrl);
       
       const { data, error } = await supabase
@@ -121,7 +121,7 @@ const CreateNewDialog = ({ open, onOpenChange }: CreateNewDialogProps) => {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[425px] bg-gray-900/40 backdrop-blur-xl text-white border-0 shadow-xl">
+      <DialogContent className="top-[20%] sm:max-w-[400px] bg-gray-900/70 backdrop-blur-xl text-white border-0 shadow-xl">
         <DialogHeader>
           <DialogTitle>إضافة صورة جديدة</DialogTitle>
           <DialogDescription className="text-gray-300">
@@ -138,7 +138,7 @@ const CreateNewDialog = ({ open, onOpenChange }: CreateNewDialogProps) => {
               className="hidden"
             />
             <div 
-              className="w-full h-48 border-2 border-dashed border-gray-600 rounded-lg flex flex-col items-center justify-center cursor-pointer hover:border-gray-500 transition-colors"
+              className="w-full h-44 border-2 border-dashed border-gray-600 rounded-lg flex flex-col items-center justify-center cursor-pointer hover:border-gray-500 transition-colors"
               onClick={() => document.getElementById('image')?.click()}
             >
               {previewUrl ? (
@@ -171,7 +171,7 @@ const CreateNewDialog = ({ open, onOpenChange }: CreateNewDialogProps) => {
             <Button 
               type="submit" 
               disabled={!image || isSubmitting}
-              className="bg-white/20 backdrop-blur-md hover:bg-white/30 text-white"
+              className="bg-[#ea384c] hover:bg-[#ea384c]/90 text-white"
             >
               {isSubmitting ? "جاري الحفظ..." : "حفظ"}
             </Button>

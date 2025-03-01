@@ -14,7 +14,7 @@ interface Photo {
   caption?: string | null;
   hashtags?: string[] | null;
   created_at: string;
-  order?: number;
+  order?: number | null;
   user_id?: string;
 }
 
@@ -95,11 +95,12 @@ const PhotoGrid = () => {
     if (!user) return;
     
     try {
-      // ملاحظة: نحاول الحصول على الصور بترتيب created_at فقط، وليس order
+      // ترتيب الصور حسب الترتيب ثم تاريخ الإنشاء
       const { data, error } = await supabase
         .from('photos')
         .select('*')
         .eq('user_id', user.id)
+        .order('order', { ascending: true })
         .order('created_at', { ascending: false });
 
       if (error) {
@@ -121,21 +122,37 @@ const PhotoGrid = () => {
     const [reorderedItem] = items.splice(result.source.index, 1);
     items.splice(result.destination.index, 0, reorderedItem);
 
-    setPhotos(items);
+    // تحديث الترتيب المحلي
+    const updatedItems = items.map((photo, index) => ({
+      ...photo,
+      order: index
+    }));
+    
+    setPhotos(updatedItems);
 
     try {
-      // تحديث الصور بترتيبها الجديد
-      for (let i = 0; i < items.length; i++) {
+      // تحديث الصور بترتيبها الجديد في قاعدة البيانات
+      for (let i = 0; i < updatedItems.length; i++) {
         const { error } = await supabase
           .from('photos')
           .update({ order: i })
-          .eq('id', items[i].id)
-          .eq('user_id', user?.id);
+          .eq('id', updatedItems[i].id);
         
         if (error) {
-          console.error(`Error updating order for photo ${items[i].id}:`, error);
+          console.error(`Error updating order for photo ${updatedItems[i].id}:`, error);
+          toast({
+            title: "خطأ في تحديث الترتيب",
+            description: `لم نتمكن من تحديث ترتيب الصورة: ${error.message}`,
+            variant: "destructive",
+          });
         }
       }
+      
+      toast({
+        title: "تم الترتيب",
+        description: "تم حفظ ترتيب الصور بنجاح",
+      });
+      
     } catch (err) {
       console.error('Exception updating photo order:', err);
       toast({
