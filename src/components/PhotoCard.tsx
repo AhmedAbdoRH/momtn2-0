@@ -1,193 +1,213 @@
 
 import { useState } from "react";
-import { Heart, Trash2, Edit, GripVertical } from "lucide-react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
+import { GripVertical, Heart, MessageCircle, Trash2 } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { Dialog, DialogContent } from "./ui/dialog";
 
 interface PhotoCardProps {
   imageUrl: string;
   likes: number;
-  caption: string;
-  hashtags: string[];
-  dragHandleProps?: any;
+  caption?: string;
+  hashtags?: string[];
   onDelete?: () => void;
-  onUpdateCaption?: (caption: string, hashtags: string[]) => void;
+  dragHandleProps?: any;
+  onUpdateCaption?: (caption: string, hashtags: string[]) => Promise<void>;
 }
 
-const PhotoCard = ({
-  imageUrl,
-  likes = 0,
-  caption = '',
-  hashtags = [],
-  dragHandleProps,
+const PhotoCard = ({ 
+  imageUrl, 
+  likes: initialLikes, 
+  caption: initialCaption = '',
+  hashtags: initialHashtags = [],
   onDelete,
-  onUpdateCaption,
+  dragHandleProps,
+  onUpdateCaption 
 }: PhotoCardProps) => {
-  const [liked, setLiked] = useState(false);
-  const [likeCount, setLikeCount] = useState(likes);
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [newCaption, setNewCaption] = useState(caption);
-  const [newHashtags, setNewHashtags] = useState(hashtags.join(' '));
+  const [isLoved, setIsLoved] = useState(false);
+  const [likes, setLikes] = useState(initialLikes);
+  const [isEditing, setIsEditing] = useState(false);
+  const [caption, setCaption] = useState(initialCaption);
+  const [hashtags, setHashtags] = useState(initialHashtags);
+  const [isControlsVisible, setIsControlsVisible] = useState(false);
+  const [isHeartAnimating, setIsHeartAnimating] = useState(false);
 
-  const handleLike = () => {
-    // تشغيل الصوت عند الضغط على القلب
-    if (window.playHeartSound) {
-      window.playHeartSound();
+  const handleLike = async () => {
+    setIsHeartAnimating(true);
+    const newLikeCount = likes + (isLoved ? -1 : 1);
+    setIsLoved(!isLoved);
+    setLikes(newLikeCount);
+
+    const { error } = await supabase
+      .from('photos')
+      .update({ likes: newLikeCount })
+      .eq('image_url', imageUrl);
+
+    if (error) {
+      console.error('Error updating likes:', error);
+      setIsLoved(isLoved);
+      setLikes(likes);
     }
-    
-    setLiked(!liked);
-    setLikeCount(prev => liked ? prev - 1 : prev + 1);
+
+    setTimeout(() => setIsHeartAnimating(false), 1000);
   };
 
-  const handleCaptionChange = (event: React.ChangeEvent<HTMLTextAreaElement>) => {
-    setNewCaption(event.target.value);
-  };
-
-  const handleHashtagsChange = (event: React.ChangeEvent<HTMLTextAreaElement>) => {
-    setNewHashtags(event.target.value);
-  };
-
-  const handleSaveCaption = () => {
-    const hashtagsArray = newHashtags
-      .split(/[\s,]+/)
-      .map(tag => (tag.startsWith('#') ? tag : `#${tag}`))
-      .filter(tag => tag !== '#');
-
+  const handleCaptionSubmit = async () => {
     if (onUpdateCaption) {
-      onUpdateCaption(newCaption, hashtagsArray);
+      await onUpdateCaption(caption, hashtags);
     }
-    setIsDialogOpen(false);
+    setIsEditing(false);
+  };
+
+  const handleHashtagsChange = (value: string) => {
+    const tags = value.split(' ').filter(tag => tag.startsWith('#'));
+    setHashtags(tags);
+  };
+
+  const toggleControls = () => {
+    setIsControlsVisible(!isControlsVisible);
   };
 
   return (
-    <div className="bg-white/10 backdrop-blur-md rounded-xl overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300">
-      <div className="relative group">
-        <img
-          src={imageUrl}
-          alt="Photo"
-          className="w-full aspect-square object-cover transition-transform duration-300 group-hover:scale-105"
-        />
-        <div className="absolute top-0 right-0 p-2">
-          <div {...dragHandleProps} className="cursor-grab active:cursor-grabbing">
-            <GripVertical className="w-5 h-5 text-white opacity-70 hover:opacity-100" />
-          </div>
+    <>
+      <div 
+        className="relative group overflow-hidden rounded-xl shadow-xl transition-all duration-300"
+        onClick={toggleControls}
+      >
+        <div className="relative overflow-hidden rounded-xl">
+          <img
+            src={imageUrl}
+            alt="Gallery"
+            className="w-full h-auto object-contain transition-transform duration-500 group-hover:scale-105"
+            loading="lazy"
+          />
+          <div className={`absolute inset-0 bg-gradient-to-b from-black/30 via-transparent to-black/70 transition-opacity duration-300 ${
+            isControlsVisible ? 'opacity-100' : 'opacity-0'
+          }`} />
         </div>
-        <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-          <div className="flex space-x-2">
-            {onDelete && (
-              <Button
-                onClick={onDelete}
-                variant="outline"
-                size="icon"
-                className="rounded-full bg-black/50 border-0 hover:bg-black/70 text-white"
-              >
-                <Trash2 className="w-5 h-5" />
-              </Button>
-            )}
-            {onUpdateCaption && (
-              <Button
-                onClick={() => setIsDialogOpen(true)}
-                variant="outline"
-                size="icon"
-                className="rounded-full bg-black/50 border-0 hover:bg-black/70 text-white"
-              >
-                <Edit className="w-5 h-5" />
-              </Button>
-            )}
-          </div>
+        
+        <div 
+          {...dragHandleProps}
+          className={`absolute top-2 right-2 p-2 rounded-full bg-black/20 backdrop-blur-sm transition-opacity duration-300 cursor-move ${
+            isControlsVisible ? 'opacity-50' : 'opacity-0'
+          }`}
+        >
+          <GripVertical className="w-4 h-4 text-white" />
         </div>
-      </div>
 
-      <div className="p-4 space-y-2">
-        <div className="flex items-center justify-between">
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            setIsEditing(true);
+          }}
+          className={`absolute top-2 left-2 p-2 rounded-full bg-black/20 backdrop-blur-sm transition-opacity duration-300 hover:opacity-100 ${
+            isControlsVisible ? 'opacity-50' : 'opacity-0'
+          }`}
+        >
+          <MessageCircle className="w-4 h-4 text-white" />
+        </button>
+
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            onDelete?.();
+          }}
+          className={`absolute bottom-2 right-2 p-2 rounded-full bg-black/20 backdrop-blur-sm transition-opacity duration-300 hover:bg-red-500/50 ${
+            isControlsVisible ? 'opacity-50' : 'opacity-0'
+          } hover:opacity-100`}
+        >
+          <Trash2 className="w-4 h-4 text-white" />
+        </button>
+
+        <div className="absolute bottom-2 left-2 flex items-center gap-1">
           <button
-            onClick={handleLike}
-            className="flex items-center space-x-1 group"
+            onClick={(e) => {
+              e.stopPropagation();
+              handleLike();
+            }}
+            className="relative group flex items-center gap-2 text-white/90 hover:text-white transition-colors p-2"
           >
-            <Heart
-              className={`w-6 h-6 transition-all duration-300 ${
-                liked
-                  ? "fill-[#ea384c] text-[#ea384c] animate-heartBeat"
-                  : "text-gray-300 group-hover:scale-110"
-              }`}
-            />
-            <span
-              className={`text-sm font-medium ${
-                liked ? "text-[#ea384c]" : "text-gray-300"
-              }`}
-            >
-              {likeCount}
-            </span>
+            <div className="relative">
+              <Heart
+                className={`w-6 h-6 transition-all duration-300 transform ${
+                  isLoved ? "fill-[#ea384c] text-[#ea384c] scale-125" : "hover:scale-110"
+                }`}
+              />
+              {isHeartAnimating && (
+                <>
+                  <div className="absolute inset-0 animate-ping">
+                    <Heart className="w-6 h-6 text-[#ea384c]/30" />
+                  </div>
+                  <div className="absolute inset-0 animate-pulse">
+                    <Heart className="w-6 h-6 text-[#ea384c]/20" />
+                  </div>
+                </>
+              )}
+            </div>
           </button>
-
-          <div className="text-right flex-1">
-            {caption && (
-              <p className="text-gray-200 text-sm line-clamp-2">{caption}</p>
-            )}
-          </div>
+          <span className="text-sm font-medium bg-black/30 backdrop-blur-sm px-2 py-1 rounded-full text-white/90">
+            {likes}
+          </span>
         </div>
 
-        {hashtags.length > 0 && (
-          <div className="flex flex-wrap justify-end gap-1">
-            {hashtags.map((tag, index) => (
-              <span
-                key={index}
-                className="text-xs text-gray-300 bg-white/10 px-2 py-1 rounded-full"
-              >
-                {!tag.startsWith('#') ? '#' : ''}
-                {tag.startsWith('#') ? tag.substring(1) : tag}
-              </span>
-            ))}
+        {(caption || hashtags.length > 0) && (
+          <div className={`absolute left-2 right-2 bottom-14 p-2 bg-black/50 backdrop-blur-md rounded-lg transition-opacity duration-300 ${
+            isControlsVisible ? 'opacity-80' : 'opacity-0'
+          }`}>
+            {caption && <p className="text-white text-sm mb-1">{caption}</p>}
+            {hashtags.length > 0 && (
+              <div className="flex flex-wrap gap-1">
+                {hashtags.map((tag) => (
+                  <span key={tag} className="text-xs text-blue-300">
+                    {tag}
+                  </span>
+                ))}
+              </div>
+            )}
           </div>
         )}
       </div>
 
-      {/* Edit Caption Dialog */}
-      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="max-w-sm bg-gray-900/40 backdrop-blur-2xl text-white border-0 shadow-xl">
-          <DialogHeader>
-            <DialogTitle className="text-lg font-semibold">تعديل التعليق</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-3">
-            <div className="space-y-1">
-              <label className="text-sm text-gray-300 text-right block">التعليق</label>
-              <Textarea
-                value={newCaption}
-                onChange={handleCaptionChange}
-                placeholder="اكتب تعليقًا..."
-                className="resize-none h-20 bg-white/10 border-gray-700 text-white placeholder:text-gray-500 text-right"
+      <Dialog open={isEditing} onOpenChange={setIsEditing}>
+        <DialogContent className="bg-gray-900/60 backdrop-blur-xl text-white border-0">
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium mb-2">التعليق</label>
+              <textarea
+                value={caption}
+                onChange={(e) => setCaption(e.target.value)}
+                className="w-full px-3 py-2 bg-white/10 backdrop-blur-sm rounded-md text-white"
+                rows={3}
+                placeholder="أضف تعليقاً..."
               />
             </div>
-            <div className="space-y-1">
-              <label className="text-sm text-gray-300 text-right block">الوسوم</label>
-              <Textarea
-                value={newHashtags}
-                onChange={handleHashtagsChange}
-                placeholder="#قلب #امتنان #شكر"
-                className="resize-none h-20 bg-white/10 border-gray-700 text-white placeholder:text-gray-500 text-right dir-rtl"
+            <div>
+              <label className="block text-sm font-medium mb-2">الهاشتاجات</label>
+              <input
+                type="text"
+                value={hashtags.join(' ')}
+                onChange={(e) => handleHashtagsChange(e.target.value)}
+                className="w-full px-3 py-2 bg-white/10 backdrop-blur-sm rounded-md text-white"
+                placeholder="#رمضان #عبادة"
               />
-              <p className="text-xs text-gray-400 text-right">افصل بين الوسوم بمسافات</p>
             </div>
-            <div className="flex justify-end space-x-2">
-              <Button 
-                onClick={() => setIsDialogOpen(false)}
-                variant="outline" 
-                className="bg-transparent border-gray-600 text-gray-300 hover:bg-gray-800"
+            <div className="flex justify-end gap-2">
+              <button
+                onClick={() => setIsEditing(false)}
+                className="px-4 py-2 rounded-md bg-white/10 backdrop-blur-sm text-white hover:bg-white/20 transition-colors"
               >
                 إلغاء
-              </Button>
-              <Button 
-                onClick={handleSaveCaption}
-                className="bg-[#ea384c] hover:bg-[#ea384c]/90 text-white border-0"
+              </button>
+              <button
+                onClick={handleCaptionSubmit}
+                className="px-4 py-2 rounded-md bg-white/20 backdrop-blur-sm text-white hover:bg-white/30 transition-colors"
               >
                 حفظ
-              </Button>
+              </button>
             </div>
           </div>
         </DialogContent>
       </Dialog>
-    </div>
+    </>
   );
 };
 

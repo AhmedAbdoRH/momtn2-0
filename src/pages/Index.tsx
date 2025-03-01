@@ -3,9 +3,8 @@ import { Plus, Menu, LogOut, User } from "lucide-react";
 import PhotoGrid from "@/components/PhotoGrid";
 import { Button } from "@/components/ui/button";
 import CreateNewDialog from "@/components/CreateNewDialog";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useAuth } from "@/components/AuthProvider";
-import HeartSound from "@/components/HeartSound";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -27,9 +26,6 @@ const Index = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#2D1F3D] via-[#1A1F2C] to-[#3D1F2C] animate-gradient">
-      {/* مكون الصوت لتشغيل صوت القلب */}
-      <HeartSound />
-      
       {/* Sidebar Toggle Button */}
       <Button
         variant="ghost"
@@ -97,11 +93,11 @@ const Index = () => {
           {/* Add New Gratitude Button in the center */}
           <Button
             onClick={handleCreateNew}
-            className={`px-5 py-3 bg-[#ea384c] hover:bg-[#ea384c]/90 text-white shadow-lg rounded-lg mx-auto transition-all duration-300 ${
-              btnAnimation ? 'scale-95 shadow-inner' : 'transform hover:scale-105'
+            className={`px-5 py-3 bg-[#ea384c] hover:bg-[#ea384c]/90 text-white shadow-lg rounded-lg mx-auto transition-transform duration-300 ${
+              btnAnimation ? 'scale-95' : ''
             }`}
           >
-            <Plus className={`w-5 h-5 mr-2 transition-transform duration-300 ${btnAnimation ? 'rotate-180' : ''}`} />
+            <Plus className="w-5 h-5 mr-2" />
             إضافة امتنان جديد
           </Button>
         </div>
@@ -112,11 +108,11 @@ const Index = () => {
         {/* Floating Action Button - Fixed position */}
         <Button
           onClick={handleCreateNew}
-          className={`fixed bottom-6 left-6 w-14 h-14 rounded-full bg-white/10 backdrop-blur-lg hover:bg-white/20 text-white shadow-lg transition-all duration-300 ${
-            btnAnimation ? 'scale-95 shadow-inner' : 'transform hover:scale-105'
+          className={`fixed bottom-6 left-6 w-14 h-14 rounded-full bg-white/10 backdrop-blur-lg hover:bg-white/20 text-white shadow-lg transition-transform duration-300 ${
+            btnAnimation ? 'scale-95' : ''
           }`}
         >
-          <Plus className={`w-6 h-6 transition-transform duration-300 ${btnAnimation ? 'rotate-180' : ''}`} />
+          <Plus className="w-6 h-6" />
         </Button>
       </main>
 
