@@ -1,132 +1,85 @@
 
+// Follow this setup guide to integrate the Deno runtime and Supabase
+// https://deno.land/manual/getting_started/setup_your_environment
+// https://deno.land/manual/examples/supabase
+
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.38.4";
-import { render } from "https://esm.sh/react-email@2.0.0/render";
-import { SpaceInvitationEmail } from "./email-template.tsx";
 
-// تكوين عناوين CORS
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type",
-};
-
-const handleCors = (req: Request) => {
-  // التعامل مع طلبات CORS Preflight
-  if (req.method === "OPTIONS") {
-    return new Response(null, {
-      headers: corsHeaders,
-      status: 204,
-    });
-  }
-  return null;
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
 serve(async (req) => {
-  // التحقق من طلبات CORS
-  const corsResponse = handleCors(req);
-  if (corsResponse) return corsResponse;
-
+  // Handle CORS preflight requests
+  if (req.method === "OPTIONS") {
+    return new Response("ok", { headers: corsHeaders });
+  }
+  
   try {
-    // تكوين عميل Supabase
-    const supabaseClient = createClient(
-      Deno.env.get("SUPABASE_URL") || "",
-      Deno.env.get("SUPABASE_ANON_KEY") || "",
-      {
-        global: {
-          headers: { Authorization: req.headers.get("Authorization")! },
-        },
-      }
-    );
+    const supabaseUrl = Deno.env.get("SUPABASE_URL") || "";
+    const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY") || "";
+    const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
-    // استخراج بيانات المستخدم الحالي
-    const {
-      data: { user },
-    } = await supabaseClient.auth.getUser();
+    // Get request data
+    const { invitationToken, spaceId, email, inviterUserId, spaceName } = await req.json();
 
-    if (!user) {
+    // Validate required data
+    if (!invitationToken || !spaceId || !email || !inviterUserId || !spaceName) {
       return new Response(
-        JSON.stringify({ error: "يجب تسجيل الدخول لإرسال الدعوات" }),
-        {
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-          status: 401,
+        JSON.stringify({ error: "Missing required information" }),
+        { 
+          status: 400, 
+          headers: { ...corsHeaders, "Content-Type": "application/json" } 
         }
       );
     }
 
-    // استخراج بيانات الدعوة من الطلب
-    const { invitationId, spaceName } = await req.json();
-
-    if (!invitationId || !spaceName) {
-      return new Response(
-        JSON.stringify({ error: "البيانات المطلوبة غير مكتملة" }),
-        {
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-          status: 400,
-        }
-      );
-    }
-
-    // جلب معلومات الدعوة من قاعدة البيانات
-    const { data: invitationData, error: invitationError } = await supabaseClient
-      .from("space_invitations")
-      .select("*")
-      .eq("id", invitationId)
+    // Get inviter details
+    const { data: inviterData, error: inviterError } = await supabase
+      .from('profiles')
+      .select('name, email')
+      .eq('id', inviterUserId)
       .single();
 
-    if (invitationError || !invitationData) {
-      return new Response(
-        JSON.stringify({ error: "لم يتم العثور على الدعوة" }),
-        {
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-          status: 404,
-        }
-      );
-    }
+    const inviterName = inviterData?.name || "مستخدم";
 
-    // جلب اسم المستخدم المرسل
-    const senderName = user.email?.split("@")[0] || "مستخدم";
-    const recipientName = invitationData.email.split("@")[0];
+    // Generate invitation URL
+    const baseUrl = Deno.env.get("SITE_URL") || "http://localhost:5173";
+    const invitationUrl = `${baseUrl}/invitation?token=${invitationToken}`;
 
-    // إنشاء رابط الدعوة
-    const baseUrl = Deno.env.get("FRONTEND_URL") || "http://localhost:5173";
-    const inviteLink = `${baseUrl}/invite?token=${invitationData.token}`;
+    // In a real implementation, you would:
+    // 1. Use a proper email service like SendGrid, Resend, etc.
+    // 2. Create a nice HTML email with your branding
+    // 3. Send the email using the service's API
 
-    // إنشاء قالب البريد الإلكتروني
-    const emailHtml = render(
-      SpaceInvitationEmail({
-        recipientName,
-        senderName,
-        spaceName,
-        inviteLink,
-      })
-    );
+    console.log(`
+      Sending invitation email to: ${email}
+      Space: ${spaceName}
+      Inviter: ${inviterName}
+      Invitation URL: ${invitationUrl}
+    `);
 
-    // إرسال البريد الإلكتروني باستخدام خدمة البريد المفضلة لديك
-    // هنا نستخدم خدمة وهمية للعرض فقط
-    console.log(`إرسال بريد إلكتروني إلى ${invitationData.email}`);
-    console.log(`رابط الدعوة: ${inviteLink}`);
-
-    // إرجاع استجابة نجاح
+    // For now, we'll just return a success response
     return new Response(
-      JSON.stringify({
-        success: true,
-        message: `تم إرسال الدعوة إلى ${invitationData.email}`,
-        inviteLink,
+      JSON.stringify({ 
+        success: true, 
+        message: "Invitation email would be sent here in production" 
       }),
-      {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-        status: 200,
+      { 
+        status: 200, 
+        headers: { ...corsHeaders, "Content-Type": "application/json" } 
       }
     );
   } catch (error) {
-    console.error("حدث خطأ:", error);
-
+    console.error("Error sending invitation email:", error);
+    
     return new Response(
-      JSON.stringify({ error: "حدث خطأ أثناء معالجة الطلب" }),
-      {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-        status: 500,
+      JSON.stringify({ error: error.message }),
+      { 
+        status: 500, 
+        headers: { ...corsHeaders, "Content-Type": "application/json" } 
       }
     );
   }

@@ -252,14 +252,17 @@ export const SpaceProvider = ({ children }: { children: ReactNode }) => {
 
       if (error) throw error;
 
-      if (data.success) {
+      // Explicitly type the data to match the structure
+      const response = data as { success: boolean; token?: string; message?: string };
+
+      if (response.success) {
         toast({
           title: "تمت إضافة الدعوة",
           description: `تم إرسال دعوة إلى ${email} للانضمام للمساحة`,
         });
-        return { success: true, token: data.token, message: data.message };
+        return { success: true, token: response.token, message: response.message };
       } else {
-        throw new Error(data.message || "فشل في إرسال الدعوة");
+        throw new Error(response.message || "فشل في إرسال الدعوة");
       }
     } catch (error: any) {
       console.error('Error inviting member:', error);
@@ -336,7 +339,10 @@ export const SpaceProvider = ({ children }: { children: ReactNode }) => {
 
       if (error) throw error;
 
-      if (data.success) {
+      // Explicitly type the data to match the structure
+      const response = data as { success: boolean; space_id?: string; message?: string };
+
+      if (response.success) {
         // تحديث قائمة المساحات بعد قبول الدعوة
         fetchSpaces();
         
@@ -345,9 +351,9 @@ export const SpaceProvider = ({ children }: { children: ReactNode }) => {
           description: "تم الانضمام إلى المساحة المشتركة بنجاح",
         });
         
-        return { success: true, spaceId: data.space_id };
+        return { success: true, spaceId: response.space_id };
       } else {
-        throw new Error(data.message || "فشل في قبول الدعوة");
+        throw new Error(response.message || "فشل في قبول الدعوة");
       }
     } catch (error: any) {
       console.error('Error accepting invitation:', error);

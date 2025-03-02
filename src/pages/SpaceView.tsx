@@ -72,19 +72,20 @@ const SpaceViewContent = () => {
       if (membersData && membersData.length > 0) {
         const userIds = membersData.map(member => member.user_id);
         
-        // جلب معلومات المستخدمين
-        const { data: userData, error: userError } = await supabase
-          .from('users')
-          .select('id, email')
-          .in('id', userIds);
+        // We can't query the auth.users table directly with supabase client
+        // Instead, we need a custom function or endpoint to get user emails
+        // For now, let's use a workaround by creating a profiles table or a custom function
 
-        if (!userError && userData) {
-          const emailMap: Record<string, string> = {};
-          userData.forEach(user => {
-            emailMap[user.id] = user.email;
-          });
-          setUserEmails(emailMap);
-        }
+        // جلب معلومات المستخدمين من auth.users عبر RPC
+        // You would need to create a Postgres function to securely get this data
+        // For now, let's leave this part commented out until we create the necessary function
+
+        // This is a placeholder for when you add that functionality
+        const tempEmails: Record<string, string> = {};
+        userIds.forEach(id => {
+          tempEmails[id] = `user-${id.substring(0, 8)}@example.com`;
+        });
+        setUserEmails(tempEmails);
       }
     } catch (error) {
       console.error('Error in fetchSpaceDetails:', error);
