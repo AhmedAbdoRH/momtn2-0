@@ -1,88 +1,107 @@
 
-// Follow this setup guide to integrate the Deno runtime and Supabase
-// https://deno.land/manual/getting_started/setup_your_environment
-// https://deno.land/manual/examples/supabase
-
-import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.38.4";
-import { Resend } from "npm:resend@2.0.0";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.8";
+import { Resend } from "https://esm.sh/resend@3.2.0";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-serve(async (req) => {
+interface InvitationEmailParams {
+  invitationToken: string;
+  email: string;
+  inviterUserId: string;
+  spaceId: string;
+  spaceName: string;
+}
+
+Deno.serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
   }
-  
+
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL") || "";
-    const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY") || "";
-    const resendApiKey = Deno.env.get("RESEND_API_KEY");
-    
-    if (!resendApiKey) {
-      throw new Error("RESEND_API_KEY is not set in environment variables");
-    }
-    
-    const resend = new Resend(resendApiKey);
-    const supabase = createClient(supabaseUrl, supabaseAnonKey);
+    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
+    const resendApiKey = Deno.env.get("RESEND_API_KEY") || "";
 
-    // Get request data
-    const { invitationToken, spaceId, email, inviterUserId, spaceName } = await req.json();
-
-    // Validate required data
-    if (!invitationToken || !spaceId || !email || !inviterUserId || !spaceName) {
+    // Verify that we have the necessary environment variables
+    if (!supabaseUrl || !supabaseServiceKey || !resendApiKey) {
+      console.error("Missing environment variables");
       return new Response(
-        JSON.stringify({ error: "Missing required information" }),
-        { 
-          status: 400, 
-          headers: { ...corsHeaders, "Content-Type": "application/json" } 
+        JSON.stringify({
+          error: "Server configuration error. Missing environment variables.",
+        }),
+        {
+          status: 500,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
         }
       );
     }
 
-    // Get inviter details
-    const { data: inviterData, error: inviterError } = await supabase
-      .from('profiles')
-      .select('name, email')
-      .eq('id', inviterUserId)
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+    const resend = new Resend(resendApiKey);
+
+    // Get the invitation data
+    const { invitationToken, email, inviterUserId, spaceId, spaceName } = await req.json() as InvitationEmailParams;
+
+    if (!invitationToken || !email || !inviterUserId || !spaceId) {
+      return new Response(
+        JSON.stringify({ error: "Missing required parameters" }),
+        {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
+    }
+
+    // Get the inviter's details
+    const { data: userData, error: userError } = await supabase
+      .from("auth.users")
+      .select("email")
+      .eq("id", inviterUserId)
       .single();
 
-    const inviterName = inviterData?.name || "مستخدم";
+    if (userError) {
+      console.error("Error fetching user details:", userError);
+      return new Response(
+        JSON.stringify({ error: "Could not fetch inviter details" }),
+        {
+          status: 500,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
+    }
 
-    // Generate invitation URL
-    const baseUrl = Deno.env.get("SITE_URL") || "http://localhost:5173";
-    const invitationUrl = `${baseUrl}/invitation?token=${invitationToken}`;
+    const inviterEmail = userData.email || "someone";
 
-    // Send email using Resend
-    const { data: emailData, error: emailError } = await resend.emails.send({
-      from: 'Emtnan App <onboarding@resend.dev>',
+    // Create the invitation link
+    const origin = req.headers.get("origin") || "http://localhost:3000";
+    const invitationLink = `${origin}/invitation?token=${invitationToken}`;
+
+    // Send the email
+    const { data: emailResult, error: emailError } = await resend.emails.send({
+      from: "امتنان <onboarding@resend.dev>",
       to: [email],
-      subject: `دعوة للانضمام إلى مساحة "${spaceName}"`,
+      subject: `دعوة للانضمام إلى مساحة ${spaceName} على امتنان`,
       html: `
-        <div dir="rtl" style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f9f9f9; border-radius: 10px;">
+        <div dir="rtl" style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f9f9f9; border-radius: 10px;">
           <h1 style="color: #ea384c; text-align: center;">دعوة للانضمام إلى مساحة مشتركة</h1>
-          <p style="font-size: 16px; line-height: 1.5;">مرحباً،</p>
+          <p style="font-size: 16px; line-height: 1.5; margin-top: 20px;">مرحباً،</p>
           <p style="font-size: 16px; line-height: 1.5;">
-            لقد قام <strong>${inviterName}</strong> بدعوتك للانضمام إلى مساحة "<strong>${spaceName}</strong>" في تطبيق الامتنان.
+            تمت دعوتك من قبل ${inviterEmail} للانضمام إلى مساحة "${spaceName}" المشتركة على منصة امتنان.
           </p>
           <div style="text-align: center; margin: 30px 0;">
-            <a href="${invitationUrl}" style="background-color: #ea384c; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; font-weight: bold; display: inline-block;">
-              قبول الدعوة
+            <a href="${invitationLink}" style="background-color: #ea384c; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; font-weight: bold; display: inline-block;">
+              قبول الدعوة والانضمام إلى المساحة
             </a>
           </div>
-          <p style="font-size: 14px; line-height: 1.5;">
-            أو يمكنك نسخ الرابط التالي ولصقه في المتصفح:
+          <p style="font-size: 14px; color: #666; text-align: center; margin-top: 30px;">
+            هذه الدعوة صالحة لمدة 7 أيام فقط. إذا انتهت صلاحية الرابط، يرجى التواصل مع الشخص الذي دعاك للحصول على دعوة جديدة.
           </p>
-          <p style="font-size: 14px; word-break: break-all; background-color: #f0f0f0; padding: 10px; border-radius: 5px;">
-            ${invitationUrl}
-          </p>
-          <hr style="border: none; border-top: 1px solid #e6e6e6; margin: 20px 0;">
-          <p style="font-size: 12px; color: #999; text-align: center;">
-            إذا لم تكن تتوقع هذه الدعوة، يمكنك تجاهل هذا البريد الإلكتروني.
+          <p style="font-size: 14px; color: #666; text-align: center;">
+            مع امتنان.
           </p>
         </div>
       `,
@@ -90,29 +109,30 @@ serve(async (req) => {
 
     if (emailError) {
       console.error("Error sending email:", emailError);
-      throw emailError;
+      return new Response(
+        JSON.stringify({ error: "Failed to send invitation email" }),
+        {
+          status: 500,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
     }
 
-    console.log("Email sent successfully to:", email);
-    
     return new Response(
-      JSON.stringify({ 
-        success: true, 
-        message: "Invitation email sent successfully" 
-      }),
-      { 
-        status: 200, 
-        headers: { ...corsHeaders, "Content-Type": "application/json" } 
+      JSON.stringify({ success: true, message: "Invitation email sent successfully" }),
+      {
+        status: 200,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
       }
     );
+
   } catch (error) {
-    console.error("Error sending invitation email:", error);
-    
+    console.error("Unexpected error:", error);
     return new Response(
-      JSON.stringify({ error: error.message }),
-      { 
-        status: 500, 
-        headers: { ...corsHeaders, "Content-Type": "application/json" } 
+      JSON.stringify({ error: "An unexpected error occurred" }),
+      {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
       }
     );
   }

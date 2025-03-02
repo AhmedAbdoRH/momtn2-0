@@ -94,6 +94,8 @@ const CreateNewDialog = ({ open, onOpenChange, spaceId, onCreateSuccess }: Creat
       const fileName = `${Math.random().toString(36).substring(2, 15)}.${fileExt}`;
       const filePath = `${fileName}`;
 
+      console.log("Uploading file to storage bucket 'photos'");
+      
       // تحميل الملف إلى Supabase Storage
       const { data, error } = await supabase.storage
         .from('photos')
@@ -110,6 +112,7 @@ const CreateNewDialog = ({ open, onOpenChange, spaceId, onCreateSuccess }: Creat
         .getPublicUrl(filePath);
 
       const publicUrl = urlData.publicUrl;
+      console.log("File uploaded successfully. Public URL:", publicUrl);
 
       // إضافة الصورة إلى قاعدة البيانات مباشرة
       const { data: photoData, error: photoError } = await supabase
@@ -127,6 +130,8 @@ const CreateNewDialog = ({ open, onOpenChange, spaceId, onCreateSuccess }: Creat
         console.error("Database insert error:", photoError);
         throw photoError;
       }
+      
+      console.log("Photo added to database:", photoData);
       
       // إغلاق النافذة وإعادة تعيين الحالة
       resetState();
