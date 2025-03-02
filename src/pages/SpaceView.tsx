@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { ChevronRight, Users, Plus } from 'lucide-react';
@@ -60,6 +61,27 @@ const SpaceViewContent = () => {
         return;
       }
 
+      // التحقق من وجود المستخدم كعضو في المساحة إذا لم يكن المالك
+      if (spaceData.owner_id !== user.id) {
+        const { data: memberData, error: memberError } = await supabase
+          .from('space_members')
+          .select('*')
+          .eq('space_id', spaceId)
+          .eq('user_id', user.id)
+          .maybeSingle();
+
+        if (memberError || !memberData) {
+          console.error('User is not a member of this space:', memberError);
+          toast({
+            title: "غير مصرح بالوصول",
+            description: "ليس لديك صلاحية لعرض هذه المساحة",
+            variant: "destructive",
+          });
+          navigate('/spaces');
+          return;
+        }
+      }
+
       setCurrentSpace(spaceData);
       setIsOwner(spaceData.owner_id === user.id);
       console.log("Space data:", spaceData);
@@ -76,18 +98,11 @@ const SpaceViewContent = () => {
         setMembers(membersData || []);
         console.log("Members data:", membersData);
         
-        // جمع معرفات المستخدمين للحصول على معلوماتهم
+        // إنشاء بيانات البريد الإلكتروني المؤقتة للأعضاء
         if (membersData && membersData.length > 0) {
-          // استخدام استعلام مباشر بدلاً من RPC
-          const memberIds = membersData.map(member => member.user_id);
-          
-          // نحتاج للمرور عبر auth.users عبر استعلام خاص على الخادم
-          // سنستخدم استدعاء مباشر إلى space_members مع user_id
           const emailsMap: Record<string, string> = {};
           
-          // بدلاً من ذلك، نفترض أننا قد نحتاج إلى إنشاء وظيفة خاصة على الخادم
-          // لهذا المثال، سنبقى مع المعلومات المتاحة
-          
+          // استخدام معرفات المستخدمين لإنشاء بريد إلكتروني مؤقت
           for (const member of membersData) {
             emailsMap[member.user_id] = `user-${member.user_id.substring(0, 6)}@example.com`;
           }
@@ -98,6 +113,11 @@ const SpaceViewContent = () => {
       }
     } catch (error) {
       console.error('Error in fetchSpaceDetails:', error);
+      toast({
+        title: "خطأ غير متوقع",
+        description: "حدث خطأ أثناء جلب بيانات المساحة",
+        variant: "destructive",
+      });
     } finally {
       setFetchingData(false);
     }
@@ -106,9 +126,14 @@ const SpaceViewContent = () => {
   // جلب تفاصيل المساحة عند تحميل الصفحة
   useEffect(() => {
     if (spaceId) {
-      fetchSpaces().then(() => fetchSpaceDetails());
+      fetchSpaceDetails();
     }
-  }, [spaceId, fetchSpaces, fetchSpaceDetails]);
+  }, [spaceId, fetchSpaceDetails]);
+
+  // إعادة تحميل البيانات عند الحاجة
+  const refreshData = () => {
+    fetchSpaceDetails();
+  };
 
   // إذا لم يتم العثور على المساحة
   if (!fetchingData && !currentSpace && !loading) {
@@ -179,12 +204,14 @@ const SpaceViewContent = () => {
             onOpenChange={setShowInviteDialog} 
             spaceId={currentSpace.id}
             spaceName={currentSpace.name}
+            onInviteSuccess={refreshData}
           />
         )}
         <CreateNewDialog 
           open={showCreateDialog} 
           onOpenChange={setShowCreateDialog} 
           spaceId={currentSpace.id}
+          onCreateSuccess={refreshData}
         />
       </main>
     </div>
