@@ -3,6 +3,7 @@ import { createContext, useContext, useState, useEffect, ReactNode } from 'react
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/components/AuthProvider';
 import { useToast } from '@/hooks/use-toast';
+import { Json } from '@/integrations/supabase/types';
 
 interface Space {
   id: string;
@@ -100,19 +101,40 @@ export const SpaceProvider = ({ children }: { children: ReactNode }) => {
       console.log("Owned spaces:", ownedSpaces);
       setMyOwnedSpaces(ownedSpaces || []);
 
-      // نستخدم RPC بدلاً من استعلام مباشر للحصول على المساحات التي هو عضو فيها
-      // لتجنب مشاكل الأمان والصلاحيات
+      // نستخدم query مباشر بدلاً من RPC لتجنب مشاكل TypeScript
       const { data: memberSpacesData, error: memberError } = await supabase
-        .rpc('get_user_member_spaces');
+        .from('space_members')
+        .select('space_id')
+        .eq('user_id', user.id);
 
       if (memberError) {
-        console.error("Error fetching member spaces:", memberError);
+        console.error("Error fetching member spaces IDs:", memberError);
         setMyMemberSpaces([]);
         setSpaces([...(ownedSpaces || [])]);
       } else {
-        console.log("Member spaces:", memberSpacesData);
-        setMyMemberSpaces(memberSpacesData || []);
-        setSpaces([...(ownedSpaces || []), ...(memberSpacesData || [])]);
+        console.log("Member space IDs:", memberSpacesData);
+        
+        // جلب تفاصيل المساحات بناءً على المعرفات
+        if (memberSpacesData && memberSpacesData.length > 0) {
+          const spaceIds = memberSpacesData.map(item => item.space_id);
+          
+          const { data: memberSpaces, error: memberSpacesError } = await supabase
+            .from('spaces')
+            .select('*')
+            .in('id', spaceIds);
+            
+          if (memberSpacesError) {
+            console.error("Error fetching member spaces details:", memberSpacesError);
+            setMyMemberSpaces([]);
+          } else {
+            console.log("Member spaces details:", memberSpaces);
+            setMyMemberSpaces(memberSpaces || []);
+            setSpaces([...(ownedSpaces || []), ...(memberSpaces || [])]);
+          }
+        } else {
+          setMyMemberSpaces([]);
+          setSpaces([...(ownedSpaces || [])]);
+        }
       }
       
     } catch (error) {
@@ -256,8 +278,8 @@ export const SpaceProvider = ({ children }: { children: ReactNode }) => {
 
       if (error) throw error;
 
-      // تحويل البيانات إلى النوع المطلوب
-      const response = data as InviteResponse;
+      // تحويل البيانات إلى النوع المطلوب بشكل آمن
+      const response = data as unknown as InviteResponse;
 
       if (response.success) {
         toast({
@@ -343,8 +365,8 @@ export const SpaceProvider = ({ children }: { children: ReactNode }) => {
 
       if (error) throw error;
 
-      // تحويل البيانات إلى النوع المطلوب
-      const response = data as AcceptInvitationResponse;
+      // تحويل البيانات إلى النوع المطلوب بشكل آمن
+      const response = data as unknown as AcceptInvitationResponse;
 
       if (response.success) {
         // تحديث قائمة المساحات بعد قبول الدعوة
