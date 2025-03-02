@@ -282,10 +282,44 @@ export const SpaceProvider = ({ children }: { children: ReactNode }) => {
       const response = data as unknown as InviteResponse;
 
       if (response.success) {
+        // جلب اسم المساحة
+        const { data: spaceData } = await supabase
+          .from('spaces')
+          .select('name')
+          .eq('id', spaceId)
+          .single();
+          
+        // إرسال دعوة بالبريد الإلكتروني
+        try {
+          const { data: emailResponse, error: emailError } = await supabase.functions.invoke(
+            "send-invitation-email",
+            {
+              body: JSON.stringify({
+                invitationToken: response.token,
+                spaceId: spaceId,
+                email: email,
+                inviterUserId: user.id,
+                spaceName: spaceData?.name || "مساحة مشتركة"
+              })
+            }
+          );
+          
+          if (emailError) {
+            console.error("Error invoking email function:", emailError);
+            // نستمر حتى لو فشل إرسال البريد الإلكتروني
+          } else {
+            console.log("Email sending response:", emailResponse);
+          }
+        } catch (emailErr) {
+          console.error("Exception in email sending:", emailErr);
+          // نستمر حتى لو فشل إرسال البريد الإلكتروني
+        }
+        
         toast({
           title: "تمت إضافة الدعوة",
           description: `تم إرسال دعوة إلى ${email} للانضمام للمساحة`,
         });
+        
         return { success: true, token: response.token, message: response.message };
       } else {
         throw new Error(response.message || "فشل في إرسال الدعوة");

@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { Image, Upload } from 'lucide-react';
+import { useAuth } from '@/components/AuthProvider';
 
 interface CreateNewDialogProps {
   open: boolean;
@@ -19,6 +20,7 @@ const CreateNewDialog = ({ open, onOpenChange, spaceId, onCreateSuccess }: Creat
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState('');
   const { toast } = useToast();
+  const { user } = useAuth();
 
   const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
@@ -75,10 +77,10 @@ const CreateNewDialog = ({ open, onOpenChange, spaceId, onCreateSuccess }: Creat
   };
 
   const uploadFile = async () => {
-    if (!file) {
+    if (!file || !user) {
       toast({
-        title: "لم يتم اختيار صورة",
-        description: "يرجى اختيار صورة لتحميلها",
+        title: "لم يتم اختيار صورة أو لم يتم تسجيل الدخول",
+        description: "يرجى اختيار صورة لتحميلها وتسجيل الدخول",
         variant: "destructive",
       });
       return;
@@ -98,6 +100,7 @@ const CreateNewDialog = ({ open, onOpenChange, spaceId, onCreateSuccess }: Creat
         .upload(filePath, file);
 
       if (error) {
+        console.error("Storage upload error:", error);
         throw error;
       }
 
@@ -108,36 +111,42 @@ const CreateNewDialog = ({ open, onOpenChange, spaceId, onCreateSuccess }: Creat
 
       const publicUrl = urlData.publicUrl;
 
-      // إضافة الصورة إلى جدول Photos مع إدراجها في المساحة المشتركة إذا كانت موجودة
-      if (typeof window.addPhoto === 'function') {
-        const success = await window.addPhoto({ 
-          imageUrl: publicUrl,
-          spaceId: spaceId // إضافة معرف المساحة المشتركة إذا كان موجودًا
-        });
-        
-        if (success) {
-          // إغلاق النافذة وإعادة تعيين الحالة
-          resetState();
-          onOpenChange(false);
-          
-          // Call the success callback if provided
-          if (onCreateSuccess) {
-            onCreateSuccess();
+      // إضافة الصورة إلى قاعدة البيانات مباشرة
+      const { data: photoData, error: photoError } = await supabase
+        .from('photos')
+        .insert([
+          { 
+            image_url: publicUrl,
+            space_id: spaceId,
+            user_id: user.id
           }
-        }
-      } else {
-        console.error('addPhoto function is not available on window object');
-        toast({
-          title: "خطأ في الإضافة",
-          description: "حدث خطأ أثناء إضافة الصورة إلى المعرض",
-          variant: "destructive",
-        });
+        ])
+        .select();
+      
+      if (photoError) {
+        console.error("Database insert error:", photoError);
+        throw photoError;
       }
-    } catch (error) {
+      
+      // إغلاق النافذة وإعادة تعيين الحالة
+      resetState();
+      onOpenChange(false);
+      
+      toast({
+        title: "تم التحميل بنجاح",
+        description: "تمت إضافة الصورة بنجاح إلى المساحة المشتركة",
+      });
+      
+      // Call the success callback if provided
+      if (onCreateSuccess) {
+        onCreateSuccess();
+      }
+      
+    } catch (error: any) {
       console.error('Error uploading file:', error);
       toast({
         title: "خطأ في التحميل",
-        description: "حدث خطأ أثناء تحميل الصورة",
+        description: error.message || "حدث خطأ أثناء تحميل الصورة",
         variant: "destructive",
       });
     } finally {
