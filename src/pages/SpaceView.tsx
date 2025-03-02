@@ -1,7 +1,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { ChevronRight, Users, Plus, Settings } from 'lucide-react';
+import { ChevronRight, Users, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { SpaceProvider, useSpaces } from '@/components/spaces/SpaceContext';
 import PhotoGrid from '@/components/PhotoGrid';
@@ -25,6 +25,7 @@ const SpaceViewContent = () => {
   const [showInviteDialog, setShowInviteDialog] = useState(false);
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [isOwner, setIsOwner] = useState(false);
+  const [fetchingData, setFetchingData] = useState(true);
   const { currentSpace, setCurrentSpace, fetchSpaces, loading } = useSpaces();
   const { user } = useAuth();
   const { toast } = useToast();
@@ -33,7 +34,10 @@ const SpaceViewContent = () => {
   const fetchSpaceDetails = useCallback(async () => {
     if (!spaceId || !user) return;
 
+    setFetchingData(true);
     try {
+      console.log("Fetching space details for:", spaceId);
+      
       // جلب تفاصيل المساحة
       const { data: spaceData, error: spaceError } = await supabase
         .from('spaces')
@@ -54,6 +58,7 @@ const SpaceViewContent = () => {
 
       setCurrentSpace(spaceData);
       setIsOwner(spaceData.owner_id === user.id);
+      console.log("Space data:", spaceData);
 
       // جلب أعضاء المساحة
       const { data: membersData, error: membersError } = await supabase
@@ -63,32 +68,32 @@ const SpaceViewContent = () => {
 
       if (membersError) {
         console.error('Error fetching members:', membersError);
-        return;
-      }
-
-      setMembers(membersData || []);
-
-      // جلب بريد المستخدمين لعرضه
-      if (membersData && membersData.length > 0) {
-        const userIds = membersData.map(member => member.user_id);
+      } else {
+        setMembers(membersData || []);
+        console.log("Members data:", membersData);
         
-        // We can't query the auth.users table directly with supabase client
-        // Instead, we need a custom function or endpoint to get user emails
-        // For now, let's use a workaround by creating a profiles table or a custom function
-
-        // جلب معلومات المستخدمين من auth.users عبر RPC
-        // You would need to create a Postgres function to securely get this data
-        // For now, let's leave this part commented out until we create the necessary function
-
-        // This is a placeholder for when you add that functionality
-        const tempEmails: Record<string, string> = {};
-        userIds.forEach(id => {
-          tempEmails[id] = `user-${id.substring(0, 8)}@example.com`;
-        });
-        setUserEmails(tempEmails);
+        // جمع معرفات المستخدمين للحصول على معلوماتهم
+        if (membersData && membersData.length > 0) {
+          // نستخدم RPC للحصول على البريد الإلكتروني بأمان
+          const { data: userEmailsData, error: emailsError } = await supabase
+            .rpc('get_space_member_emails', { p_space_id: spaceId });
+            
+          if (emailsError) {
+            console.error('Error fetching user emails:', emailsError);
+          } else if (userEmailsData) {
+            const emailMap: Record<string, string> = {};
+            userEmailsData.forEach((item: any) => {
+              emailMap[item.user_id] = item.email;
+            });
+            setUserEmails(emailMap);
+            console.log("User emails:", emailMap);
+          }
+        }
       }
     } catch (error) {
       console.error('Error in fetchSpaceDetails:', error);
+    } finally {
+      setFetchingData(false);
     }
   }, [spaceId, user, navigate, setCurrentSpace, toast]);
 
@@ -100,7 +105,7 @@ const SpaceViewContent = () => {
   }, [spaceId, fetchSpaces, fetchSpaceDetails]);
 
   // إذا لم يتم العثور على المساحة
-  if (!currentSpace && !loading) {
+  if (!fetchingData && !currentSpace && !loading) {
     return (
       <div className="text-center py-12">
         <h2 className="text-xl font-semibold text-white mb-4">لم يتم العثور على المساحة</h2>
@@ -111,7 +116,7 @@ const SpaceViewContent = () => {
     );
   }
 
-  if (loading || !currentSpace) {
+  if (loading || fetchingData || !currentSpace) {
     return (
       <div className="flex justify-center items-center h-64">
         <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-white"></div>

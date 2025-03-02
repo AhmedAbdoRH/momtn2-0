@@ -4,6 +4,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Button } from '@/components/ui/button';
 import { useSpaces } from './SpaceContext';
 import { useToast } from '@/hooks/use-toast';
+import { useNavigate } from 'react-router-dom';
 
 interface CreateSpaceDialogProps {
   open: boolean;
@@ -16,6 +17,7 @@ const CreateSpaceDialog = ({ open, onOpenChange }: CreateSpaceDialogProps) => {
   const [loading, setLoading] = useState(false);
   const { createSpace } = useSpaces();
   const { toast } = useToast();
+  const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -36,6 +38,9 @@ const CreateSpaceDialog = ({ open, onOpenChange }: CreateSpaceDialogProps) => {
         setName('');
         setDescription('');
         onOpenChange(false);
+        
+        // إعادة توجيه المستخدم إلى المساحة الجديدة
+        navigate(`/spaces/${result.id}`);
       }
     } finally {
       setLoading(false);

@@ -1,5 +1,5 @@
 
-import { Plus, Menu, LogOut, User, Users } from "lucide-react";
+import { Plus, Menu, LogOut, User, Grid } from "lucide-react";
 import PhotoGrid from "@/components/PhotoGrid";
 import { Button } from "@/components/ui/button";
 import CreateNewDialog from "@/components/CreateNewDialog";
@@ -42,8 +42,8 @@ const Index = () => {
         <Menu className="h-5 w-5" />
       </Button>
 
-      {/* User dropdown */}
-      <div className="fixed top-4 left-4 z-50">
+      {/* User dropdown and Shared Spaces buttons */}
+      <div className="fixed top-4 left-4 z-50 flex items-center space-x-2 rtl:space-x-reverse">
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button 
@@ -59,13 +59,6 @@ const Index = () => {
               {user?.email}
             </div>
             <DropdownMenuItem 
-              onClick={goToSharedSpaces}
-              className="cursor-pointer focus:bg-gray-800/80"
-            >
-              <Users className="mr-2 h-4 w-4" />
-              <span>المساحات المشتركة</span>
-            </DropdownMenuItem>
-            <DropdownMenuItem 
               onClick={signOut}
               className="text-red-400 focus:text-red-400 cursor-pointer focus:bg-gray-800/80"
             >
@@ -74,6 +67,17 @@ const Index = () => {
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
+        
+        {/* Shared Spaces Icon Button */}
+        <Button 
+          variant="ghost" 
+          size="icon" 
+          onClick={goToSharedSpaces}
+          className="bg-white/10 backdrop-blur-lg hover:bg-white/20 text-white"
+          title="المساحات المشتركة"
+        >
+          <Grid className="h-5 w-5" />
+        </Button>
       </div>
 
       {/* Sidebar */}
@@ -113,17 +117,6 @@ const Index = () => {
             <Plus className="w-5 h-5 mr-2" />
             إضافة امتنان جديد
           </Button>
-          
-          <div className="mt-4">
-            <Button
-              onClick={goToSharedSpaces}
-              variant="outline"
-              className="bg-transparent border-gray-700 text-white hover:bg-white/10"
-            >
-              <Users className="w-5 h-5 mr-2" />
-              المساحات المشتركة
-            </Button>
-          </div>
         </div>
 
         <PhotoGrid />
