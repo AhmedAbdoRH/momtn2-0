@@ -10,9 +10,10 @@ interface InviteMemberDialogProps {
   onOpenChange: (open: boolean) => void;
   spaceId: string;
   spaceName: string;
+  onInviteSuccess?: () => void; // Optional callback for success
 }
 
-const InviteMemberDialog = ({ open, onOpenChange, spaceId, spaceName }: InviteMemberDialogProps) => {
+const InviteMemberDialog = ({ open, onOpenChange, spaceId, spaceName, onInviteSuccess }: InviteMemberDialogProps) => {
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
   const { inviteMember } = useSpaces();
@@ -41,6 +42,10 @@ const InviteMemberDialog = ({ open, onOpenChange, spaceId, spaceName }: InviteMe
       if (result.success) {
         setEmail('');
         onOpenChange(false);
+        // Call the success callback if provided
+        if (onInviteSuccess) {
+          onInviteSuccess();
+        }
       }
     } finally {
       setLoading(false);

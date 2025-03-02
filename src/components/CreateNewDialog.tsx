@@ -10,9 +10,10 @@ interface CreateNewDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   spaceId?: string;
+  onCreateSuccess?: () => void; // Optional callback for success
 }
 
-const CreateNewDialog = ({ open, onOpenChange, spaceId }: CreateNewDialogProps) => {
+const CreateNewDialog = ({ open, onOpenChange, spaceId, onCreateSuccess }: CreateNewDialogProps) => {
   const [dragging, setDragging] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [file, setFile] = useState<File | null>(null);
@@ -118,6 +119,11 @@ const CreateNewDialog = ({ open, onOpenChange, spaceId }: CreateNewDialogProps) 
           // إغلاق النافذة وإعادة تعيين الحالة
           resetState();
           onOpenChange(false);
+          
+          // Call the success callback if provided
+          if (onCreateSuccess) {
+            onCreateSuccess();
+          }
         }
       } else {
         console.error('addPhoto function is not available on window object');
