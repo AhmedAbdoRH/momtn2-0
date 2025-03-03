@@ -11,6 +11,7 @@ import { useAuth } from '@/components/AuthProvider';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 
+// تعريف واجهة عضو المساحة
 type SpaceMember = {
   id: string;
   user_id: string;
@@ -18,9 +19,12 @@ type SpaceMember = {
   email?: string;
 };
 
-interface EmailData {
+// واجهة البيانات المرتبطة بالبريد الإلكتروني
+interface MemberData {
   user_id: string;
-  email: string;
+  users: {
+    email: string;
+  };
 }
 
 const SpaceViewContent = () => {
@@ -78,13 +82,13 @@ const SpaceViewContent = () => {
           setMembers(membersData || []);
           console.log("Members data:", membersData);
           
-          // استخدام الوظيفة الجديدة لجلب البريد الإلكتروني للأعضاء
+          // جلب بيانات البريد الإلكتروني للأعضاء
           if (membersData && membersData.length > 0) {
             try {
-              // Using a direct SQL query instead of rpc for get_space_member_emails
+              // استخدام استعلام SQL مباشر بدلاً من وظيفة RPC
               const { data: emailsData, error: emailsError } = await supabase
                 .from('space_members')
-                .select('user_id, auth.users!inner(email)')
+                .select('user_id, users:auth.users!inner(email)')
                 .eq('space_id', spaceId);
               
               if (emailsError) {
@@ -92,8 +96,8 @@ const SpaceViewContent = () => {
               } else if (emailsData) {
                 const emailsMap: Record<string, string> = {};
                 
-                // Process the returned data to extract emails
-                emailsData.forEach((item: any) => {
+                // معالجة البيانات المستردة لاستخراج عناوين البريد الإلكتروني
+                emailsData.forEach((item: MemberData) => {
                   if (item.users && item.users.email) {
                     emailsMap[item.user_id] = item.users.email;
                   }
