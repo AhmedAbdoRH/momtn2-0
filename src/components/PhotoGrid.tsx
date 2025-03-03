@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
@@ -6,6 +5,7 @@ import PhotoCard from "./PhotoCard";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "./AuthProvider";
+import { Button } from "@/components/ui/button";
 
 interface Photo {
   id: string;
@@ -19,7 +19,6 @@ interface Photo {
   space_id?: string | null;
 }
 
-// إعلان عالمي لوظيفة addPhoto
 declare global {
   interface Window {
     addPhoto: (params: { imageUrl: string; spaceId?: string }) => Promise<boolean>;
@@ -105,11 +104,9 @@ const PhotoGrid = ({ spaceId }: PhotoGridProps) => {
         .select('*')
         .order('order', { ascending: true });
       
-      // إذا كان هناك معرف للمساحة المشتركة، نجلب صور هذه المساحة فقط
       if (spaceId) {
         query = query.eq('space_id', spaceId);
       } else {
-        // وإلا نجلب الصور الشخصية للمستخدم (التي ليس لها مساحة مشتركة)
         query = query.eq('user_id', user.id).is('space_id', null);
       }
 
@@ -135,18 +132,15 @@ const PhotoGrid = ({ spaceId }: PhotoGridProps) => {
     
     if (sourceIndex === destinationIndex) return;
     
-    // نسخة من مصفوفة الصور الحالية
     const items = Array.from(photos);
     const [reorderedItem] = items.splice(sourceIndex, 1);
     items.splice(destinationIndex, 0, reorderedItem);
     
-    // نحدث واجهة المستخدم فورا لتحسين التجربة
     setPhotos(items);
     
     console.log(`Moving item from index ${sourceIndex} to ${destinationIndex}`);
     
     try {
-      // تعيين قيم order جديدة لجميع العناصر
       const updates = items.map((photo, index) => ({
         id: photo.id,
         order: index
@@ -154,14 +148,12 @@ const PhotoGrid = ({ spaceId }: PhotoGridProps) => {
       
       console.log('Updating orders with:', updates);
       
-      // إرسال تحديثات متعددة إلى قاعدة البيانات
       for (const update of updates) {
         let query = supabase
           .from('photos')
           .update({ order: update.order })
           .eq('id', update.id);
         
-        // إضافة شرط user_id فقط إذا كنا في المساحة الشخصية
         if (!spaceId) {
           query = query.eq('user_id', user?.id);
         }
@@ -175,7 +167,6 @@ const PhotoGrid = ({ spaceId }: PhotoGridProps) => {
             description: `فشل تحديث الترتيب للصورة: ${error.message}`,
             variant: "destructive",
           });
-          // نعيد تحميل الصور في حالة الخطأ
           fetchPhotos();
           return;
         }
@@ -193,12 +184,10 @@ const PhotoGrid = ({ spaceId }: PhotoGridProps) => {
         description: "حدث خطأ أثناء حفظ الترتيب الجديد",
         variant: "destructive",
       });
-      // نعيد تحميل الصور في حالة الخطأ
       fetchPhotos();
     }
   };
 
-  // تعريف وظيفة إضافة صورة جديدة
   const addPhoto = async (params: { imageUrl: string; spaceId?: string }): Promise<boolean> => {
     try {
       if (!user) {
@@ -212,23 +201,20 @@ const PhotoGrid = ({ spaceId }: PhotoGridProps) => {
       
       console.log('Adding photo to database:', params.imageUrl);
       
-      // حساب أعلى قيمة order موجودة
       const maxOrder = photos.length > 0 
         ? Math.max(...photos.map(p => p.order !== null ? p.order : -1))
         : -1;
       
-      // إعداد البيانات الأساسية للصورة
       const photoData = {
         image_url: params.imageUrl,
         likes: 0,
         caption: null,
         hashtags: [],
-        order: maxOrder + 1, // إعطاء الصورة الجديدة أعلى قيمة order + 1
+        order: maxOrder + 1,
         user_id: user.id,
-        space_id: params.spaceId || null // إضافة الصورة للمساحة المشتركة إذا تم تحديدها
+        space_id: params.spaceId || null
       };
       
-      // إضافة الصورة إلى الجدول
       const { data, error } = await supabase
         .from('photos')
         .insert(photoData)
@@ -238,7 +224,7 @@ const PhotoGrid = ({ spaceId }: PhotoGridProps) => {
         console.error('Error adding photo to database:', error);
         toast({
           title: "خطأ في الإضافة",
-          description: "لم نتمكن من إضافة الصورة إلى قاعدة البيانات",
+          description: "لم نتمكن من إضافة الصورة إلى قاعدة البيا��ات",
           variant: "destructive",
         });
         return false;
@@ -246,7 +232,6 @@ const PhotoGrid = ({ spaceId }: PhotoGridProps) => {
 
       console.log('Photo added successfully:', data);
       
-      // تحديث واجهة المستخدم بالصورة الجديدة
       if (data && data.length > 0) {
         setPhotos(prevPhotos => [data[0], ...prevPhotos]);
         
@@ -268,12 +253,10 @@ const PhotoGrid = ({ spaceId }: PhotoGridProps) => {
     }
   };
 
-  // تسجيل وظيفة addPhoto في كائن النافذة
   useEffect(() => {
     window.addPhoto = addPhoto;
     
     return () => {
-      // @ts-ignore - تنظيف عند تفكيك المكون
       delete window.addPhoto;
     };
   }, [user, photos]);
@@ -285,7 +268,6 @@ const PhotoGrid = ({ spaceId }: PhotoGridProps) => {
         .delete()
         .eq('id', id);
       
-      // إضافة شرط user_id فقط إذا كنا في المساحة الشخصية
       if (!spaceId) {
         query = query.eq('user_id', user?.id);
       }
@@ -332,7 +314,6 @@ const PhotoGrid = ({ spaceId }: PhotoGridProps) => {
         .update({ caption, hashtags: cleanedHashtags })
         .eq('id', id);
       
-      // إضافة شرط user_id فقط إذا كنا في المساحة الشخصية
       if (!spaceId) {
         query = query.eq('user_id', user?.id);
       }

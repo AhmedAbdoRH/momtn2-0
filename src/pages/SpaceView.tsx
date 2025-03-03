@@ -48,9 +48,9 @@ const SpaceViewContent = () => {
         .from('spaces')
         .select('*')
         .eq('id', spaceId)
-        .single();
+        .maybeSingle();
 
-      if (spaceError) {
+      if (spaceError || !spaceData) {
         console.error('Error fetching space:', spaceError);
         toast({
           title: "خطأ في جلب المساحة",
@@ -61,55 +61,46 @@ const SpaceViewContent = () => {
         return;
       }
 
-      // التحقق من وجود المستخدم كعضو في المساحة إذا لم يكن المالك
-      if (spaceData.owner_id !== user.id) {
-        const { data: memberData, error: memberError } = await supabase
-          .from('space_members')
-          .select('*')
-          .eq('space_id', spaceId)
-          .eq('user_id', user.id)
-          .maybeSingle();
-
-        if (memberError || !memberData) {
-          console.error('User is not a member of this space:', memberError);
-          toast({
-            title: "غير مصرح بالوصول",
-            description: "ليس لديك صلاحية لعرض هذه المساحة",
-            variant: "destructive",
-          });
-          navigate('/spaces');
-          return;
-        }
-      }
-
       setCurrentSpace(spaceData);
       setIsOwner(spaceData.owner_id === user.id);
       console.log("Space data:", spaceData);
 
-      // جلب أعضاء المساحة
-      const { data: membersData, error: membersError } = await supabase
-        .from('space_members')
-        .select('*')
-        .eq('space_id', spaceId);
+      try {
+        // جلب أعضاء المساحة
+        const { data: membersData, error: membersError } = await supabase
+          .from('space_members')
+          .select('*')
+          .eq('space_id', spaceId);
 
-      if (membersError) {
-        console.error('Error fetching members:', membersError);
-      } else {
-        setMembers(membersData || []);
-        console.log("Members data:", membersData);
-        
-        // إنشاء بيانات البريد الإلكتروني المؤقتة للأعضاء
-        if (membersData && membersData.length > 0) {
-          const emailsMap: Record<string, string> = {};
+        if (membersError) {
+          console.error('Error fetching members:', membersError);
+        } else {
+          setMembers(membersData || []);
+          console.log("Members data:", membersData);
           
-          // استخدام معرفات المستخدمين لإنشاء بريد إلكتروني مؤقت
-          for (const member of membersData) {
-            emailsMap[member.user_id] = `user-${member.user_id.substring(0, 6)}@example.com`;
+          // استخدام الوظيفة الجديدة لجلب البريد الإلكتروني للأعضاء
+          if (membersData && membersData.length > 0) {
+            try {
+              const { data: emailsData, error: emailsError } = await supabase
+                .rpc('get_space_member_emails', { p_space_id: spaceId });
+              
+              if (emailsError) {
+                console.error('Error fetching member emails:', emailsError);
+              } else if (emailsData) {
+                const emailsMap: Record<string, string> = {};
+                emailsData.forEach((item: EmailData) => {
+                  emailsMap[item.user_id] = item.email;
+                });
+                setUserEmails(emailsMap);
+                console.log("User emails:", emailsMap);
+              }
+            } catch (emailErr) {
+              console.error('Error in get_space_member_emails RPC:', emailErr);
+            }
           }
-          
-          setUserEmails(emailsMap);
-          console.log("User emails (placeholder):", emailsMap);
         }
+      } catch (memberErr) {
+        console.error('Exception in fetching members:', memberErr);
       }
     } catch (error) {
       console.error('Error in fetchSpaceDetails:', error);
@@ -193,6 +184,20 @@ const SpaceViewContent = () => {
             </Button>
           </div>
         </div>
+        
+        {/* عرض الأعضاء */}
+        {members.length > 0 && (
+          <div className="mb-8 bg-gray-800/30 p-4 rounded-lg backdrop-blur-sm">
+            <h2 className="text-xl font-semibold text-white mb-4 text-right">الأعضاء ({members.length})</h2>
+            <div className="space-y-2 text-right">
+              {members.map(member => (
+                <div key={member.id} className="flex justify-end items-center py-2 border-b border-gray-700/50">
+                  <span className="text-gray-300">{userEmails[member.user_id] || 'عضو'}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
         
         {/* صور المساحة */}
         <PhotoGrid spaceId={spaceId} />
