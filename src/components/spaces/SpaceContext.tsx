@@ -291,13 +291,21 @@ export const SpaceProvider = ({ children }: { children: ReactNode }) => {
           
         // إرسال دعوة بالبريد الإلكتروني
         try {
+          console.log("Calling send-invitation-email function with:", {
+            invitationToken: response.token,
+            spaceId,
+            email,
+            inviterUserId: user.id,
+            spaceName: spaceData?.name || "مساحة مشتركة"
+          });
+          
           const { data: emailResponse, error: emailError } = await supabase.functions.invoke(
             "send-invitation-email",
             {
               body: JSON.stringify({
                 invitationToken: response.token,
-                spaceId: spaceId,
-                email: email,
+                spaceId,
+                email,
                 inviterUserId: user.id,
                 spaceName: spaceData?.name || "مساحة مشتركة"
               })
@@ -306,19 +314,24 @@ export const SpaceProvider = ({ children }: { children: ReactNode }) => {
           
           if (emailError) {
             console.error("Error invoking email function:", emailError);
-            // نستمر حتى لو فشل إرسال البريد الإلكتروني
+            toast({
+              title: "تم إنشاء الدعوة",
+              description: `تم إنشاء دعوة ل ${email} ولكن حدث خطأ أثناء إرسال البريد الإلكتروني.`,
+            });
           } else {
             console.log("Email sending response:", emailResponse);
+            toast({
+              title: "تمت إضافة الدعوة",
+              description: `تم إرسال دعوة إلى ${email} للانضمام للمساحة`,
+            });
           }
         } catch (emailErr) {
           console.error("Exception in email sending:", emailErr);
-          // نستمر حتى لو فشل إرسال البريد الإلكتروني
+          toast({
+            title: "تم إنشاء الدعوة",
+            description: `تم إنشاء دعوة ل ${email} ولكن حدث خطأ أثناء إرسال البريد الإلكتروني.`,
+          });
         }
-        
-        toast({
-          title: "تمت إضافة الدعوة",
-          description: `تم إرسال دعوة إلى ${email} للانضمام للمساحة`,
-        });
         
         return { success: true, token: response.token, message: response.message };
       } else {

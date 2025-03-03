@@ -1,25 +1,26 @@
 
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import { Toaster } from '@/components/ui/toaster';
-import Index from '@/pages/Index';
-import AuthPage from '@/pages/AuthPage';
-import NotFound from '@/pages/NotFound';
-import { AuthProvider } from '@/components/AuthProvider';
-import ProtectedRoute from '@/components/ProtectedRoute';
-import Spaces from '@/pages/Spaces';
-import SpaceView from '@/pages/SpaceView';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+
+import Index from './pages/Index';
+import AuthPage from './pages/AuthPage';
+import NotFound from './pages/NotFound';
+import Spaces from './pages/Spaces';
+import SpaceView from './pages/SpaceView';
+import InvitationPage from './pages/InvitationPage';
+import { AuthProvider } from './components/AuthProvider';
+import ProtectedRoute from './components/ProtectedRoute';
+
+import './App.css';
+import { Toaster } from './components/ui/sonner';
 
 function App() {
   return (
     <Router>
       <AuthProvider>
         <Routes>
+          <Route path="/" element={<Index />} />
           <Route path="/auth" element={<AuthPage />} />
-          <Route path="/" element={
-            <ProtectedRoute>
-              <Index />
-            </ProtectedRoute>
-          } />
+          <Route path="/invitation" element={<InvitationPage />} />
           <Route path="/spaces" element={
             <ProtectedRoute>
               <Spaces />
@@ -30,8 +31,7 @@ function App() {
               <SpaceView />
             </ProtectedRoute>
           } />
-          <Route path="/404" element={<NotFound />} />
-          <Route path="*" element={<Navigate to="/404" replace />} />
+          <Route path="*" element={<NotFound />} />
         </Routes>
         <Toaster />
       </AuthProvider>
