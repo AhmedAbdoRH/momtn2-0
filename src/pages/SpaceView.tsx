@@ -81,21 +81,29 @@ const SpaceViewContent = () => {
           // استخدام الوظيفة الجديدة لجلب البريد الإلكتروني للأعضاء
           if (membersData && membersData.length > 0) {
             try {
+              // Using a direct SQL query instead of rpc for get_space_member_emails
               const { data: emailsData, error: emailsError } = await supabase
-                .rpc('get_space_member_emails', { p_space_id: spaceId });
+                .from('space_members')
+                .select('user_id, auth.users!inner(email)')
+                .eq('space_id', spaceId);
               
               if (emailsError) {
                 console.error('Error fetching member emails:', emailsError);
               } else if (emailsData) {
                 const emailsMap: Record<string, string> = {};
-                emailsData.forEach((item: EmailData) => {
-                  emailsMap[item.user_id] = item.email;
+                
+                // Process the returned data to extract emails
+                emailsData.forEach((item: any) => {
+                  if (item.users && item.users.email) {
+                    emailsMap[item.user_id] = item.users.email;
+                  }
                 });
+                
                 setUserEmails(emailsMap);
                 console.log("User emails:", emailsMap);
               }
             } catch (emailErr) {
-              console.error('Error in get_space_member_emails RPC:', emailErr);
+              console.error('Error in fetching member emails:', emailErr);
             }
           }
         }
