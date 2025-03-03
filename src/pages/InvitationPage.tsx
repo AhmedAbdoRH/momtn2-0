@@ -18,6 +18,7 @@ const InvitationPage = () => {
   const [success, setSuccess] = useState(false);
 
   useEffect(() => {
+    // إذا لم يكن هناك رمز، نعرض خطأ
     if (!token) {
       setError("رمز الدعوة غير صالح");
       return;
@@ -25,6 +26,7 @@ const InvitationPage = () => {
 
     // إذا كان المستخدم مسجل دخوله، نقوم بمعالجة الدعوة تلقائيًا
     if (user && !authLoading && token && !processing && !success && !error) {
+      console.log("User is logged in, accepting invitation automatically");
       handleAcceptInvitation();
     }
   }, [user, authLoading, token]);
@@ -36,7 +38,10 @@ const InvitationPage = () => {
     setError(null);
     
     try {
+      console.log("Accepting invitation for token:", token);
+      
       const result = await acceptInvitation(token);
+      console.log("Invitation acceptance result:", result);
       
       if (result.success) {
         setSuccess(true);
@@ -54,10 +59,11 @@ const InvitationPage = () => {
           }
         }, 2000);
       } else {
+        console.error("Error in accepting invitation:", result.message);
         setError(result.message || "حدث خطأ أثناء قبول الدعوة");
       }
     } catch (err: any) {
-      console.error("Error accepting invitation:", err);
+      console.error("Exception in accepting invitation:", err);
       setError(err.message || "حدث خطأ غير متوقع");
     } finally {
       setProcessing(false);
@@ -97,7 +103,7 @@ const InvitationPage = () => {
             <p className="text-gray-400 mt-2">يجب تسجيل الدخول أولاً لقبول هذه الدعوة</p>
           </div>
           <Button variant="default" className="w-full bg-[#ea384c] hover:bg-[#ea384c]/90" asChild>
-            <Link to="/auth" state={{ returnUrl: `/invitation?token=${token}` }}>تسجيل الدخول</Link>
+            <Link to={`/auth?returnUrl=${encodeURIComponent(`/invitation?token=${token}`)}`}>تسجيل الدخول</Link>
           </Button>
         </div>
       </div>

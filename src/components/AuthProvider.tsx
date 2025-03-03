@@ -31,7 +31,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const location = useLocation();
 
   useEffect(() => {
-    // Check active session
+    // التحقق من الجلسة النشطة
     const getSession = async () => {
       setLoading(true);
       try {
@@ -47,7 +47,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
     getSession();
 
-    // Listen for auth changes
+    // الاستماع لتغييرات المصادقة
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (_event, session) => {
         setSession(session);
@@ -56,7 +56,15 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
         // إعادة توجيه المستخدم عند تسجيل الدخول
         if (session && location.pathname === '/auth') {
-          navigate('/');
+          // استخراج returnUrl من العنوان إذا وجد
+          const searchParams = new URLSearchParams(location.search);
+          const returnUrl = searchParams.get('returnUrl');
+          
+          if (returnUrl) {
+            navigate(returnUrl);
+          } else {
+            navigate('/');
+          }
         }
       }
     );
@@ -76,9 +84,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const signIn = async (email: string, password: string) => {
     try {
       const { error } = await supabase.auth.signInWithPassword({ email, password });
-      if (!error) {
-        navigate('/');
-      }
+      
+      // لا داعي لإعادة التوجيه هنا لأنه سيتم التعامل معه في onAuthStateChange
       return { error };
     } catch (error) {
       return { error };

@@ -101,8 +101,8 @@ export const SpaceProvider = ({ children }: { children: ReactNode }) => {
       console.log("Owned spaces:", ownedSpaces);
       setMyOwnedSpaces(ownedSpaces || []);
 
-      // نستخدم query مباشر بدلاً من RPC لتجنب مشاكل TypeScript
-      const { data: memberSpacesData, error: memberError } = await supabase
+      // جلب عضويات المساحات للمستخدم الحالي
+      const { data: memberSpaceIds, error: memberError } = await supabase
         .from('space_members')
         .select('space_id')
         .eq('user_id', user.id);
@@ -112,11 +112,11 @@ export const SpaceProvider = ({ children }: { children: ReactNode }) => {
         setMyMemberSpaces([]);
         setSpaces([...(ownedSpaces || [])]);
       } else {
-        console.log("Member space IDs:", memberSpacesData);
+        console.log("Member space IDs:", memberSpaceIds);
         
         // جلب تفاصيل المساحات بناءً على المعرفات
-        if (memberSpacesData && memberSpacesData.length > 0) {
-          const spaceIds = memberSpacesData.map(item => item.space_id);
+        if (memberSpaceIds && memberSpaceIds.length > 0) {
+          const spaceIds = memberSpaceIds.map(item => item.space_id);
           
           const { data: memberSpaces, error: memberSpacesError } = await supabase
             .from('spaces')
@@ -129,7 +129,16 @@ export const SpaceProvider = ({ children }: { children: ReactNode }) => {
           } else {
             console.log("Member spaces details:", memberSpaces);
             setMyMemberSpaces(memberSpaces || []);
-            setSpaces([...(ownedSpaces || []), ...(memberSpaces || [])]);
+            
+            // دمج المساحات المملوكة والمساحات المشارك فيها
+            const allSpaces = [...(ownedSpaces || [])];
+            memberSpaces?.forEach(memberSpace => {
+              if (!allSpaces.some(space => space.id === memberSpace.id)) {
+                allSpaces.push(memberSpace);
+              }
+            });
+            
+            setSpaces(allSpaces);
           }
         } else {
           setMyMemberSpaces([]);
@@ -273,6 +282,19 @@ export const SpaceProvider = ({ children }: { children: ReactNode }) => {
     if (!user) return { success: false, message: "يجب تسجيل الدخول أولاً" };
     
     try {
+      // التحقق من صلاحية المستخدم لإرسال الدعوة
+      const { data: spaceData } = await supabase
+        .from('spaces')
+        .select('*')
+        .eq('id', spaceId)
+        .eq('owner_id', user.id)
+        .single();
+      
+      if (!spaceData) {
+        return { success: false, message: "ليس لديك صلاحية لإضافة أعضاء لهذه المساحة" };
+      }
+
+      // إنشاء الدعوة من خلال وظيفة قاعدة البيانات
       const { data, error } = await supabase
         .rpc('invite_to_space', { p_space_id: spaceId, p_email: email });
 
@@ -282,13 +304,6 @@ export const SpaceProvider = ({ children }: { children: ReactNode }) => {
       const response = data as unknown as InviteResponse;
 
       if (response.success) {
-        // جلب اسم المساحة
-        const { data: spaceData } = await supabase
-          .from('spaces')
-          .select('name')
-          .eq('id', spaceId)
-          .single();
-          
         // إرسال دعوة بالبريد الإلكتروني
         try {
           console.log("Calling send-invitation-email function with:", {
@@ -407,17 +422,24 @@ export const SpaceProvider = ({ children }: { children: ReactNode }) => {
     if (!user) return { success: false, message: "يجب تسجيل الدخول أولاً" };
     
     try {
+      console.log("Accepting invitation with token:", token);
+      
       const { data, error } = await supabase
         .rpc('accept_space_invitation', { invitation_token: token });
 
-      if (error) throw error;
+      if (error) {
+        console.error("Error from RPC:", error);
+        throw error;
+      }
 
+      console.log("Invitation acceptance response:", data);
+      
       // تحويل البيانات إلى النوع المطلوب بشكل آمن
       const response = data as unknown as AcceptInvitationResponse;
 
       if (response.success) {
         // تحديث قائمة المساحات بعد قبول الدعوة
-        fetchSpaces();
+        await fetchSpaces();
         
         toast({
           title: "تم قبول الدعوة",

@@ -25,8 +25,9 @@ const AuthPage = () => {
   const navigate = useNavigate();
   const location = useLocation();
   
-  // استخراج صفحة العودة من state
-  const returnUrl = location.state?.returnUrl || '/';
+  // استخراج صفحة العودة من الـ URL أو من state
+  const searchParams = new URLSearchParams(location.search);
+  const returnUrl = searchParams.get('returnUrl') || location.state?.returnUrl || '/';
 
   // إعادة توجيه المستخدم إذا كان مسجل دخوله بالفعل
   useEffect(() => {

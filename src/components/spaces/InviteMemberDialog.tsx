@@ -38,15 +38,34 @@ const InviteMemberDialog = ({ open, onOpenChange, spaceId, spaceName, onInviteSu
     
     setLoading(true);
     try {
+      console.log("Inviting member with email:", email, "to space:", spaceId);
+      
       const result = await inviteMember(spaceId, email);
+      console.log("Invitation result:", result);
+      
       if (result.success) {
+        toast({
+          title: "تمت الدعوة بنجاح",
+          description: `تم إرسال دعوة إلى ${email} للانضمام إلى المساحة`,
+        });
+        
         setEmail('');
         onOpenChange(false);
-        // Call the success callback if provided
+        
+        // استدعاء callback النجاح إذا تم تحديده
         if (onInviteSuccess) {
           onInviteSuccess();
         }
+      } else {
+        throw new Error(result.message || "فشل في إرسال الدعوة");
       }
+    } catch (error: any) {
+      console.error("Error in invitation:", error);
+      toast({
+        title: "خطأ في إرسال الدعوة",
+        description: error.message || "حدث خطأ أثناء محاولة دعوة العضو",
+        variant: "destructive",
+      });
     } finally {
       setLoading(false);
     }
