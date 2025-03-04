@@ -20,7 +20,7 @@ type SpaceMember = {
 };
 
 // واجهة البيانات المرتبطة بالبريد الإلكتروني
-interface MemberData {
+interface EmailData {
   user_id: string;
   users: {
     email: string;
@@ -97,7 +97,7 @@ const SpaceViewContent = () => {
                 const emailsMap: Record<string, string> = {};
                 
                 // معالجة البيانات المستردة لاستخراج عناوين البريد الإلكتروني
-                emailsData.forEach((item: MemberData) => {
+                emailsData.forEach((item: any) => {
                   if (item.users && item.users.email) {
                     emailsMap[item.user_id] = item.users.email;
                   }
