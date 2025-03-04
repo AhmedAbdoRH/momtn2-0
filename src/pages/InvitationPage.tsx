@@ -9,7 +9,7 @@ import { useToast } from '@/hooks/use-toast';
 const InvitationPage = () => {
   const [searchParams] = useSearchParams();
   const token = searchParams.get('token');
-  const { acceptInvitation } = useSpaces();
+  const { joinSpaceByToken } = useSpaces();
   const { user, loading: authLoading } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
@@ -24,29 +24,29 @@ const InvitationPage = () => {
       return;
     }
 
-    // إذا كان المستخدم مسجل دخوله، نقوم بمعالجة الدعوة تلقائيًا
+    // إذا كان المستخدم مسجل دخوله، نقوم بمعالجة الانضمام تلقائيًا
     if (user && !authLoading && token && !processing && !success && !error) {
-      console.log("User is logged in, accepting invitation automatically");
-      handleAcceptInvitation();
+      console.log("User is logged in, joining space automatically");
+      handleJoinSpace();
     }
   }, [user, authLoading, token]);
 
-  const handleAcceptInvitation = async () => {
+  const handleJoinSpace = async () => {
     if (!token || !user) return;
     
     setProcessing(true);
     setError(null);
     
     try {
-      console.log("Accepting invitation for token:", token);
+      console.log("Joining space with token:", token);
       
-      const result = await acceptInvitation(token);
-      console.log("Invitation acceptance result:", result);
+      const result = await joinSpaceByToken(token);
+      console.log("Space joining result:", result);
       
       if (result.success) {
         setSuccess(true);
         toast({
-          title: "تم قبول الدعوة",
+          title: "تم الانضمام بنجاح",
           description: "تم الانضمام إلى المساحة المشتركة بنجاح",
         });
         
@@ -59,11 +59,11 @@ const InvitationPage = () => {
           }
         }, 2000);
       } else {
-        console.error("Error in accepting invitation:", result.message);
-        setError(result.message || "حدث خطأ أثناء قبول الدعوة");
+        console.error("Error in joining space:", result.message);
+        setError(result.message || "حدث خطأ أثناء الانضمام للمساحة");
       }
     } catch (err: any) {
-      console.error("Exception in accepting invitation:", err);
+      console.error("Exception in joining space:", err);
       setError(err.message || "حدث خطأ غير متوقع");
     } finally {
       setProcessing(false);
@@ -116,9 +116,9 @@ const InvitationPage = () => {
         <div className="text-center mb-6">
           <h1 className="text-2xl font-bold">
             {success 
-              ? "تم قبول الدعوة" 
+              ? "تم الانضمام بنجاح" 
               : error 
-                ? "خطأ في قبول الدعوة" 
+                ? "خطأ في الانضمام للمساحة" 
                 : "دعوة للانضمام إلى مساحة مشتركة"}
           </h1>
           <p className="text-gray-400 mt-2">
@@ -126,7 +126,7 @@ const InvitationPage = () => {
               ? "تم الانضمام إلى المساحة المشتركة بنجاح" 
               : error 
                 ? error 
-                : "جاري معالجة دعوة الانضمام..."}
+                : "جاري معالجة الانضمام..."}
           </p>
         </div>
         

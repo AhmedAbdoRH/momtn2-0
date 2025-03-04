@@ -55,16 +55,6 @@ const SpaceCard = ({ space, isOwner }: SpaceCardProps) => {
     }
   };
 
-  const handleCopyInviteLink = () => {
-    // في التطبيق الحقيقي، يمكنك إنشاء رابط دعوة فريد هنا
-    const inviteLink = `${window.location.origin}/invite?spaceId=${space.id}`;
-    navigator.clipboard.writeText(inviteLink);
-    toast({
-      title: "تم النسخ",
-      description: "تم نسخ رابط الدعوة إلى الحافظة",
-    });
-  };
-
   return (
     <>
       <div className="relative bg-gradient-to-br from-gray-800/70 to-gray-900/70 backdrop-blur-md rounded-xl overflow-hidden shadow-lg transition-all duration-300 hover:shadow-xl hover:scale-[0.99] group">
@@ -90,15 +80,8 @@ const SpaceCard = ({ space, isOwner }: SpaceCardProps) => {
                     onClick={() => setShowInviteDialog(true)}
                     className="cursor-pointer focus:bg-gray-800/80"
                   >
-                    <Plus className="mr-2 h-4 w-4" />
-                    <span>دعوة أعضاء</span>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem 
-                    onClick={handleCopyInviteLink}
-                    className="cursor-pointer focus:bg-gray-800/80"
-                  >
                     <Link className="mr-2 h-4 w-4" />
-                    <span>نسخ رابط الدعوة</span>
+                    <span>مشاركة رابط الدعوة</span>
                   </DropdownMenuItem>
                   <DropdownMenuItem 
                     onClick={handleDelete}

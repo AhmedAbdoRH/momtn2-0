@@ -1,4 +1,3 @@
-
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/components/AuthProvider';
@@ -56,9 +55,11 @@ interface SpaceContextType {
   updateSpace: (id: string, data: Partial<Space>) => Promise<boolean>;
   deleteSpace: (id: string) => Promise<boolean>;
   inviteMember: (spaceId: string, email: string) => Promise<{success: boolean; token?: string; message?: string}>;
+  generateInviteLink: (spaceId: string) => Promise<{success: boolean; inviteUrl?: string; message?: string}>;
   fetchMembers: (spaceId: string) => Promise<SpaceMember[]>;
   removeMember: (spaceId: string, userId: string) => Promise<boolean>;
   acceptInvitation: (token: string) => Promise<{success: boolean; spaceId?: string; message?: string}>;
+  joinSpaceByToken: (token: string) => Promise<{success: boolean; spaceId?: string; message?: string}>;
   loading: boolean;
 }
 
@@ -344,7 +345,7 @@ export const SpaceProvider = ({ children }: { children: ReactNode }) => {
           console.error("Exception in email sending:", emailErr);
           toast({
             title: "تم إنشاء الدعوة",
-            description: `تم إنشاء دعوة ل ${email} ولكن حدث خطأ أثناء إرسال البريد الإلكتروني.`,
+            description: `تم إنشاء دعوة ل ${email} ولكن حدث خطأ أ��ناء إرسال البريد الإلكتروني.`,
           });
         }
         
@@ -357,6 +358,47 @@ export const SpaceProvider = ({ children }: { children: ReactNode }) => {
       toast({
         title: "خطأ في دعوة العضو",
         description: error.message || "حدث خطأ أثناء دعوة العضو للمساحة المشتركة",
+        variant: "destructive",
+      });
+      return { success: false, message: error.message };
+    }
+  };
+
+  const generateInviteLink = async (spaceId: string): Promise<{success: boolean; inviteUrl?: string; message?: string}> => {
+    if (!user) return { success: false, message: "يجب تسجيل الدخول أولاً" };
+    
+    try {
+      // التحقق من صلاحية المستخدم لإنشاء رابط دعوة
+      const { data: spaceData } = await supabase
+        .from('spaces')
+        .select('*')
+        .eq('id', spaceId)
+        .eq('owner_id', user.id)
+        .single();
+      
+      if (!spaceData) {
+        return { success: false, message: "ليس لديك صلاحية لإضافة أعضاء لهذه المساحة" };
+      }
+
+      // إنشاء رمز دعوة عام
+      const { data, error } = await supabase
+        .rpc('generate_space_invite_token', { p_space_id: spaceId });
+
+      if (error) throw error;
+
+      // إنشاء رابط الدعوة باستخدام الرمز المُنشأ
+      const origin = window.location.origin;
+      const inviteUrl = `${origin}/invitation?token=${data.token}`;
+      
+      return { 
+        success: true, 
+        inviteUrl
+      };
+    } catch (error: any) {
+      console.error('Error generating invite link:', error);
+      toast({
+        title: "خطأ في إنشاء رابط الدعوة",
+        description: error.message || "حدث خطأ أثناء إنشاء رابط الدعوة للمساحة المشتركة",
         variant: "destructive",
       });
       return { success: false, message: error.message };
@@ -461,6 +503,49 @@ export const SpaceProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
+  const joinSpaceByToken = async (token: string): Promise<{success: boolean; spaceId?: string; message?: string}> => {
+    if (!user) return { success: false, message: "يجب تسجيل الدخول أولاً" };
+    
+    try {
+      console.log("Joining space with token:", token);
+      
+      const { data, error } = await supabase
+        .rpc('join_space_by_token', { invitation_token: token });
+
+      if (error) {
+        console.error("Error from RPC:", error);
+        throw error;
+      }
+
+      console.log("Space joining response:", data);
+      
+      // تحويل البيانات إلى النوع المطلوب بشكل آمن
+      const response = data as unknown as {success: boolean; space_id?: string; message?: string};
+
+      if (response.success) {
+        // تحديث قائمة المساحات بعد الانضمام للمساحة
+        await fetchSpaces();
+        
+        toast({
+          title: "تم الانضمام بنجاح",
+          description: "تم الانضمام إلى المساحة المشتركة بنجاح",
+        });
+        
+        return { success: true, spaceId: response.space_id };
+      } else {
+        throw new Error(response.message || "فشل في الانضمام للمساحة");
+      }
+    } catch (error: any) {
+      console.error('Error joining space:', error);
+      toast({
+        title: "خطأ في الانضمام للمساحة",
+        description: error.message || "حدث خطأ أثناء محاولة الانضمام للمساحة المشتركة",
+        variant: "destructive",
+      });
+      return { success: false, message: error.message };
+    }
+  };
+
   return (
     <SpaceContext.Provider value={{
       spaces,
@@ -473,9 +558,11 @@ export const SpaceProvider = ({ children }: { children: ReactNode }) => {
       updateSpace,
       deleteSpace,
       inviteMember,
+      generateInviteLink,
       fetchMembers,
       removeMember,
       acceptInvitation,
+      joinSpaceByToken,
       loading
     }}>
       {children}

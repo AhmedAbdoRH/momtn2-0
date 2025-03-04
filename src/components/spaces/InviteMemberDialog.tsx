@@ -1,73 +1,69 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { useSpaces } from './SpaceContext';
 import { useToast } from '@/hooks/use-toast';
+import { Copy, Check } from 'lucide-react';
 
 interface InviteMemberDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   spaceId: string;
   spaceName: string;
-  onInviteSuccess?: () => void; // Optional callback for success
+  onInviteSuccess?: () => void;
 }
 
 const InviteMemberDialog = ({ open, onOpenChange, spaceId, spaceName, onInviteSuccess }: InviteMemberDialogProps) => {
-  const [email, setEmail] = useState('');
+  const [inviteLink, setInviteLink] = useState('');
   const [loading, setLoading] = useState(false);
-  const { inviteMember } = useSpaces();
+  const [copied, setCopied] = useState(false);
+  const { generateInviteLink } = useSpaces();
   const { toast } = useToast();
 
-  const isValidEmail = (email: string) => {
-    const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    return re.test(email);
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!email.trim() || !isValidEmail(email)) {
-      toast({
-        title: "بريد إلكتروني غير صالح",
-        description: "الرجاء إدخال عنوان بريد إلكتروني صالح",
-        variant: "destructive",
-      });
-      return;
+  useEffect(() => {
+    if (open && spaceId) {
+      generateLinkForSpace();
     }
-    
+  }, [open, spaceId]);
+
+  const generateLinkForSpace = async () => {
     setLoading(true);
     try {
-      console.log("Inviting member with email:", email, "to space:", spaceId);
-      
-      const result = await inviteMember(spaceId, email);
-      console.log("Invitation result:", result);
-      
-      if (result.success) {
-        toast({
-          title: "تمت الدعوة بنجاح",
-          description: `تم إرسال دعوة إلى ${email} للانضمام إلى المساحة`,
-        });
-        
-        setEmail('');
-        onOpenChange(false);
-        
-        // استدعاء callback النجاح إذا تم تحديده
-        if (onInviteSuccess) {
-          onInviteSuccess();
-        }
+      const result = await generateInviteLink(spaceId);
+      if (result.success && result.inviteUrl) {
+        setInviteLink(result.inviteUrl);
       } else {
-        throw new Error(result.message || "فشل في إرسال الدعوة");
+        throw new Error(result.message || "فشل في إنشاء رابط الدعوة");
       }
     } catch (error: any) {
-      console.error("Error in invitation:", error);
+      console.error("Error generating invite link:", error);
       toast({
-        title: "خطأ في إرسال الدعوة",
-        description: error.message || "حدث خطأ أثناء محاولة دعوة العضو",
+        title: "خطأ في إنشاء رابط الدعوة",
+        description: error.message || "حدث خطأ أثناء محاولة إنشاء رابط الدعوة",
         variant: "destructive",
       });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const copyLinkToClipboard = async () => {
+    try {
+      await navigator.clipboard.writeText(inviteLink);
+      setCopied(true);
+      toast({
+        title: "تم النسخ",
+        description: "تم نسخ رابط الدعوة إلى الحافظة",
+      });
+      
+      setTimeout(() => setCopied(false), 2000);
+    } catch (error) {
+      toast({
+        title: "فشل النسخ",
+        description: "لم نتمكن من نسخ الرابط. يرجى نسخه يدويًا.",
+        variant: "destructive",
+      });
     }
   };
 
@@ -78,24 +74,33 @@ const InviteMemberDialog = ({ open, onOpenChange, spaceId, spaceName, onInviteSu
           <DialogTitle className="text-center text-xl text-white">دعوة أعضاء إلى "{spaceName}"</DialogTitle>
         </DialogHeader>
         
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <div className="space-y-4">
           <div>
-            <label htmlFor="member-email" className="block text-sm font-medium mb-2 text-right">
-              البريد الإلكتروني
-            </label>
-            <input
-              id="member-email"
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="w-full px-3 py-2 bg-white/10 backdrop-blur-sm rounded-md text-white border border-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-              placeholder="أدخل البريد الإلكتروني للعضو..."
-              dir="rtl"
-            />
+            <p className="text-gray-300 mb-2 text-right">يمكن لأي شخص لديه هذا الرابط الانضمام مباشرة إلى هذه المساحة المشتركة:</p>
+            <div className="flex items-center gap-2 bg-white/10 p-3 rounded-md">
+              <input
+                type="text"
+                value={inviteLink}
+                readOnly
+                className="w-full bg-transparent border-none focus:outline-none text-white text-sm font-mono"
+                dir="ltr"
+              />
+              <Button
+                type="button"
+                size="sm"
+                variant="ghost"
+                className="flex-shrink-0 hover:bg-white/10"
+                onClick={copyLinkToClipboard}
+                disabled={!inviteLink || loading}
+              >
+                {copied ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4 text-gray-300" />}
+              </Button>
+            </div>
           </div>
           
           <div className="text-sm text-gray-400 text-right">
-            <p>سيتم إرسال دعوة إلى هذا البريد الإلكتروني للانضمام إلى المساحة المشتركة.</p>
+            <p>سيتمكن أي شخص لديه هذا الرابط من الانضمام إلى المساحة المشتركة.</p>
+            <p className="mt-1">تأكد من مشاركته فقط مع الأشخاص الذين تريدهم في المساحة المشتركة.</p>
           </div>
           
           <DialogFooter className="mt-6">
@@ -104,14 +109,14 @@ const InviteMemberDialog = ({ open, onOpenChange, spaceId, spaceName, onInviteSu
               variant="outline"
               onClick={() => onOpenChange(false)}
               className="w-full bg-transparent border-gray-700 text-white hover:bg-gray-800"
-              disabled={loading}
             >
-              إلغاء
+              إغلاق
             </Button>
             <Button
-              type="submit"
+              type="button"
               className="w-full bg-[#ea384c] hover:bg-[#ea384c]/90 text-white"
-              disabled={loading}
+              onClick={copyLinkToClipboard}
+              disabled={!inviteLink || loading}
             >
               {loading ? (
                 <span className="flex items-center">
@@ -119,14 +124,14 @@ const InviteMemberDialog = ({ open, onOpenChange, spaceId, spaceName, onInviteSu
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                   </svg>
-                  جاري الإرسال...
+                  جاري التحميل...
                 </span>
               ) : (
-                'إرسال الدعوة'
+                'نسخ رابط الدعوة'
               )}
             </Button>
           </DialogFooter>
-        </form>
+        </div>
       </DialogContent>
     </Dialog>
   );
