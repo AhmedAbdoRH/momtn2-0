@@ -1,11 +1,10 @@
 
-import { Plus, Menu, LogOut, User, Grid } from "lucide-react";
+import { Plus, Menu, LogOut, User } from "lucide-react";
 import PhotoGrid from "@/components/PhotoGrid";
 import { Button } from "@/components/ui/button";
 import CreateNewDialog from "@/components/CreateNewDialog";
 import { useState } from "react";
 import { useAuth } from "@/components/AuthProvider";
-import { Link, useNavigate } from "react-router-dom";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -18,16 +17,11 @@ const Index = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [btnAnimation, setBtnAnimation] = useState(false);
   const { signOut, user } = useAuth();
-  const navigate = useNavigate();
 
   const handleCreateNew = () => {
     setBtnAnimation(true);
     setTimeout(() => setBtnAnimation(false), 300);
     setDialogOpen(true);
-  };
-
-  const goToSharedSpaces = () => {
-    navigate('/spaces');
   };
 
   return (
@@ -42,8 +36,8 @@ const Index = () => {
         <Menu className="h-5 w-5" />
       </Button>
 
-      {/* User dropdown and Shared Spaces buttons */}
-      <div className="fixed top-4 left-4 z-50 flex items-center space-x-2 rtl:space-x-reverse">
+      {/* User dropdown */}
+      <div className="fixed top-4 left-4 z-50">
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button 
@@ -67,17 +61,6 @@ const Index = () => {
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
-        
-        {/* Shared Spaces Icon Button */}
-        <Button 
-          variant="ghost" 
-          size="icon" 
-          onClick={goToSharedSpaces}
-          className="bg-white/10 backdrop-blur-lg hover:bg-white/20 text-white"
-          title="المساحات المشتركة"
-        >
-          <Grid className="h-5 w-5" />
-        </Button>
       </div>
 
       {/* Sidebar */}

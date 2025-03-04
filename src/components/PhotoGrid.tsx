@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
@@ -5,7 +6,6 @@ import PhotoCard from "./PhotoCard";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "./AuthProvider";
-import { Button } from "@/components/ui/button";
 
 interface Photo {
   id: string;
@@ -16,20 +16,16 @@ interface Photo {
   created_at: string;
   order?: number;
   user_id?: string;
-  space_id?: string | null;
 }
 
+// إعلان عالمي لوظيفة addPhoto
 declare global {
   interface Window {
-    addPhoto: (params: { imageUrl: string; spaceId?: string }) => Promise<boolean>;
+    addPhoto: (params: { imageUrl: string }) => Promise<boolean>;
   }
 }
 
-interface PhotoGridProps {
-  spaceId?: string;
-}
-
-const PhotoGrid = ({ spaceId }: PhotoGridProps) => {
+const PhotoGrid = () => {
   const [photos, setPhotos] = useState<Photo[]>([]);
   const { toast } = useToast();
   const [selectedHashtag, setSelectedHashtag] = useState<string | null>(null);
@@ -41,7 +37,7 @@ const PhotoGrid = ({ spaceId }: PhotoGridProps) => {
     if (user) {
       fetchPhotos();
     }
-  }, [user, spaceId]);
+  }, [user]);
 
   useEffect(() => {
     const tags = new Set<string>();
@@ -99,18 +95,12 @@ const PhotoGrid = ({ spaceId }: PhotoGridProps) => {
     if (!user) return;
     
     try {
-      let query = supabase
+      // نقوم بترتيب الصور حسب حقل order
+      const { data, error } = await supabase
         .from('photos')
         .select('*')
+        .eq('user_id', user.id)
         .order('order', { ascending: true });
-      
-      if (spaceId) {
-        query = query.eq('space_id', spaceId);
-      } else {
-        query = query.eq('user_id', user.id).is('space_id', null);
-      }
-
-      const { data, error } = await query;
 
       if (error) {
         console.error('Error fetching photos:', error);
@@ -132,15 +122,18 @@ const PhotoGrid = ({ spaceId }: PhotoGridProps) => {
     
     if (sourceIndex === destinationIndex) return;
     
+    // نسخة من مصفوفة الصور الحالية
     const items = Array.from(photos);
     const [reorderedItem] = items.splice(sourceIndex, 1);
     items.splice(destinationIndex, 0, reorderedItem);
     
+    // نحدث واجهة المستخدم فورا لتحسين التجربة
     setPhotos(items);
     
     console.log(`Moving item from index ${sourceIndex} to ${destinationIndex}`);
     
     try {
+      // تعيين قيم order جديدة لجميع العناصر
       const updates = items.map((photo, index) => ({
         id: photo.id,
         order: index
@@ -148,17 +141,13 @@ const PhotoGrid = ({ spaceId }: PhotoGridProps) => {
       
       console.log('Updating orders with:', updates);
       
+      // إرسال تحديثات متعددة إلى قاعدة البيانات
       for (const update of updates) {
-        let query = supabase
+        const { error } = await supabase
           .from('photos')
           .update({ order: update.order })
-          .eq('id', update.id);
-        
-        if (!spaceId) {
-          query = query.eq('user_id', user?.id);
-        }
-          
-        const { error } = await query;
+          .eq('id', update.id)
+          .eq('user_id', user?.id);
           
         if (error) {
           console.error(`Error updating order for photo ${update.id}:`, error);
@@ -167,6 +156,7 @@ const PhotoGrid = ({ spaceId }: PhotoGridProps) => {
             description: `فشل تحديث الترتيب للصورة: ${error.message}`,
             variant: "destructive",
           });
+          // نعيد تحميل الصور في حالة الخطأ
           fetchPhotos();
           return;
         }
@@ -184,11 +174,13 @@ const PhotoGrid = ({ spaceId }: PhotoGridProps) => {
         description: "حدث خطأ أثناء حفظ الترتيب الجديد",
         variant: "destructive",
       });
+      // نعيد تحميل الصور في حالة الخطأ
       fetchPhotos();
     }
   };
 
-  const addPhoto = async (params: { imageUrl: string; spaceId?: string }): Promise<boolean> => {
+  // تعريف وظيفة إضافة صورة جديدة
+  const addPhoto = async (params: { imageUrl: string }): Promise<boolean> => {
     try {
       if (!user) {
         toast({
@@ -201,30 +193,29 @@ const PhotoGrid = ({ spaceId }: PhotoGridProps) => {
       
       console.log('Adding photo to database:', params.imageUrl);
       
+      // حساب أعلى قيمة order موجودة
       const maxOrder = photos.length > 0 
         ? Math.max(...photos.map(p => p.order !== null ? p.order : -1))
         : -1;
       
-      const photoData = {
-        image_url: params.imageUrl,
-        likes: 0,
-        caption: null,
-        hashtags: [],
-        order: maxOrder + 1,
-        user_id: user.id,
-        space_id: params.spaceId || null
-      };
-      
+      // إضافة الصورة إلى الجدول
       const { data, error } = await supabase
         .from('photos')
-        .insert(photoData)
+        .insert({
+          image_url: params.imageUrl,
+          likes: 0,
+          caption: null,
+          hashtags: [],
+          user_id: user.id,
+          order: maxOrder + 1 // إعطاء الصورة الجديدة أعلى قيمة order + 1
+        })
         .select();
 
       if (error) {
         console.error('Error adding photo to database:', error);
         toast({
           title: "خطأ في الإضافة",
-          description: "لم نتمكن من إضافة الصورة إلى قاعدة البيا��ات",
+          description: "لم نتمكن من إضافة الصورة إلى قاعدة البيانات",
           variant: "destructive",
         });
         return false;
@@ -232,6 +223,7 @@ const PhotoGrid = ({ spaceId }: PhotoGridProps) => {
 
       console.log('Photo added successfully:', data);
       
+      // تحديث واجهة المستخدم بالصورة الجديدة
       if (data && data.length > 0) {
         setPhotos(prevPhotos => [data[0], ...prevPhotos]);
         
@@ -253,26 +245,23 @@ const PhotoGrid = ({ spaceId }: PhotoGridProps) => {
     }
   };
 
+  // تسجيل وظيفة addPhoto في كائن النافذة
   useEffect(() => {
     window.addPhoto = addPhoto;
     
     return () => {
+      // @ts-ignore - تنظيف عند تفكيك المكون
       delete window.addPhoto;
     };
   }, [user, photos]);
 
   const handleDelete = async (id: string, imageUrl: string) => {
     try {
-      let query = supabase
+      const { error } = await supabase
         .from('photos')
         .delete()
-        .eq('id', id);
-      
-      if (!spaceId) {
-        query = query.eq('user_id', user?.id);
-      }
-      
-      const { error } = await query;
+        .eq('id', id)
+        .eq('user_id', user?.id);
 
       if (error) {
         console.error('Error deleting photo:', error);
@@ -309,16 +298,11 @@ const PhotoGrid = ({ spaceId }: PhotoGridProps) => {
     try {
       const cleanedHashtags = hashtags.map(tag => tag.trim()).filter(tag => tag);
 
-      let query = supabase
+      const { error } = await supabase
         .from('photos')
         .update({ caption, hashtags: cleanedHashtags })
-        .eq('id', id);
-      
-      if (!spaceId) {
-        query = query.eq('user_id', user?.id);
-      }
-      
-      const { error } = await query;
+        .eq('id', id)
+        .eq('user_id', user?.id);
 
       if (error) {
         console.error('Error updating caption:', error);

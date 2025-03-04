@@ -18,7 +18,6 @@ export type Database = {
           image_url: string
           likes: number | null
           order: number | null
-          space_id: string | null
           user_id: string | null
         }
         Insert: {
@@ -29,7 +28,6 @@ export type Database = {
           image_url: string
           likes?: number | null
           order?: number | null
-          space_id?: string | null
           user_id?: string | null
         }
         Update: {
@@ -40,116 +38,7 @@ export type Database = {
           image_url?: string
           likes?: number | null
           order?: number | null
-          space_id?: string | null
           user_id?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "photos_space_id_fkey"
-            columns: ["space_id"]
-            isOneToOne: false
-            referencedRelation: "spaces"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      space_invitations: {
-        Row: {
-          created_at: string
-          email: string
-          expires_at: string
-          id: string
-          invited_by: string
-          space_id: string
-          status: string
-          token: string
-        }
-        Insert: {
-          created_at?: string
-          email: string
-          expires_at?: string
-          id?: string
-          invited_by: string
-          space_id: string
-          status?: string
-          token: string
-        }
-        Update: {
-          created_at?: string
-          email?: string
-          expires_at?: string
-          id?: string
-          invited_by?: string
-          space_id?: string
-          status?: string
-          token?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "space_invitations_space_id_fkey"
-            columns: ["space_id"]
-            isOneToOne: false
-            referencedRelation: "spaces"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      space_members: {
-        Row: {
-          id: string
-          invited_by: string | null
-          joined_at: string
-          role: string
-          space_id: string
-          user_id: string
-        }
-        Insert: {
-          id?: string
-          invited_by?: string | null
-          joined_at?: string
-          role?: string
-          space_id: string
-          user_id: string
-        }
-        Update: {
-          id?: string
-          invited_by?: string | null
-          joined_at?: string
-          role?: string
-          space_id?: string
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "space_members_space_id_fkey"
-            columns: ["space_id"]
-            isOneToOne: false
-            referencedRelation: "spaces"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      spaces: {
-        Row: {
-          created_at: string
-          description: string | null
-          id: string
-          name: string
-          owner_id: string
-        }
-        Insert: {
-          created_at?: string
-          description?: string | null
-          id?: string
-          name: string
-          owner_id: string
-        }
-        Update: {
-          created_at?: string
-          description?: string | null
-          id?: string
-          name?: string
-          owner_id?: string
         }
         Relationships: []
       }
@@ -158,45 +47,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      accept_space_invitation: {
-        Args: {
-          invitation_token: string
-        }
-        Returns: Json
-      }
-      generate_space_invite_token: {
-        Args: {
-          p_space_id: string
-        }
-        Returns: Json
-      }
-      invite_to_space: {
-        Args: {
-          p_space_id: string
-          p_email: string
-        }
-        Returns: Json
-      }
-      is_member_of_space: {
-        Args: {
-          p_user_id: string
-          p_space_id: string
-        }
-        Returns: boolean
-      }
-      is_space_owner: {
-        Args: {
-          p_user_id: string
-          p_space_id: string
-        }
-        Returns: boolean
-      }
-      join_space_by_token: {
-        Args: {
-          invitation_token: string
-        }
-        Returns: Json
-      }
+      [_ in never]: never
     }
     Enums: {
       [_ in never]: never

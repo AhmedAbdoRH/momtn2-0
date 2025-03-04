@@ -1,41 +1,46 @@
 
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { Toaster } from "@/components/ui/toaster";
+import { Toaster as Sonner } from "@/components/ui/sonner";
+import { TooltipProvider } from "@/components/ui/tooltip";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { BrowserRouter, Routes, Route } from "react-router-dom";
+import Index from "./pages/Index";
+import NotFound from "./pages/NotFound";
+import AuthPage from "./pages/AuthPage";
+import { AuthProvider } from "./components/AuthProvider";
+import ProtectedRoute from "./components/ProtectedRoute";
 
-import Index from './pages/Index';
-import AuthPage from './pages/AuthPage';
-import NotFound from './pages/NotFound';
-import Spaces from './pages/Spaces';
-import SpaceView from './pages/SpaceView';
-import InvitationPage from './pages/InvitationPage';
-import { AuthProvider } from './components/AuthProvider';
-import ProtectedRoute from './components/ProtectedRoute';
-
-import './App.css';
-import { Toaster } from './components/ui/sonner';
+// Create a client
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 5 * 60 * 1000, // 5 minutes
+      refetchOnWindowFocus: false,
+    },
+  },
+});
 
 function App() {
   return (
-    <Router>
-      <AuthProvider>
-        <Routes>
-          <Route path="/" element={<Index />} />
-          <Route path="/auth" element={<AuthPage />} />
-          <Route path="/invitation" element={<InvitationPage />} />
-          <Route path="/spaces" element={
-            <ProtectedRoute>
-              <Spaces />
-            </ProtectedRoute>
-          } />
-          <Route path="/spaces/:spaceId" element={
-            <ProtectedRoute>
-              <SpaceView />
-            </ProtectedRoute>
-          } />
-          <Route path="*" element={<NotFound />} />
-        </Routes>
+    <QueryClientProvider client={queryClient}>
+      <TooltipProvider>
         <Toaster />
-      </AuthProvider>
-    </Router>
+        <Sonner />
+        <BrowserRouter>
+          <AuthProvider>
+            <Routes>
+              <Route path="/auth" element={<AuthPage />} />
+              <Route path="/" element={
+                <ProtectedRoute>
+                  <Index />
+                </ProtectedRoute>
+              } />
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </AuthProvider>
+        </BrowserRouter>
+      </TooltipProvider>
+    </QueryClientProvider>
   );
 }
 
