@@ -164,6 +164,12 @@ export type Database = {
         }
         Returns: Json
       }
+      generate_space_invite_token: {
+        Args: {
+          p_space_id: string
+        }
+        Returns: Json
+      }
       invite_to_space: {
         Args: {
           p_space_id: string
@@ -184,6 +190,12 @@ export type Database = {
           p_space_id: string
         }
         Returns: boolean
+      }
+      join_space_by_token: {
+        Args: {
+          invitation_token: string
+        }
+        Returns: Json
       }
     }
     Enums: {

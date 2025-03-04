@@ -1,3 +1,4 @@
+
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/components/AuthProvider';
@@ -386,9 +387,16 @@ export const SpaceProvider = ({ children }: { children: ReactNode }) => {
 
       if (error) throw error;
 
+      // تحويل البيانات إلى النوع المطلوب بشكل آمن
+      const response = data as unknown as { success: boolean; token?: string; message?: string };
+      
+      if (!response.success) {
+        throw new Error(response.message || "فشل في إنشاء رابط الدعوة");
+      }
+      
       // إنشاء رابط الدعوة باستخدام الرمز المُنشأ
       const origin = window.location.origin;
-      const inviteUrl = `${origin}/invitation?token=${data.token}`;
+      const inviteUrl = `${origin}/invitation?token=${response.token}`;
       
       return { 
         success: true, 
