@@ -34,11 +34,41 @@ const SpaceViewContent = () => {
   const [showInviteDialog, setShowInviteDialog] = useState(false);
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [isOwner, setIsOwner] = useState(false);
+  const [isMember, setIsMember] = useState(false);
   const [fetchingData, setFetchingData] = useState(true);
   const { currentSpace, setCurrentSpace, fetchSpaces, loading } = useSpaces();
   const { user } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
+
+  // التحقق من إذا كان المستخدم مالكًا أو عضوًا في المساحة
+  const checkUserPermissions = useCallback(async () => {
+    if (!spaceId || !user) return;
+    
+    try {
+      // استخدام وظيفة is_space_owner للتحقق من مالكية المساحة
+      const { data: ownerData, error: ownerError } = await supabase
+        .rpc('is_space_owner', { p_user_id: user.id, p_space_id: spaceId });
+      
+      if (ownerError) {
+        console.error('Error checking space ownership:', ownerError);
+      } else {
+        setIsOwner(ownerData || false);
+      }
+      
+      // استخدام وظيفة is_member_of_space للتحقق من عضوية المساحة
+      const { data: memberData, error: memberError } = await supabase
+        .rpc('is_member_of_space', { p_user_id: user.id, p_space_id: spaceId });
+        
+      if (memberError) {
+        console.error('Error checking space membership:', memberError);
+      } else {
+        setIsMember(memberData || false);
+      }
+    } catch (error) {
+      console.error('Error checking permissions:', error);
+    }
+  }, [spaceId, user]);
 
   const fetchSpaceDetails = useCallback(async () => {
     if (!spaceId || !user) return;
@@ -66,7 +96,7 @@ const SpaceViewContent = () => {
       }
 
       setCurrentSpace(spaceData);
-      setIsOwner(spaceData.owner_id === user.id);
+      await checkUserPermissions();
       console.log("Space data:", spaceData);
 
       try {
@@ -124,7 +154,7 @@ const SpaceViewContent = () => {
     } finally {
       setFetchingData(false);
     }
-  }, [spaceId, user, navigate, setCurrentSpace, toast]);
+  }, [spaceId, user, navigate, setCurrentSpace, toast, checkUserPermissions]);
 
   // جلب تفاصيل المساحة عند تحميل الصفحة
   useEffect(() => {
@@ -137,6 +167,18 @@ const SpaceViewContent = () => {
   const refreshData = () => {
     fetchSpaceDetails();
   };
+
+  // إذا لم يكن المستخدم مالكًا أو عضوًا، منعه من الوصول
+  useEffect(() => {
+    if (!fetchingData && !loading && user && !isOwner && !isMember) {
+      toast({
+        title: "غير مصرح",
+        description: "لا يمكنك الوصول إلى هذه المساحة",
+        variant: "destructive",
+      });
+      navigate('/spaces');
+    }
+  }, [fetchingData, loading, user, isOwner, isMember, navigate, toast]);
 
   // إذا لم يتم العثور على المساحة
   if (!fetchingData && !currentSpace && !loading) {

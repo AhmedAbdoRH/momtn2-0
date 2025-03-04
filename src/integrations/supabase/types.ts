@@ -171,6 +171,20 @@ export type Database = {
         }
         Returns: Json
       }
+      is_member_of_space: {
+        Args: {
+          p_user_id: string
+          p_space_id: string
+        }
+        Returns: boolean
+      }
+      is_space_owner: {
+        Args: {
+          p_user_id: string
+          p_space_id: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
       [_ in never]: never
