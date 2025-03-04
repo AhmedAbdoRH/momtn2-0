@@ -1,15 +1,19 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '@/components/AuthProvider';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { Navigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
+import { Input } from '@/components/ui/input';
 
 const AuthPage = () => {
   const [mode, setMode] = useState<'signIn' | 'signUp'>('signIn');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [username, setUsername] = useState('');
+  const [usernameError, setUsernameError] = useState('');
+  const [isCheckingUsername, setIsCheckingUsername] = useState(false);
   const [loading, setLoading] = useState(false);
   const { signIn, signUp, user } = useAuth();
   const { toast } = useToast();
@@ -18,6 +22,39 @@ const AuthPage = () => {
   if (user) {
     return <Navigate to="/" replace />;
   }
+
+  // Validate username when it changes
+  useEffect(() => {
+    const checkUsername = async () => {
+      if (!username || mode !== 'signUp') return;
+      
+      // Clear previous errors
+      setUsernameError('');
+
+      // Check for spaces and special characters
+      if (!/^[a-zA-Z0-9_]+$/.test(username)) {
+        setUsernameError('اسم المستخدم يجب أن يحتوي على أحرف وأرقام وشرطات سفلية فقط');
+        return;
+      }
+
+      // Check if username exists in database
+      setIsCheckingUsername(true);
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('username')
+        .eq('username', username)
+        .single();
+
+      setIsCheckingUsername(false);
+      
+      if (data) {
+        setUsernameError('اسم المستخدم مستخدم بالفعل');
+      }
+    };
+
+    const debounceTimer = setTimeout(checkUsername, 500);
+    return () => clearTimeout(debounceTimer);
+  }, [username, mode]);
 
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -30,7 +67,18 @@ const AuthPage = () => {
         const result = await signIn(email, password);
         error = result.error;
       } else {
-        const result = await signUp(email, password);
+        // Validate username once more before signup
+        if (usernameError || !username) {
+          setLoading(false);
+          toast({
+            variant: "destructive",
+            title: "خطأ في اسم المستخدم",
+            description: usernameError || "يرجى إدخال اسم مستخدم صالح",
+          });
+          return;
+        }
+        
+        const result = await signUp(email, password, { username });
         error = result.error;
         
         if (!error) {
@@ -106,7 +154,7 @@ const AuthPage = () => {
               <label htmlFor="email-address" className="sr-only">
                 البريد الإلكتروني
               </label>
-              <input
+              <Input
                 id="email-address"
                 name="email"
                 type="email"
@@ -114,16 +162,53 @@ const AuthPage = () => {
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="appearance-none bg-gray-800/50 backdrop-blur-sm relative block w-full px-3 py-3 border border-gray-700 placeholder-gray-500 text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                className="bg-gray-800/50 backdrop-blur-sm border-gray-700 placeholder-gray-500 text-white"
                 placeholder="البريد الإلكتروني"
                 dir="rtl"
               />
             </div>
+            
+            {mode === 'signUp' && (
+              <div>
+                <label htmlFor="username" className="sr-only">
+                  اسم المستخدم
+                </label>
+                <div className="relative">
+                  <Input
+                    id="username"
+                    name="username"
+                    type="text"
+                    autoComplete="username"
+                    required
+                    value={username}
+                    onChange={(e) => setUsername(e.target.value)}
+                    className={`bg-gray-800/50 backdrop-blur-sm border-gray-700 placeholder-gray-500 text-white ${usernameError ? 'border-red-500' : ''}`}
+                    placeholder="اسم المستخدم (بدون مسافات)"
+                    dir="rtl"
+                  />
+                  {isCheckingUsername && (
+                    <div className="absolute left-3 top-1/2 transform -translate-y-1/2">
+                      <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                    </div>
+                  )}
+                </div>
+                {usernameError && (
+                  <p className="mt-1 text-sm text-red-500 text-right" dir="rtl">{usernameError}</p>
+                )}
+                <p className="mt-1 text-sm text-gray-500 text-right" dir="rtl">
+                  يمكنك استخدام الأحرف والأرقام والشرطات السفلية فقط
+                </p>
+              </div>
+            )}
+            
             <div>
               <label htmlFor="password" className="sr-only">
                 كلمة المرور
               </label>
-              <input
+              <Input
                 id="password"
                 name="password"
                 type="password"
@@ -131,7 +216,7 @@ const AuthPage = () => {
                 required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="appearance-none bg-gray-800/50 backdrop-blur-sm relative block w-full px-3 py-3 border border-gray-700 placeholder-gray-500 text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                className="bg-gray-800/50 backdrop-blur-sm border-gray-700 placeholder-gray-500 text-white"
                 placeholder="كلمة المرور"
                 dir="rtl"
               />
@@ -142,7 +227,7 @@ const AuthPage = () => {
             <Button
               type="submit"
               className="group relative w-full flex justify-center py-3 px-4 bg-white/10 backdrop-blur-md hover:bg-white/20 text-white rounded-lg"
-              disabled={loading}
+              disabled={loading || (mode === 'signUp' && (!!usernameError || isCheckingUsername))}
             >
               {loading ? (
                 <span className="flex items-center">

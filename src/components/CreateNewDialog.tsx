@@ -42,9 +42,11 @@ const CreateNewDialog = ({ open, onOpenChange }: CreateNewDialogProps) => {
         size: image.size
       });
 
-      // التأكد من امتداد الملف
+      // التأكد من امتداد الملف وتنظيف اسم الملف
       const fileExt = image.name.split('.').pop()?.toLowerCase() || 'jpg';
-      const fileName = `photo_${Date.now()}.${fileExt}`;
+      const sanitizedFileName = image.name.replace(/[^\x00-\x7F]/g, ''); // Remove non-ASCII characters
+      const fileNameWithoutExt = sanitizedFileName.split('.')[0].replace(/[^a-zA-Z0-9]/g, '_') || 'image';
+      const fileName = `${fileNameWithoutExt}_${Date.now()}.${fileExt}`;
       
       console.log('Uploading file:', fileName);
       
@@ -52,7 +54,7 @@ const CreateNewDialog = ({ open, onOpenChange }: CreateNewDialogProps) => {
       console.log('Starting file upload...');
       const { error: uploadError, data: uploadData } = await supabase.storage
         .from('photos')
-        .upload(fileName, image, {
+        .upload(`${user.id}/${fileName}`, image, {
           cacheControl: '3600',
           upsert: true
         });
@@ -67,11 +69,11 @@ const CreateNewDialog = ({ open, onOpenChange }: CreateNewDialogProps) => {
       // الحصول على رابط عام للصورة
       const { data: { publicUrl } } = supabase.storage
         .from('photos')
-        .getPublicUrl(fileName);
+        .getPublicUrl(`${user.id}/${fileName}`);
 
       console.log('Public URL:', publicUrl);
 
-      // إضافة الصورة إلى قاعدة البيانات مباشرة من هنا
+      // إضافة الصورة إلى قاعدة البيانات
       console.log('Adding photo to database:', publicUrl);
       
       const { data, error } = await supabase
