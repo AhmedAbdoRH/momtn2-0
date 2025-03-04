@@ -42,11 +42,9 @@ const CreateNewDialog = ({ open, onOpenChange }: CreateNewDialogProps) => {
         size: image.size
       });
 
-      // التأكد من امتداد الملف وتنظيف اسم الملف
+      // التأكد من امتداد الملف
       const fileExt = image.name.split('.').pop()?.toLowerCase() || 'jpg';
-      const sanitizedFileName = image.name.replace(/[^\x00-\x7F]/g, ''); // Remove non-ASCII characters
-      const fileNameWithoutExt = sanitizedFileName.split('.')[0].replace(/[^a-zA-Z0-9]/g, '_') || 'image';
-      const fileName = `${fileNameWithoutExt}_${Date.now()}.${fileExt}`;
+      const fileName = `photo_${Date.now()}.${fileExt}`;
       
       console.log('Uploading file:', fileName);
       
@@ -54,7 +52,7 @@ const CreateNewDialog = ({ open, onOpenChange }: CreateNewDialogProps) => {
       console.log('Starting file upload...');
       const { error: uploadError, data: uploadData } = await supabase.storage
         .from('photos')
-        .upload(`${user.id}/${fileName}`, image, {
+        .upload(fileName, image, {
           cacheControl: '3600',
           upsert: true
         });
@@ -69,7 +67,7 @@ const CreateNewDialog = ({ open, onOpenChange }: CreateNewDialogProps) => {
       // الحصول على رابط عام للصورة
       const { data: { publicUrl } } = supabase.storage
         .from('photos')
-        .getPublicUrl(`${user.id}/${fileName}`);
+        .getPublicUrl(fileName);
 
       console.log('Public URL:', publicUrl);
 
@@ -123,7 +121,7 @@ const CreateNewDialog = ({ open, onOpenChange }: CreateNewDialogProps) => {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[425px] bg-gray-900/40 backdrop-blur-xl text-white border-0 shadow-xl">
+      <DialogContent className="top-[20%] sm:max-w-[400px] bg-gray-900/70 backdrop-blur-xl text-white border-0 shadow-xl">
         <DialogHeader>
           <DialogTitle>إضافة صورة جديدة</DialogTitle>
           <DialogDescription className="text-gray-300">
@@ -140,7 +138,7 @@ const CreateNewDialog = ({ open, onOpenChange }: CreateNewDialogProps) => {
               className="hidden"
             />
             <div 
-              className="w-full h-48 border-2 border-dashed border-gray-600 rounded-lg flex flex-col items-center justify-center cursor-pointer hover:border-gray-500 transition-colors"
+              className="w-full h-44 border-2 border-dashed border-gray-600 rounded-lg flex flex-col items-center justify-center cursor-pointer hover:border-gray-500 transition-colors"
               onClick={() => document.getElementById('image')?.click()}
             >
               {previewUrl ? (
@@ -173,7 +171,7 @@ const CreateNewDialog = ({ open, onOpenChange }: CreateNewDialogProps) => {
             <Button 
               type="submit" 
               disabled={!image || isSubmitting}
-              className="bg-white/20 backdrop-blur-md hover:bg-white/30 text-white"
+              className="bg-[#ea384c] hover:bg-[#ea384c]/90 text-white"
             >
               {isSubmitting ? "جاري الحفظ..." : "حفظ"}
             </Button>
