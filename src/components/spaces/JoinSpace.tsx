@@ -10,6 +10,8 @@ export default function JoinSpace() {
   const { token } = useParams<{ token: string }>();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState(false);
+  const [spaceId, setSpaceId] = useState<string | null>(null);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -32,12 +34,12 @@ export default function JoinSpace() {
       
       console.log("Attempting to join space with token:", token);
       
-      const { data, error } = await supabase
+      const { data, error: rpcError } = await supabase
         .rpc('join_space_by_token', { invitation_token: token });
       
-      if (error) {
-        console.error("RPC error:", error);
-        throw error;
+      if (rpcError) {
+        console.error("RPC error:", rpcError);
+        throw rpcError;
       }
       
       console.log("Join space response:", data);
@@ -46,11 +48,14 @@ export default function JoinSpace() {
       const result = data as { success: boolean; space_id?: string; message?: string };
       
       if (result.success && result.space_id) {
+        setSuccess(true);
+        setSpaceId(result.space_id);
         toast.success('تم الانضمام إلى المساحة المشتركة بنجاح');
-        // تأخير قليل قبل التوجيه للتأكد من ظهور رسالة النجاح
+        
+        // تأخير قليل قبل التوجيه للتأكد من اكتمال عملية الانضمام
         setTimeout(() => {
           navigate(`/spaces/${result.space_id}`);
-        }, 1000);
+        }, 2000);
       } else {
         setError(result.message || 'حدث خطأ أثناء الانضمام إلى المساحة المشتركة');
         toast.error(result.message || 'حدث خطأ أثناء الانضمام إلى المساحة المشتركة');
@@ -79,10 +84,17 @@ export default function JoinSpace() {
             <p className="text-red-500">{error}</p>
             <Button onClick={() => navigate('/')}>العودة إلى الصفحة الرئيسية</Button>
           </div>
-        ) : (
+        ) : success ? (
           <div className="space-y-4">
             <p className="text-green-500">تم الانضمام إلى المساحة المشتركة بنجاح</p>
-            <Button onClick={() => navigate('/')}>العودة إلى الصفحة الرئيسية</Button>
+            <p className="text-gray-500">جاري التوجيه...</p>
+            <Button onClick={() => navigate(`/spaces/${spaceId}`)}>
+              الانتقال إلى المساحة المشتركة
+            </Button>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            <p className="text-gray-500">جاري التحقق من رمز الدعوة...</p>
           </div>
         )}
       </div>

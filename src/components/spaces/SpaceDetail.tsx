@@ -44,40 +44,69 @@ export default function SpaceDetail() {
 
       // Check if user is the owner
       const { data: userData } = await supabase.auth.getUser();
-      setIsOwner(userData.user?.id === spaceData.owner_id);
-
-      // تعديل طريقة جلب بيانات الأعضاء
-      const { data: membersData, error: membersError } = await supabase
-        .from('space_members')
-        .select('id, user_id, role, joined_at')
-        .eq('space_id', spaceId);
-
-      if (membersError) throw membersError;
+      const currentUserId = userData.user?.id;
       
-      // إذا كان هناك أعضاء، جلب معلومات المستخدمين
-      if (membersData && membersData.length > 0) {
-        // استخراج معرفات المستخدمين
-        const userIds = membersData.map(member => member.user_id);
+      if (!currentUserId) {
+        toast.error('يجب تسجيل الدخول لعرض تفاصيل المساحة المشتركة');
+        navigate('/auth');
+        return;
+      }
+      
+      setIsOwner(currentUserId === spaceData.owner_id);
+
+      // تعديل طريقة جلب بيانات الأعضاء لتجنب مشكلة التكرار اللانهائي في السياسة
+      try {
+        // استخدام دالة آمنة من جانب قاعدة البيانات للتحقق أولاً من عضوية المستخدم
+        const { data: isMemberData, error: isMemberError } = await supabase
+          .rpc('is_member_of_space', { 
+            p_user_id: currentUserId, 
+            p_space_id: spaceId 
+          });
         
-        // جلب معلومات المستخدمين من جدول profiles
-        const { data: usersData, error: usersError } = await supabase
-          .from('profiles')
-          .select('id, username')
-          .in('id', userIds);
+        if (isMemberError) throw isMemberError;
+        
+        if (!isMemberData && !isOwner) {
+          toast.error('ليس لديك صلاحية الوصول إلى هذه المساحة المشتركة');
+          navigate('/');
+          return;
+        }
+        
+        // جلب بيانات الأعضاء بطريقة مباشرة
+        const { data: membersData, error: membersError } = await supabase
+          .from('space_members')
+          .select('id, user_id, role, joined_at')
+          .eq('space_id', spaceId);
+
+        if (membersError) throw membersError;
+        
+        if (membersData && membersData.length > 0) {
+          // استخراج معرفات المستخدمين
+          const userIds = membersData.map(member => member.user_id);
           
-        if (usersError) throw usersError;
-        
-        // دمج بيانات الأعضاء مع بيانات المستخدمين
-        const enrichedMembers = membersData.map(member => {
-          const userData = usersData?.find(user => user.id === member.user_id);
-          return {
-            ...member,
-            username: userData?.username || 'مستخدم'
-          };
-        });
-        
-        setMembers(enrichedMembers);
-      } else {
+          // جلب معلومات المستخدمين من جدول profiles
+          const { data: usersData, error: usersError } = await supabase
+            .from('profiles')
+            .select('id, username')
+            .in('id', userIds);
+            
+          if (usersError) throw usersError;
+          
+          // دمج بيانات الأعضاء مع بيانات المستخدمين
+          const enrichedMembers = membersData.map(member => {
+            const userData = usersData?.find(user => user.id === member.user_id);
+            return {
+              ...member,
+              username: userData?.username || 'مستخدم'
+            };
+          });
+          
+          setMembers(enrichedMembers);
+        } else {
+          setMembers([]);
+        }
+      } catch (membersError) {
+        console.error('Error fetching members:', membersError);
+        toast.error('حدث خطأ في جلب بيانات الأعضاء');
         setMembers([]);
       }
 
@@ -138,8 +167,8 @@ export default function SpaceDetail() {
       const result = data as { success: boolean; token?: string; message?: string };
       
       if (result.success && result.token) {
-        // تعديل رابط الدعوة ليستخدم الصيغة الصحيحة
-        const link = `${window.location.origin}/join-space/${result.token}`;
+        const baseUrl = window.location.origin;
+        const link = `${baseUrl}/join-space/${result.token}`;
         setInviteLink(link);
         toast.success('تم إنشاء رابط الدعوة بنجاح');
       } else {
@@ -154,6 +183,7 @@ export default function SpaceDetail() {
   const copyToClipboard = () => {
     navigator.clipboard.writeText(inviteLink);
     setCopied(true);
+    toast.success('تم نسخ الرابط');
     setTimeout(() => setCopied(false), 2000);
   };
 
