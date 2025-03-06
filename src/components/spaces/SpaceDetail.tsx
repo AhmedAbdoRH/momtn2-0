@@ -1,300 +1,285 @@
 
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { useAuth } from '@/components/AuthProvider';
 import { supabase } from '@/integrations/supabase/client';
-import { Space, SpaceMember } from '@/types/spaces';
-import { Users, UserPlus, ArrowLeft, Trash2, Copy } from 'lucide-react';
+import { Space } from '@/types/spaces';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Loader2, Users, Copy, Check, Plus } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
 import { toast } from 'sonner';
-import PhotoGrid from '@/components/PhotoGrid';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-  DialogFooter,
-} from '@/components/ui/dialog';
 
 export default function SpaceDetail() {
   const { spaceId } = useParams<{ spaceId: string }>();
   const [space, setSpace] = useState<Space | null>(null);
-  const [members, setMembers] = useState<SpaceMember[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [members, setMembers] = useState<any[]>([]);
   const [isOwner, setIsOwner] = useState(false);
-  const [userEmails, setUserEmails] = useState<Record<string, string>>({});
-  const [inviteEmail, setInviteEmail] = useState('');
-  const [inviteDialogOpen, setInviteDialogOpen] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [email, setEmail] = useState('');
+  const [inviteLoading, setInviteLoading] = useState(false);
   const [inviteLink, setInviteLink] = useState('');
-  const [processingInvite, setProcessingInvite] = useState(false);
-  const { user } = useAuth();
+  const [copied, setCopied] = useState(false);
+  const { toast: uiToast } = useToast();
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (spaceId && user) {
+    if (spaceId) {
       fetchSpaceDetails();
     }
-  }, [spaceId, user]);
+  }, [spaceId]);
 
   const fetchSpaceDetails = async () => {
     try {
       setLoading(true);
-      
+
       // Fetch space details
       const { data: spaceData, error: spaceError } = await supabase
         .from('spaces')
         .select('*')
         .eq('id', spaceId)
         .single();
-      
+
       if (spaceError) throw spaceError;
-      
       setSpace(spaceData);
-      setIsOwner(spaceData.owner_id === user?.id);
-      
-      // Fetch members
+
+      // Check if user is the owner
+      const { data: userData } = await supabase.auth.getUser();
+      setIsOwner(userData.user?.id === spaceData.owner_id);
+
+      // Fetch space members
       const { data: membersData, error: membersError } = await supabase
         .from('space_members')
-        .select('*')
+        .select(`
+          user_id,
+          role,
+          joined_at,
+          users:user_id(email)
+        `)
         .eq('space_id', spaceId);
-      
+
       if (membersError) throw membersError;
-      
       setMembers(membersData || []);
-      
-      // Fetch user emails
-      const userIds = [
-        spaceData.owner_id,
-        ...(membersData?.map(m => m.user_id) || [])
-      ];
-      
-      // We can't directly query auth.users, so we'll need to request this information
-      // from profiles or use an edge function in a real app
-      // For this example, we'll just show user IDs
-      const mockEmails: Record<string, string> = {};
-      userIds.forEach(id => {
-        mockEmails[id] = `user-${id.substring(0, 6)}@example.com`;
-      });
-      setUserEmails(mockEmails);
-      
+
     } catch (error) {
       console.error('Error fetching space details:', error);
       toast.error('حدث خطأ أثناء جلب تفاصيل المساحة المشتركة');
-      navigate('/');
     } finally {
       setLoading(false);
     }
   };
 
-  const handleInviteUser = async () => {
-    if (!inviteEmail.trim() || !inviteEmail.includes('@')) {
-      toast.error('يرجى إدخال بريد إلكتروني صحيح');
+  const handleInvite = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!email.trim()) {
+      toast.error('يرجى إدخال البريد الإلكتروني');
       return;
     }
     
     try {
-      setProcessingInvite(true);
+      setInviteLoading(true);
       
-      const { data, error } = await supabase.rpc('invite_to_space', {
-        p_space_id: spaceId,
-        p_email: inviteEmail.trim()
-      });
+      const { data, error } = await supabase
+        .rpc('invite_to_space', { 
+          p_space_id: spaceId, 
+          p_email: email.trim() 
+        });
       
       if (error) throw error;
       
-      if (data.success) {
+      // Type assertion to handle the JSON response
+      const result = data as { success: boolean; message?: string };
+      
+      if (result.success) {
         toast.success('تم إرسال الدعوة بنجاح');
-        setInviteEmail('');
-        setInviteDialogOpen(false);
+        setEmail('');
       } else {
-        toast.error(data.message || 'فشل في إرسال الدعوة');
+        toast.error(result.message || 'حدث خطأ أثناء إرسال الدعوة');
       }
-    } catch (error) {
-      console.error('Error inviting user:', error);
+    } catch (error: any) {
+      console.error('Error inviting to space:', error);
       toast.error('حدث خطأ أثناء إرسال الدعوة');
     } finally {
-      setProcessingInvite(false);
+      setInviteLoading(false);
     }
   };
 
   const generateInviteLink = async () => {
     try {
-      setProcessingInvite(true);
-      
-      const { data, error } = await supabase.rpc('generate_space_invite_token', {
-        p_space_id: spaceId
-      });
+      const { data, error } = await supabase
+        .rpc('generate_space_invite_token', { 
+          p_space_id: spaceId
+        });
       
       if (error) throw error;
       
-      if (data.success) {
-        const link = `${window.location.origin}/join-space/${data.token}`;
+      // Type assertion to handle the JSON response
+      const result = data as { success: boolean; token?: string; message?: string };
+      
+      if (result.success && result.token) {
+        const link = `${window.location.origin}/join-space/${result.token}`;
         setInviteLink(link);
         toast.success('تم إنشاء رابط الدعوة بنجاح');
       } else {
-        toast.error(data.message || 'فشل في إنشاء رابط الدعوة');
+        toast.error(result.message || 'حدث خطأ أثناء إنشاء رابط الدعوة');
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error generating invite link:', error);
       toast.error('حدث خطأ أثناء إنشاء رابط الدعوة');
-    } finally {
-      setProcessingInvite(false);
     }
   };
 
-  const copyInviteLink = () => {
+  const copyToClipboard = () => {
     navigator.clipboard.writeText(inviteLink);
-    toast.success('تم نسخ الرابط إلى الحافظة');
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
   };
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-48">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-gray-900"></div>
+      <div className="flex justify-center items-center min-h-screen">
+        <Loader2 className="h-8 w-8 animate-spin text-indigo-500" />
       </div>
     );
   }
 
   if (!space) {
     return (
-      <div className="text-center py-12">
-        <h2 className="text-2xl font-bold text-gray-700">المساحة المشتركة غير موجودة</h2>
-        <p className="mt-2 text-gray-500">قد تكون المساحة محذوفة أو ليس لديك صلاحية الوصول إليها</p>
+      <div className="max-w-md mx-auto bg-white/80 backdrop-blur-lg rounded-lg shadow p-6 mt-16">
+        <p className="text-center text-red-500">المساحة المشتركة غير موجودة</p>
         <Button 
           onClick={() => navigate('/')} 
-          className="mt-4"
-          variant="outline"
+          className="mt-4 mx-auto block"
         >
-          العودة إلى الرئيسية
+          العودة إلى الصفحة الرئيسية
         </Button>
       </div>
     );
   }
 
   return (
-    <div className="max-w-7xl mx-auto px-4 py-8">
-      <div className="flex justify-between items-center mb-6">
-        <Button 
-          variant="ghost" 
-          onClick={() => navigate('/')}
-          className="flex items-center text-gray-600"
-        >
-          <ArrowLeft className="h-4 w-4 mr-2" />
-          العودة
-        </Button>
-        
-        <h1 className="text-2xl font-bold text-center flex-1">{space.name}</h1>
-        
-        {isOwner && (
-          <Dialog open={inviteDialogOpen} onOpenChange={setInviteDialogOpen}>
-            <DialogTrigger asChild>
-              <Button>
-                <UserPlus className="h-4 w-4 mr-2" />
-                دعوة أعضاء
-              </Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle className="text-center">دعوة أعضاء إلى المساحة المشتركة</DialogTitle>
-              </DialogHeader>
-              
-              <div className="space-y-4 py-4">
-                <div>
-                  <label className="text-sm font-medium mb-1 block">
-                    البريد الإلكتروني
-                  </label>
-                  <div className="flex">
-                    <Input
-                      value={inviteEmail}
-                      onChange={(e) => setInviteEmail(e.target.value)}
-                      placeholder="أدخل البريد الإلكتروني"
-                      className="flex-1"
-                      dir="rtl"
-                    />
-                    <Button 
-                      onClick={handleInviteUser}
-                      disabled={processingInvite}
-                      className="mr-2"
-                    >
-                      دعوة
-                    </Button>
-                  </div>
-                </div>
-                
-                <div className="text-sm text-gray-500 text-center">أو</div>
-                
-                <div>
-                  <label className="text-sm font-medium mb-1 block">
-                    رابط دعوة عام
-                  </label>
-                  {inviteLink ? (
-                    <div className="flex">
-                      <Input
-                        value={inviteLink}
-                        readOnly
-                        className="flex-1"
-                      />
-                      <Button
-                        variant="outline"
-                        onClick={copyInviteLink}
-                        className="mr-1"
-                      >
-                        <Copy className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  ) : (
-                    <Button
-                      onClick={generateInviteLink}
-                      disabled={processingInvite}
-                      variant="outline"
-                      className="w-full"
-                    >
-                      إنشاء رابط دعوة
-                    </Button>
-                  )}
-                </div>
-              </div>
-            </DialogContent>
-          </Dialog>
-        )}
-      </div>
-      
-      {space.description && (
-        <p className="text-gray-600 mb-8 text-center max-w-2xl mx-auto">
-          {space.description}
-        </p>
-      )}
-      
-      <div className="mb-8">
-        <div className="flex items-center mb-4">
-          <Users className="h-5 w-5 mr-2 text-gray-700" />
-          <h2 className="text-xl font-semibold">الأعضاء</h2>
+    <div className="max-w-4xl mx-auto p-4 mt-8">
+      <div className="bg-white/80 backdrop-blur-lg rounded-lg shadow p-6">
+        <div className="flex justify-between items-center mb-6">
+          <Button 
+            variant="outline" 
+            onClick={() => navigate('/')}
+          >
+            العودة
+          </Button>
+          <h1 className="text-2xl font-bold">{space.name}</h1>
         </div>
         
-        <div className="bg-white/80 backdrop-blur-sm rounded-lg shadow p-4">
-          <div className="flex items-center justify-between p-3 bg-gray-50 rounded mb-2">
-            <span className="font-medium">{userEmails[space.owner_id] || space.owner_id}</span>
-            <span className="text-sm bg-blue-100 text-blue-800 rounded-full px-3 py-1">مالك</span>
+        {space.description && (
+          <p className="text-gray-600 mb-6 text-center">{space.description}</p>
+        )}
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+          {/* Members Section */}
+          <div className="space-y-4">
+            <h2 className="text-xl font-semibold flex items-center">
+              <Users className="mr-2 h-5 w-5" />
+              الأعضاء
+            </h2>
+            
+            <div className="space-y-2">
+              {/* Owner */}
+              <div className="p-3 bg-indigo-50 rounded-md flex justify-between items-center">
+                <span className="font-medium">{space.owner_id}</span>
+                <span className="text-xs bg-indigo-200 text-indigo-800 px-2 py-1 rounded">مالك</span>
+              </div>
+              
+              {/* Members */}
+              {members.map((member) => (
+                <div key={member.user_id} className="p-3 bg-gray-50 rounded-md">
+                  {member.users?.email || member.user_id}
+                </div>
+              ))}
+              
+              {members.length === 0 && (
+                <p className="text-gray-500 text-center p-3">لا يوجد أعضاء آخرين</p>
+              )}
+            </div>
           </div>
           
-          {members.length > 0 ? (
-            members.map(member => (
-              <div key={member.user_id} className="flex items-center justify-between p-3 hover:bg-gray-50 rounded">
-                <span>{userEmails[member.user_id] || member.user_id}</span>
-                <span className="text-sm bg-gray-100 text-gray-800 rounded-full px-3 py-1">عضو</span>
+          {/* Invite Section - Only visible to owner */}
+          {isOwner && (
+            <div className="space-y-4">
+              <h2 className="text-xl font-semibold">دعوة أعضاء جدد</h2>
+              
+              <form onSubmit={handleInvite} className="space-y-3">
+                <div className="flex flex-col space-y-2">
+                  <label htmlFor="email" className="text-sm font-medium">
+                    البريد الإلكتروني
+                  </label>
+                  <Input
+                    id="email"
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="أدخل البريد الإلكتروني"
+                    className="w-full"
+                    dir="rtl"
+                  />
+                </div>
+                
+                <Button 
+                  type="submit" 
+                  className="w-full"
+                  disabled={inviteLoading}
+                >
+                  {inviteLoading ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      جاري إرسال الدعوة...
+                    </>
+                  ) : (
+                    <>
+                      <Plus className="mr-2 h-4 w-4" />
+                      دعوة
+                    </>
+                  )}
+                </Button>
+              </form>
+              
+              <div className="border-t border-gray-200 pt-4 mt-4">
+                <h3 className="text-lg font-medium mb-2">رابط دعوة عام</h3>
+                
+                {inviteLink ? (
+                  <div className="space-y-2">
+                    <div className="flex">
+                      <Input 
+                        value={inviteLink} 
+                        readOnly 
+                        className="flex-1 bg-gray-50"
+                      />
+                      <Button 
+                        type="button" 
+                        variant="outline" 
+                        onClick={copyToClipboard}
+                        className="ml-2"
+                      >
+                        {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+                      </Button>
+                    </div>
+                    <p className="text-xs text-gray-500">
+                      يمكن لأي شخص لديه هذا الرابط الانضمام إلى المساحة المشتركة
+                    </p>
+                  </div>
+                ) : (
+                  <Button 
+                    type="button" 
+                    variant="outline" 
+                    onClick={generateInviteLink}
+                    className="w-full"
+                  >
+                    إنشاء رابط دعوة
+                  </Button>
+                )}
               </div>
-            ))
-          ) : (
-            <p className="text-gray-500 text-center py-4">لا يوجد أعضاء آخرين بعد</p>
+            </div>
           )}
         </div>
-      </div>
-      
-      <div className="mb-8">
-        <h2 className="text-xl font-semibold mb-4">الامتنانات المشتركة</h2>
-        <PhotoGrid spaceId={spaceId} />
       </div>
     </div>
   );

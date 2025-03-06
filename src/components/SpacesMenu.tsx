@@ -86,10 +86,19 @@ export default function SpacesMenu() {
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-56 bg-white/90 backdrop-blur-xl text-gray-700 border-gray-200">
+        <DropdownMenuItem 
+          onClick={handleCreateSpace}
+          className="cursor-pointer focus:bg-gray-100 text-indigo-600 focus:text-indigo-700"
+        >
+          <Plus className="mr-2 h-4 w-4" />
+          <span>إنشاء مساحة جديدة</span>
+        </DropdownMenuItem>
+        
+        <DropdownMenuSeparator />
+        
         <div className="p-2">
           <h2 className="text-sm font-medium">المساحات المشتركة</h2>
         </div>
-        <DropdownMenuSeparator />
         
         {loading ? (
           <div className="p-2 text-center text-sm text-gray-500">جاري التحميل...</div>
@@ -107,15 +116,6 @@ export default function SpacesMenu() {
             </DropdownMenuItem>
           ))
         )}
-        
-        <DropdownMenuSeparator />
-        <DropdownMenuItem 
-          onClick={handleCreateSpace}
-          className="cursor-pointer focus:bg-gray-100 text-indigo-600 focus:text-indigo-700"
-        >
-          <Plus className="mr-2 h-4 w-4" />
-          <span>إنشاء مساحة جديدة</span>
-        </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
   );

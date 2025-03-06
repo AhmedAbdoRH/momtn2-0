@@ -41,8 +41,6 @@ const Index = () => {
 
         {/* User dropdown */}
         <div className="fixed top-4 left-4 z-50 flex">
-          <SpacesMenu />
-          
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button 
@@ -66,6 +64,8 @@ const Index = () => {
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
+          
+          <SpacesMenu />
         </div>
 
         {/* Sidebar */}
