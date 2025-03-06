@@ -22,17 +22,35 @@ export default function JoinSpace() {
     try {
       setLoading(true);
       
+      // تحقق من أن المستخدم مسجل دخول
+      const { data: userData } = await supabase.auth.getUser();
+      if (!userData.user) {
+        setError('يجب عليك تسجيل الدخول أولاً للانضمام إلى المساحة المشتركة');
+        toast.error('يجب عليك تسجيل الدخول أولاً للانضمام إلى المساحة المشتركة');
+        return;
+      }
+      
+      console.log("Attempting to join space with token:", token);
+      
       const { data, error } = await supabase
         .rpc('join_space_by_token', { invitation_token: token });
       
-      if (error) throw error;
+      if (error) {
+        console.error("RPC error:", error);
+        throw error;
+      }
+      
+      console.log("Join space response:", data);
       
       // Type assertion to handle the JSON response structure
       const result = data as { success: boolean; space_id?: string; message?: string };
       
-      if (result.success) {
+      if (result.success && result.space_id) {
         toast.success('تم الانضمام إلى المساحة المشتركة بنجاح');
-        navigate(`/spaces/${result.space_id}`);
+        // تأخير قليل قبل التوجيه للتأكد من ظهور رسالة النجاح
+        setTimeout(() => {
+          navigate(`/spaces/${result.space_id}`);
+        }, 1000);
       } else {
         setError(result.message || 'حدث خطأ أثناء الانضمام إلى المساحة المشتركة');
         toast.error(result.message || 'حدث خطأ أثناء الانضمام إلى المساحة المشتركة');

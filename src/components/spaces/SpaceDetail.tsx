@@ -46,19 +46,40 @@ export default function SpaceDetail() {
       const { data: userData } = await supabase.auth.getUser();
       setIsOwner(userData.user?.id === spaceData.owner_id);
 
-      // Fetch space members
+      // تعديل طريقة جلب بيانات الأعضاء
       const { data: membersData, error: membersError } = await supabase
         .from('space_members')
-        .select(`
-          user_id,
-          role,
-          joined_at,
-          users:user_id(email)
-        `)
+        .select('id, user_id, role, joined_at')
         .eq('space_id', spaceId);
 
       if (membersError) throw membersError;
-      setMembers(membersData || []);
+      
+      // إذا كان هناك أعضاء، جلب معلومات المستخدمين
+      if (membersData && membersData.length > 0) {
+        // استخراج معرفات المستخدمين
+        const userIds = membersData.map(member => member.user_id);
+        
+        // جلب معلومات المستخدمين من جدول profiles
+        const { data: usersData, error: usersError } = await supabase
+          .from('profiles')
+          .select('id, username')
+          .in('id', userIds);
+          
+        if (usersError) throw usersError;
+        
+        // دمج بيانات الأعضاء مع بيانات المستخدمين
+        const enrichedMembers = membersData.map(member => {
+          const userData = usersData?.find(user => user.id === member.user_id);
+          return {
+            ...member,
+            username: userData?.username || 'مستخدم'
+          };
+        });
+        
+        setMembers(enrichedMembers);
+      } else {
+        setMembers([]);
+      }
 
     } catch (error) {
       console.error('Error fetching space details:', error);
@@ -117,6 +138,7 @@ export default function SpaceDetail() {
       const result = data as { success: boolean; token?: string; message?: string };
       
       if (result.success && result.token) {
+        // تعديل رابط الدعوة ليستخدم الصيغة الصحيحة
         const link = `${window.location.origin}/join-space/${result.token}`;
         setInviteLink(link);
         toast.success('تم إنشاء رابط الدعوة بنجاح');
@@ -185,14 +207,17 @@ export default function SpaceDetail() {
             <div className="space-y-2">
               {/* Owner */}
               <div className="p-3 bg-indigo-50 rounded-md flex justify-between items-center">
-                <span className="font-medium">{space.owner_id}</span>
+                <span className="font-medium">
+                  {/* عرض اسم المالك إذا كان متوفراً */}
+                  {space.owner_id}
+                </span>
                 <span className="text-xs bg-indigo-200 text-indigo-800 px-2 py-1 rounded">مالك</span>
               </div>
               
               {/* Members */}
               {members.map((member) => (
-                <div key={member.user_id} className="p-3 bg-gray-50 rounded-md">
-                  {member.users?.email || member.user_id}
+                <div key={member.id} className="p-3 bg-gray-50 rounded-md">
+                  {member.username || member.user_id}
                 </div>
               ))}
               
