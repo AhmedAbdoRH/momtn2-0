@@ -1,3 +1,4 @@
+
 import {
   Dialog,
   DialogContent,
@@ -125,8 +126,12 @@ const CreateNewDialog = ({ open, onOpenChange }: CreateNewDialogProps) => {
         return { photoUrl: null, photoId: null };
       }
 
-      const photoUrl = `${supabase.storageUrl}/photos/${filePath}`;
-      return { photoUrl, photoId: newName };
+      // Fix: Construct the URL properly instead of using the protected storageUrl property
+      const { data: { publicUrl } } = supabase.storage
+        .from('photos')
+        .getPublicUrl(filePath);
+
+      return { photoUrl: publicUrl, photoId: newName };
     } catch (error) {
       console.error("Unexpected error:", error);
       return { photoUrl: null, photoId: null };
