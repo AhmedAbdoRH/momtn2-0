@@ -5,6 +5,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { useAuth } from '@/components/AuthProvider';
 
 export default function JoinSpace() {
   const { token } = useParams<{ token: string }>();
@@ -12,21 +13,24 @@ export default function JoinSpace() {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
   const [spaceId, setSpaceId] = useState<string | null>(null);
+  const [spaceName, setSpaceName] = useState<string | null>(null);
   const navigate = useNavigate();
+  const { user } = useAuth();
 
   useEffect(() => {
-    if (token) {
+    if (token && user) {
       joinSpace();
+    } else if (!user) {
+      setError('يجب عليك تسجيل الدخول أولاً للانضمام إلى المساحة المشتركة');
+      setLoading(false);
     }
-  }, [token]);
+  }, [token, user]);
 
   const joinSpace = async () => {
     try {
       setLoading(true);
       
-      // تحقق من أن المستخدم مسجل دخول
-      const { data: userData } = await supabase.auth.getUser();
-      if (!userData.user) {
+      if (!user) {
         setError('يجب عليك تسجيل الدخول أولاً للانضمام إلى المساحة المشتركة');
         toast.error('يجب عليك تسجيل الدخول أولاً للانضمام إلى المساحة المشتركة');
         return;
@@ -34,31 +38,32 @@ export default function JoinSpace() {
       
       console.log("Attempting to join space with token:", token);
       
-      const { data, error: rpcError } = await supabase
-        .rpc('join_space_by_token', { invitation_token: token });
-      
-      if (rpcError) {
-        console.error("RPC error:", rpcError);
-        throw rpcError;
-      }
+      // استدعاء الـ Edge Function المخصصة للانضمام
+      const { data, error: funcError } = await supabase.functions.invoke('join-space-by-token', {
+        body: { token }
+      });
       
       console.log("Join space response:", data);
       
-      // Type assertion to handle the JSON response structure
-      const result = data as { success: boolean; space_id?: string; message?: string };
+      if (funcError) {
+        console.error("Function error:", funcError);
+        throw new Error(funcError.message);
+      }
       
-      if (result.success && result.space_id) {
+      // التحقق من استجابة الدالة
+      if (data.success && data.space_id) {
         setSuccess(true);
-        setSpaceId(result.space_id);
+        setSpaceId(data.space_id);
+        setSpaceName(data.space_name || 'المساحة المشتركة');
         toast.success('تم الانضمام إلى المساحة المشتركة بنجاح');
         
         // تأخير قليل قبل التوجيه للتأكد من اكتمال عملية الانضمام
         setTimeout(() => {
-          navigate(`/spaces/${result.space_id}`);
+          navigate(`/spaces/${data.space_id}`);
         }, 2000);
       } else {
-        setError(result.message || 'حدث خطأ أثناء الانضمام إلى المساحة المشتركة');
-        toast.error(result.message || 'حدث خطأ أثناء الانضمام إلى المساحة المشتركة');
+        setError(data.message || 'حدث خطأ أثناء الانضمام إلى المساحة المشتركة');
+        toast.error(data.message || 'حدث خطأ أثناء الانضمام إلى المساحة المشتركة');
       }
     } catch (error: any) {
       console.error('Error joining space:', error);
@@ -67,6 +72,12 @@ export default function JoinSpace() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleTryAgain = () => {
+    setError(null);
+    setLoading(true);
+    joinSpace();
   };
 
   return (
@@ -82,11 +93,25 @@ export default function JoinSpace() {
         ) : error ? (
           <div className="space-y-4">
             <p className="text-red-500">{error}</p>
-            <Button onClick={() => navigate('/')}>العودة إلى الصفحة الرئيسية</Button>
+            <div className="flex flex-col space-y-2">
+              {!error.includes('تسجيل الدخول') && (
+                <Button onClick={handleTryAgain}>
+                  حاول مرة أخرى
+                </Button>
+              )}
+              <Button onClick={() => navigate('/')}>
+                العودة إلى الصفحة الرئيسية
+              </Button>
+              {error.includes('تسجيل الدخول') && (
+                <Button onClick={() => navigate('/auth')} variant="outline">
+                  انتقل إلى صفحة تسجيل الدخول
+                </Button>
+              )}
+            </div>
           </div>
         ) : success ? (
           <div className="space-y-4">
-            <p className="text-green-500">تم الانضمام إلى المساحة المشتركة بنجاح</p>
+            <p className="text-green-500">تم الانضمام إلى {spaceName} بنجاح</p>
             <p className="text-gray-500">جاري التوجيه...</p>
             <Button onClick={() => navigate(`/spaces/${spaceId}`)}>
               الانتقال إلى المساحة المشتركة
