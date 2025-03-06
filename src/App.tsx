@@ -9,6 +9,9 @@ import NotFound from "./pages/NotFound";
 import AuthPage from "./pages/AuthPage";
 import { AuthProvider } from "./components/AuthProvider";
 import ProtectedRoute from "./components/ProtectedRoute";
+import NewSpacePage from "./pages/spaces/NewSpace";
+import SpaceDetailPage from "./pages/spaces/SpaceDetailPage";
+import JoinSpacePage from "./pages/spaces/JoinSpacePage";
 
 // Create a client
 const queryClient = new QueryClient({
@@ -33,6 +36,21 @@ function App() {
               <Route path="/" element={
                 <ProtectedRoute>
                   <Index />
+                </ProtectedRoute>
+              } />
+              <Route path="/spaces/new" element={
+                <ProtectedRoute>
+                  <NewSpacePage />
+                </ProtectedRoute>
+              } />
+              <Route path="/spaces/:spaceId" element={
+                <ProtectedRoute>
+                  <SpaceDetailPage />
+                </ProtectedRoute>
+              } />
+              <Route path="/join-space/:token" element={
+                <ProtectedRoute>
+                  <JoinSpacePage />
                 </ProtectedRoute>
               } />
               <Route path="*" element={<NotFound />} />
