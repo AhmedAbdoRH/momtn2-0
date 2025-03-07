@@ -6,40 +6,133 @@ import type { Database } from './types';
 const SUPABASE_URL = "https://fpekircyahgagposjaqm.supabase.co";
 const SUPABASE_PUBLISHABLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZwZWtpcmN5YWhnYWdwb3NqYXFtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDEzNTk4OTAsImV4cCI6MjA1NjkzNTg5MH0.dSBvYsLxeZE3ALlxrmU0o7ocqWhvX3hIygER-JUzXek";
 
-// Import the supabase client like this:
-// import { supabase } from "@/integrations/supabase/client";
+// This extends the Database type to include our tables
+export interface DatabaseWithTables extends Database {
+  public: {
+    Tables: {
+      spaces: {
+        Row: {
+          id: string;
+          name: string;
+          description: string | null;
+          owner_id: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          name: string;
+          description?: string | null;
+          owner_id: string;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          name?: string;
+          description?: string | null;
+          owner_id?: string;
+          created_at?: string;
+        };
+      };
+      space_members: {
+        Row: {
+          id: string;
+          space_id: string;
+          user_id: string;
+          role: string;
+          joined_at: string;
+          invited_by: string | null;
+        };
+        Insert: {
+          id?: string;
+          space_id: string;
+          user_id: string;
+          role?: string;
+          joined_at?: string;
+          invited_by?: string | null;
+        };
+        Update: {
+          id?: string;
+          space_id?: string;
+          user_id?: string;
+          role?: string;
+          joined_at?: string;
+          invited_by?: string | null;
+        };
+      };
+      photos: {
+        Row: {
+          id: string;
+          image_url: string;
+          caption: string | null;
+          hashtags: string[] | null;
+          user_id: string;
+          space_id: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          image_url: string;
+          caption?: string | null;
+          hashtags?: string[] | null;
+          user_id: string;
+          space_id?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          image_url?: string;
+          caption?: string | null;
+          hashtags?: string[] | null;
+          user_id?: string;
+          space_id?: string | null;
+          created_at?: string;
+        };
+      };
+      profiles: {
+        Row: {
+          id: string;
+          username: string | null;
+          updated_at: string;
+        };
+        Insert: {
+          id: string;
+          username?: string | null;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          username?: string | null;
+          updated_at?: string;
+        };
+      };
+    };
+    Views: {};
+    Functions: {
+      is_member_of_space: {
+        Args: { p_user_id: string; p_space_id: string };
+        Returns: boolean;
+      };
+      generate_space_invite_token: {
+        Args: { p_space_id: string };
+        Returns: { success: boolean; token?: string; message?: string };
+      };
+      invite_to_space: {
+        Args: { p_space_id: string; p_email: string };
+        Returns: { success: boolean; message?: string };
+      };
+    };
+    Enums: {};
+    CompositeTypes: {};
+  };
+}
 
-export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
+// Create and export a properly typed Supabase client
+export const supabase = createClient<DatabaseWithTables>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
 
-// Define custom types to match the database schema
+// Define table types for easier access elsewhere in the code
 export type Tables = {
-  spaces: {
-    id: string;
-    name: string;
-    description: string | null;
-    owner_id: string;
-    created_at: string;
-  };
-  space_members: {
-    id: string;
-    space_id: string;
-    user_id: string;
-    role: string;
-    joined_at: string;
-    invited_by: string | null;
-  };
-  photos: {
-    id: string;
-    image_url: string;
-    caption: string | null;
-    hashtags: string[] | null;
-    user_id: string;
-    space_id: string | null;
-    created_at: string;
-  };
-  profiles: {
-    id: string;
-    username: string | null;
-    updated_at: string;
-  };
+  spaces: DatabaseWithTables['public']['Tables']['spaces']['Row'];
+  space_members: DatabaseWithTables['public']['Tables']['space_members']['Row'];
+  photos: DatabaseWithTables['public']['Tables']['photos']['Row'];
+  profiles: DatabaseWithTables['public']['Tables']['profiles']['Row'];
 };
