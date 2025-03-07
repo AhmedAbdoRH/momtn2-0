@@ -112,28 +112,34 @@ const CreateNewDialog = ({ open, onOpenChange }: CreateNewDialogProps) => {
       return { photoUrl: null, photoId: null };
     }
 
-    const fileExt = selectedFile.name.split('.').pop();
-    const newName = `${Math.random()}.${fileExt}`;
-    const filePath = `lovable-uploads/${newName}`;
-
     try {
-      let { error: uploadError } = await supabase.storage
+      // Generate a unique file name to avoid collisions
+      const fileExt = selectedFile.name.split('.').pop();
+      const fileName = `${Math.random().toString(36).substring(2, 15)}.${fileExt}`;
+      const filePath = `lovable-uploads/${fileName}`;
+
+      // Upload the file to Supabase Storage
+      const { error: uploadError, data } = await supabase.storage
         .from('photos')
-        .upload(filePath, selectedFile);
+        .upload(filePath, selectedFile, {
+          cacheControl: '3600',
+          upsert: false
+        });
 
       if (uploadError) {
         console.error("Error uploading file:", uploadError);
         return { photoUrl: null, photoId: null };
       }
 
-      // Fix: Construct the URL properly instead of using the protected storageUrl property
+      // Get the public URL for the uploaded file
       const { data: { publicUrl } } = supabase.storage
         .from('photos')
         .getPublicUrl(filePath);
 
-      return { photoUrl: publicUrl, photoId: newName };
+      console.log("Upload successful, public URL:", publicUrl);
+      return { photoUrl: publicUrl, photoId: fileName };
     } catch (error) {
-      console.error("Unexpected error:", error);
+      console.error("Unexpected error during upload:", error);
       return { photoUrl: null, photoId: null };
     }
   };
@@ -170,12 +176,16 @@ const CreateNewDialog = ({ open, onOpenChange }: CreateNewDialogProps) => {
     setIsSubmitting(true);
     
     try {
+      console.log("Starting upload process...");
+      
       // Upload the photo
       const { photoUrl, photoId } = await uploadPhoto();
       
       if (!photoUrl) {
         throw new Error("Failed to upload photo");
       }
+      
+      console.log("Photo uploaded successfully, URL:", photoUrl);
       
       // Insert record into photos table
       const { error: insertError } = await supabase
@@ -190,7 +200,12 @@ const CreateNewDialog = ({ open, onOpenChange }: CreateNewDialogProps) => {
           }
         ]);
       
-      if (insertError) throw insertError;
+      if (insertError) {
+        console.error("Error inserting photo record:", insertError);
+        throw insertError;
+      }
+      
+      console.log("Photo record inserted successfully");
       
       // Play heart sound on successful submission
       playHeartSound();
