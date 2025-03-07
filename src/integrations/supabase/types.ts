@@ -9,13 +9,146 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      [_ in never]: never
+      photos: {
+        Row: {
+          caption: string | null
+          created_at: string
+          hashtags: string[] | null
+          id: string
+          image_url: string
+          space_id: string | null
+          user_id: string
+        }
+        Insert: {
+          caption?: string | null
+          created_at?: string
+          hashtags?: string[] | null
+          id?: string
+          image_url: string
+          space_id?: string | null
+          user_id: string
+        }
+        Update: {
+          caption?: string | null
+          created_at?: string
+          hashtags?: string[] | null
+          id?: string
+          image_url?: string
+          space_id?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "photos_space_id_fkey"
+            columns: ["space_id"]
+            isOneToOne: false
+            referencedRelation: "spaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          id: string
+          updated_at: string | null
+          username: string | null
+        }
+        Insert: {
+          id: string
+          updated_at?: string | null
+          username?: string | null
+        }
+        Update: {
+          id?: string
+          updated_at?: string | null
+          username?: string | null
+        }
+        Relationships: []
+      }
+      space_members: {
+        Row: {
+          id: string
+          invited_by: string | null
+          joined_at: string
+          role: string
+          space_id: string
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          invited_by?: string | null
+          joined_at?: string
+          role?: string
+          space_id: string
+          user_id: string
+        }
+        Update: {
+          id?: string
+          invited_by?: string | null
+          joined_at?: string
+          role?: string
+          space_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "space_members_space_id_fkey"
+            columns: ["space_id"]
+            isOneToOne: false
+            referencedRelation: "spaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      spaces: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          name: string
+          owner_id: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          name: string
+          owner_id: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          name?: string
+          owner_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      generate_space_invite_token: {
+        Args: {
+          p_space_id: string
+        }
+        Returns: Json
+      }
+      invite_to_space: {
+        Args: {
+          p_space_id: string
+          p_email: string
+        }
+        Returns: Json
+      }
+      is_member_of_space: {
+        Args: {
+          p_user_id: string
+          p_space_id: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
       [_ in never]: never
