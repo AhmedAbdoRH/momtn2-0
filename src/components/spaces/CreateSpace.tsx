@@ -40,7 +40,8 @@ export default function CreateSpace() {
       if (error) throw error;
       
       toast.success('تم إنشاء المساحة المشتركة بنجاح');
-      navigate(`/spaces/${data.id}`);
+      // Use optional chaining to handle potentially null data
+      navigate(`/spaces/${data?.id}`);
     } catch (error) {
       console.error('Error creating space:', error);
       toast.error('حدث خطأ أثناء إنشاء المساحة المشتركة');
