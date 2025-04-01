@@ -1,34 +1,42 @@
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
-    --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
-    --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
-    --primary: 222.2 47.4% 11.2%;
-    --primary-foreground: 210 40% 98%;
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
+    --background: 283 32% 15%; /* #2D1F3D */
+    --foreground: 0 0% 100%; /* نص أبيض */
+    
+    --card: 283 32% 12%; /* لون الخلفية الداكنة */
+    --card-foreground: 0 0% 100%;
+    
+    --popover: 283 32% 10%; /* لون الخلفية الداكنة */
+    --popover-foreground: 0 0% 100%;
+    
+    --primary: 270 30% 20%; /* لون قريب من التدرج المستخدم */
+    --primary-foreground: 0 0% 100%;
+    
+    --secondary: 280 30% 25%;
+    --secondary-foreground: 0 0% 100%;
+    
+    --muted: 270 20% 30%;
+    --muted-foreground: 0 0% 100%;
+    
+    --accent: 275 30% 35%;
+    --accent-foreground: 0 0% 100%;
+    
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 210 40% 98%;
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 222.2 84% 4.9%;
+    
+    --border: 275 20% 40%; /* لون حدود يتناسق مع التدرج */
+    --input: 275 20% 45%;
+    --ring: 283 32% 50%;
+    
     --radius: 1rem;
   }
 
   body {
-    @apply bg-background text-foreground antialiased;
+    @apply bg-gradient-to-br from-[#2D1F3D] via-[#1A1F2C] to-[#3D1F2C] text-foreground antialiased;
   }
 
   img {
@@ -37,5 +45,5 @@
 }
 
 .glass-effect {
-  @apply backdrop-blur-lg bg-white/10;
+  @apply backdrop-blur-lg bg-white/10 border border-border rounded-lg;
 }
