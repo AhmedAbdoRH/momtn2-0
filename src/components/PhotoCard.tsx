@@ -1,3 +1,4 @@
+```jsx
 import { useState } from "react";
 import { GripVertical, Heart, MessageCircle, Trash2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -122,7 +123,7 @@ const PhotoCard = ({
               e.stopPropagation();
               handleLike();
             }}
-            className="relative group flex items-space-x-2 gap-2 text-white/90 hover:text-white transition-colors p-2"
+            className="relative group flex items-center gap-2 text-white/90 hover:text-white transition-colors p-2"
           >
             <div className="relative">
               <Heart
