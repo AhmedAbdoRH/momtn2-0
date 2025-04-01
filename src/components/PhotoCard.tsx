@@ -34,6 +34,7 @@ const PhotoCard = ({
     setIsHeartAnimating(true);
     const newLikeCount = likes + 1;
     setLikes(newLikeCount);
+    setIsLoved(true);
 
     const { error } = await supabase
       .from('photos')
@@ -45,7 +46,10 @@ const PhotoCard = ({
       setLikes(likes);
     }
 
-    setTimeout(() => setIsHeartAnimating(false), 1500);
+    setTimeout(() => {
+      setIsHeartAnimating(false);
+      setIsLoved(false);
+    }, 1000);
   };
 
   const handleCaptionSubmit = async () => {
