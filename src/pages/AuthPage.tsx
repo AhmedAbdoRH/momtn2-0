@@ -22,6 +22,15 @@ const AuthPage = () => {
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
     
+    if (!email || !password) {
+      toast({
+        variant: "destructive",
+        title: "حقول مطلوبة",
+        description: "يرجى إدخال البريد الإلكتروني وكلمة المرور",
+      });
+      return;
+    }
+    
     setLoading(true);
     try {
       let error;
@@ -29,25 +38,52 @@ const AuthPage = () => {
       if (mode === 'signIn') {
         const result = await signIn(email, password);
         error = result.error;
+        
+        if (error) {
+          let errorMessage = "فشل في تسجيل الدخول";
+          if (error.message === "Invalid login credentials") {
+            errorMessage = "بيانات الدخول غير صحيحة";
+          } else if (error.message?.includes("network")) {
+            errorMessage = "خطأ في الاتصال بالخادم، يرجى التحقق من اتصالك بالإنترنت";
+          }
+          
+          toast({
+            variant: "destructive",
+            title: "حدث خطأ",
+            description: errorMessage,
+          });
+        }
       } else {
         const result = await signUp(email, password);
         error = result.error;
         
-        if (!error) {
+        if (error) {
+          let errorMessage = "فشل في إنشاء الحساب";
+          if (error.message?.includes("already registered")) {
+            errorMessage = "البريد الإلكتروني مسجل بالفعل";
+          } else if (error.message?.includes("network")) {
+            errorMessage = "خطأ في الاتصال بالخادم، يرجى التحقق من اتصالك بالإنترنت";
+          }
+          
+          toast({
+            variant: "destructive",
+            title: "حدث خطأ",
+            description: errorMessage,
+          });
+        } else {
           toast({
             title: "تم إنشاء الحساب بنجاح",
             description: "يرجى التحقق من بريدك الإلكتروني لتأكيد الحساب",
           });
         }
       }
-      
-      if (error) {
-        toast({
-          variant: "destructive",
-          title: "حدث خطأ",
-          description: error.message || "فشل في عملية التسجيل",
-        });
-      }
+    } catch (error) {
+      console.error("Authentication error:", error);
+      toast({
+        variant: "destructive",
+        title: "حدث خطأ غير متوقع",
+        description: "فشل في عملية التسجيل، يرجى المحاولة مرة أخرى",
+      });
     } finally {
       setLoading(false);
     }
@@ -64,10 +100,15 @@ const AuthPage = () => {
       });
 
       if (error) {
+        let errorMessage = "فشل في تسجيل الدخول بواسطة جوجل";
+        if (error.message?.includes("network")) {
+          errorMessage = "خطأ في الاتصال بالخادم، يرجى التحقق من اتصالك بالإنترنت";
+        }
+        
         toast({
           variant: "destructive",
           title: "حدث خطأ",
-          description: error.message || "فشل في تسجيل الدخول بواسطة جوجل",
+          description: errorMessage,
         });
       }
     } catch (error) {

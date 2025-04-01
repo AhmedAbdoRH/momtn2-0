@@ -30,39 +30,51 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    // Check active session
-    const getSession = async () => {
-      setLoading(true);
-      const { data: { session } } = await supabase.auth.getSession();
-      setSession(session);
-      setUser(session?.user ?? null);
-      setLoading(false);
-    };
-
-    getSession();
-
-    // Listen for auth changes
+    // First set up the auth listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (_event, session) => {
         setSession(session);
         setUser(session?.user ?? null);
         setLoading(false);
 
-        // إعادة توجيه المستخدم عند تسجيل الدخول
+        // Redirect user when logging in
         if (session && window.location.pathname === '/auth') {
           navigate('/');
         }
       }
     );
 
+    // Then check for the current session
+    const getSession = async () => {
+      try {
+        setLoading(true);
+        const { data: { session } } = await supabase.auth.getSession();
+        setSession(session);
+        setUser(session?.user ?? null);
+      } catch (error) {
+        console.error('Error getting session:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    getSession();
+
     return () => subscription.unsubscribe();
   }, [navigate]);
 
   const signUp = async (email: string, password: string) => {
     try {
-      const { error } = await supabase.auth.signUp({ email, password });
+      const { error } = await supabase.auth.signUp({ 
+        email, 
+        password,
+        options: {
+          emailRedirectTo: window.location.origin,
+        } 
+      });
       return { error };
     } catch (error) {
+      console.error('Error during sign up:', error);
       return { error };
     }
   };
@@ -75,6 +87,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       }
       return { error };
     } catch (error) {
+      console.error('Error during sign in:', error);
       return { error };
     }
   };
