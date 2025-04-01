@@ -13,24 +13,24 @@
     --popover: 283 32% 10%; /* لون الخلفية الداكنة */
     --popover-foreground: 0 0% 100%;
     
-    --primary: 270 30% 20%; /* لون قريب من التدرج المستخدم */
-    --primary-foreground: 0 0% 100%;
+    --primary: 270 30% 25%; /* لون زر أساسي */
+    --primary-foreground: 0 0% 100%; /* لون نص الزر الأساسي */
     
-    --secondary: 280 30% 25%;
-    --secondary-foreground: 0 0% 100%;
+    --secondary: 280 30% 30%; /* لون زر ثانوي */
+    --secondary-foreground: 0 0% 100%; /* لون نص الزر الثانوي */
     
-    --muted: 270 20% 30%;
-    --muted-foreground: 0 0% 100%;
+    --muted: 270 20% 35%; /* لون خلفية زر معطل */
+    --muted-foreground: 0 0% 70%; /* لون نص الزر المعطل */
     
-    --accent: 275 30% 35%;
-    --accent-foreground: 0 0% 100%;
+    --accent: 275 30% 40%; /* لون زر مميز */
+    --accent-foreground: 0 0% 100%; /* لون نص الزر المميز */
     
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
+    --destructive: 0 84.2% 60.2%; /* لون زر مدمر */
+    --destructive-foreground: 210 40% 98%; /* لون نص الزر المدمر */
     
-    --border: 275 20% 40%; /* لون حدود يتناسق مع التدرج */
-    --input: 275 20% 45%;
-    --ring: 283 32% 50%;
+    --border: 275 20% 45%; /* لون حدود */
+    --input: 275 20% 50%; /* لون حقول الإدخال */
+    --ring: 283 32% 55%; /* لون حلقات */
     
     --radius: 1rem;
   }
@@ -41,6 +41,26 @@
 
   img {
     @apply select-none;
+  }
+
+  button {
+    @apply bg-primary text-primary-foreground rounded-lg px-4 py-2 hover:bg-primary/80 transition-colors;
+  }
+
+  .secondary-button {
+    @apply bg-secondary text-secondary-foreground rounded-lg px-4 py-2 hover:bg-secondary/80 transition-colors;
+  }
+
+  .muted-button {
+    @apply bg-muted text-muted-foreground rounded-lg px-4 py-2 cursor-not-allowed;
+  }
+
+  .accent-button {
+    @apply bg-accent text-accent-foreground rounded-lg px-4 py-2 hover:bg-accent/80 transition-colors;
+  }
+
+  .destructive-button {
+    @apply bg-destructive text-destructive-foreground rounded-lg px-4 py-2 hover:bg-destructive/80 transition-colors;
   }
 }
 
