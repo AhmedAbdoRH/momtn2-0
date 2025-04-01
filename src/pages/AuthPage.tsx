@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { Navigate } from 'react-router-dom';
 import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
 
 const AuthPage = () => {
   const [mode, setMode] = useState<'signIn' | 'signUp'>('signIn');
