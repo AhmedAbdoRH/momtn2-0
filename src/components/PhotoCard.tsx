@@ -1,4 +1,4 @@
-
+```jsx
 import { useState } from "react";
 import { GripVertical, Heart, MessageCircle, Trash2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -33,8 +33,8 @@ const PhotoCard = ({
 
   const handleLike = async () => {
     setIsHeartAnimating(true);
-    const newLikeCount = likes + (isLoved ? -1 : 1);
-    setIsLoved(!isLoved);
+    const newLikeCount = likes + 1;
+    setIsLoved(true);
     setLikes(newLikeCount);
 
     const { error } = await supabase
@@ -44,7 +44,6 @@ const PhotoCard = ({
 
     if (error) {
       console.error('Error updating likes:', error);
-      setIsLoved(isLoved);
       setLikes(likes);
     }
 
@@ -212,3 +211,4 @@ const PhotoCard = ({
 };
 
 export default PhotoCard;
+```
