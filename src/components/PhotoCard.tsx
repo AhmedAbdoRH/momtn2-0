@@ -79,9 +79,7 @@ const PhotoCard = ({
             className="w-full h-auto object-contain transition-transform duration-500 group-hover:scale-105"
             loading="lazy"
           />
-          <div className={`absolute inset-0 bg-gradient-to-b from-black/30 via-transparent to-black/70 transition-opacity duration-300 ${
-            isControlsVisible ? 'opacity-100' : 'opacity-0'
-          };`} />
+          <div className={`absolute inset-0 bg-gradient-to-b from-black/30 via-transparent to-black/70 transition-opacity duration-300 ${isControlsVisible ? 'opacity-100' : 'opacity-0'};`} />
         </div>
         
         <div 
