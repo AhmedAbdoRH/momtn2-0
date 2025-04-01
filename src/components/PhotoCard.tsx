@@ -1,4 +1,3 @@
-```jsx
 import { useState } from "react";
 import { GripVertical, Heart, MessageCircle, Trash2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
