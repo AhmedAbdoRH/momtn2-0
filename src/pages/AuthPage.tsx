@@ -4,7 +4,7 @@ import { useAuth } from '@/components/AuthProvider';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { Navigate } from 'react-router-dom';
-import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 
 const AuthPage = () => {
   const [mode, setMode] = useState<'signIn' | 'signUp'>('signIn');
@@ -12,7 +12,7 @@ const AuthPage = () => {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const { signIn, signUp, user } = useAuth();
-  const { toast } = useToast();
+  const { toast: uiToast } = useToast();
 
   // Redirect if already logged in
   if (user) {
@@ -23,7 +23,7 @@ const AuthPage = () => {
     e.preventDefault();
     
     if (!email || !password) {
-      toast({
+      uiToast({
         variant: "destructive",
         title: "حقول مطلوبة",
         description: "يرجى إدخال البريد الإلكتروني وكلمة المرور",
@@ -45,13 +45,20 @@ const AuthPage = () => {
             errorMessage = "بيانات الدخول غير صحيحة";
           } else if (error.message?.includes("network")) {
             errorMessage = "خطأ في الاتصال بالخادم، يرجى التحقق من اتصالك بالإنترنت";
+          } else {
+            // Handle other specific errors
+            console.error("Sign-in error details:", error);
+            errorMessage = `خطأ: ${error.message || "حدث خطأ غير معروف"}`;
           }
           
-          toast({
+          uiToast({
             variant: "destructive",
             title: "حدث خطأ",
             description: errorMessage,
           });
+          
+          // Also use the more visible Sonner toast
+          toast.error(errorMessage);
         }
       } else {
         const result = await signUp(email, password);
@@ -63,27 +70,38 @@ const AuthPage = () => {
             errorMessage = "البريد الإلكتروني مسجل بالفعل";
           } else if (error.message?.includes("network")) {
             errorMessage = "خطأ في الاتصال بالخادم، يرجى التحقق من اتصالك بالإنترنت";
+          } else {
+            // Handle other specific errors
+            console.error("Sign-up error details:", error);
+            errorMessage = `خطأ: ${error.message || "حدث خطأ غير معروف"}`;
           }
           
-          toast({
+          uiToast({
             variant: "destructive",
             title: "حدث خطأ",
             description: errorMessage,
           });
+          
+          // Also use the more visible Sonner toast
+          toast.error(errorMessage);
         } else {
-          toast({
+          uiToast({
             title: "تم إنشاء الحساب بنجاح",
             description: "يرجى التحقق من بريدك الإلكتروني لتأكيد الحساب",
           });
+          
+          toast.success("تم إنشاء الحساب بنجاح، يرجى التحقق من بريدك الإلكتروني");
         }
       }
     } catch (error) {
       console.error("Authentication error:", error);
-      toast({
+      uiToast({
         variant: "destructive",
         title: "حدث خطأ غير متوقع",
         description: "فشل في عملية التسجيل، يرجى المحاولة مرة أخرى",
       });
+      
+      toast.error("حدث خطأ غير متوقع، يرجى المحاولة مرة أخرى");
     } finally {
       setLoading(false);
     }
@@ -105,19 +123,23 @@ const AuthPage = () => {
           errorMessage = "خطأ في الاتصال بالخادم، يرجى التحقق من اتصالك بالإنترنت";
         }
         
-        toast({
+        uiToast({
           variant: "destructive",
           title: "حدث خطأ",
           description: errorMessage,
         });
+        
+        toast.error(errorMessage);
       }
     } catch (error) {
       console.error("Error signing in with Google:", error);
-      toast({
+      uiToast({
         variant: "destructive",
         title: "حدث خطأ",
         description: "فشل في تسجيل الدخول بواسطة جوجل",
       });
+      
+      toast.error("فشل في تسجيل الدخول بواسطة جوجل");
     } finally {
       setLoading(false);
     }

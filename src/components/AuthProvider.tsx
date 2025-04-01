@@ -30,9 +30,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const navigate = useNavigate();
 
   useEffect(() => {
+    console.log("Setting up auth listener...");
+    
     // First set up the auth listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (_event, session) => {
+      (event, session) => {
+        console.log("Auth state changed:", event, session?.user?.email);
         setSession(session);
         setUser(session?.user ?? null);
         setLoading(false);
@@ -47,8 +50,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     // Then check for the current session
     const getSession = async () => {
       try {
+        console.log("Getting current session...");
         setLoading(true);
         const { data: { session } } = await supabase.auth.getSession();
+        console.log("Current session:", session?.user?.email);
         setSession(session);
         setUser(session?.user ?? null);
       } catch (error) {
@@ -65,6 +70,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const signUp = async (email: string, password: string) => {
     try {
+      console.log("Attempting to sign up:", email);
       const { error } = await supabase.auth.signUp({ 
         email, 
         password,
@@ -72,8 +78,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           emailRedirectTo: window.location.origin,
         } 
       });
+      console.log("Sign up result:", error ? `Error: ${error.message}` : "Success");
       return { error };
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error during sign up:', error);
       return { error };
     }
@@ -81,12 +88,15 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const signIn = async (email: string, password: string) => {
     try {
+      console.log("Attempting to sign in:", email);
       const { error } = await supabase.auth.signInWithPassword({ email, password });
+      console.log("Sign in result:", error ? `Error: ${error.message}` : "Success");
+      
       if (!error) {
         navigate('/');
       }
       return { error };
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error during sign in:', error);
       return { error };
     }
@@ -94,6 +104,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const signOut = async () => {
     try {
+      console.log("Signing out...");
       await supabase.auth.signOut();
       navigate('/auth');
     } catch (error) {
