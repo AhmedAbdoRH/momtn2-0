@@ -135,7 +135,7 @@ const PhotoGrid = () => {
       for (let i = 0; i < updatedItems.length; i++) {
         const { error } = await supabase
           .from('photos')
-          .update({ order: i })
+          .update({ "order": i })
           .eq('id', updatedItems[i].id);
         
         if (error) {
@@ -186,7 +186,7 @@ const PhotoGrid = () => {
           caption: null,
           hashtags: [],
           user_id: user.id,
-          order: 0
+          "order": 0
         })
         .select();
 
