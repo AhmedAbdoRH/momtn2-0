@@ -1,6 +1,3 @@
-Here's the updated code with a semicolon added at the end of line 82:
-
-```jsx
 import { useState } from "react";
 import { GripVertical, Heart, MessageCircle, Trash2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
