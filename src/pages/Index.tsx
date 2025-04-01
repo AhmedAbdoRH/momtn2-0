@@ -1,4 +1,3 @@
-
 import { Plus, Menu, LogOut, User } from "lucide-react";
 import PhotoGrid from "@/components/PhotoGrid";
 import { Button } from "@/components/ui/button";
@@ -27,13 +26,13 @@ const Index = () => {
 
   return (
     <HeartSoundProvider>
-      <div className="min-h-screen bg-gradient-to-br from-[#FFDEE2] via-[#F1F0FB] to-[#D3E4FD] animate-gradient">
+      <div className="min-h-screen bg-background text-foreground">
         {/* Sidebar Toggle Button */}
         <Button
           variant="ghost"
           size="icon"
           onClick={() => setSidebarOpen(!sidebarOpen)}
-          className="fixed top-4 right-4 z-50 bg-white/70 backdrop-blur-lg hover:bg-white/90 text-gray-700"
+          className="fixed top-4 right-4 z-50 glass-effect text-gray-700"
         >
           <Menu className="h-5 w-5" />
         </Button>
@@ -42,15 +41,11 @@ const Index = () => {
         <div className="fixed top-4 left-4 z-50">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button 
-                variant="ghost" 
-                size="icon" 
-                className="bg-white/70 backdrop-blur-lg hover:bg-white/90 text-gray-700"
-              >
+              <Button variant="ghost" size="icon" className="glass-effect text-gray-700">
                 <User className="h-5 w-5" />
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="start" className="w-56 bg-white/90 backdrop-blur-xl text-gray-700 border-gray-200">
+            <DropdownMenuContent align="start" className="w-56 glass-effect text-gray-700 border border-border">
               <div className="px-2 py-1.5 text-sm font-medium text-gray-600 truncate">
                 {user?.email}
               </div>
@@ -67,7 +62,7 @@ const Index = () => {
 
         {/* Sidebar */}
         <div
-          className={`fixed top-0 right-0 h-full bg-white/70 backdrop-blur-md w-72 transform transition-transform duration-300 ease-in-out z-40 flex flex-col
+          className={`fixed top-0 right-0 h-full glass-effect w-72 transform transition-transform duration-300 ease-in-out z-40 flex flex-col
             ${sidebarOpen ? 'translate-x-0' : 'translate-x-full'}`}
         >
           <div className="flex-1 p-6 pt-20">
@@ -95,7 +90,7 @@ const Index = () => {
             {/* Add New Gratitude Button in the center */}
             <Button
               onClick={handleCreateNew}
-              className={`px-5 py-3 bg-[#ea384c] hover:bg-[#ea384c]/90 text-white shadow-lg rounded-lg mx-auto transition-all duration-300 ${
+              className={`px-5 py-3 bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg rounded-lg mx-auto transition-all duration-300 ${
                 btnAnimation ? 'scale-95 shadow-inner' : 'hover:scale-105'
               }`}
             >
@@ -110,7 +105,7 @@ const Index = () => {
           {/* Floating Action Button - Fixed position */}
           <Button
             onClick={handleCreateNew}
-            className={`fixed bottom-6 left-6 w-14 h-14 rounded-full bg-white/90 backdrop-blur-lg hover:bg-white hover:scale-110 text-pink-500 shadow-lg transition-all duration-300 ${
+            className={`fixed bottom-6 left-6 w-14 h-14 rounded-full glass-effect text-pink-500 shadow-lg transition-all duration-300 ${
               btnAnimation ? 'scale-95 rotate-180' : ''
             }`}
           >
