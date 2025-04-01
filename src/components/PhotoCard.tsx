@@ -45,7 +45,7 @@ const PhotoCard = ({
       setLikes(likes);
     }
 
-    setTimeout(() => setIsHeartAnimating(false), 1000);
+    setTimeout(() => setIsHeartAnimating(false), 1500);
   };
 
   const handleCaptionSubmit = async () => {
