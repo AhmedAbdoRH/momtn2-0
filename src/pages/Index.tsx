@@ -12,7 +12,6 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { HeartSoundProvider } from "@/components/HeartSound";
-import SpacesMenu from "@/components/SpacesMenu";
 
 const Index = () => {
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -40,7 +39,7 @@ const Index = () => {
         </Button>
 
         {/* User dropdown */}
-        <div className="fixed top-4 left-4 z-50 flex">
+        <div className="fixed top-4 left-4 z-50">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button 
@@ -64,8 +63,6 @@ const Index = () => {
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
-          
-          <SpacesMenu />
         </div>
 
         {/* Sidebar */}

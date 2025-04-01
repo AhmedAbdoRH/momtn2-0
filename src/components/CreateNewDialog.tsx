@@ -1,32 +1,11 @@
 
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
+import { ImagePlus } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { useAuth } from "@/components/AuthProvider";
-import { useHeartSound } from "@/components/HeartSound";
-import { Plus } from "lucide-react";
-import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
-
-// Import additional components
-import { useLocation } from 'react-router-dom';
-import { 
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue
-} from '@/components/ui/select';
-import { Space } from '@/types/spaces';
+import { useAuth } from "./AuthProvider";
 
 interface CreateNewDialogProps {
   open: boolean;
@@ -34,208 +13,106 @@ interface CreateNewDialogProps {
 }
 
 const CreateNewDialog = ({ open, onOpenChange }: CreateNewDialogProps) => {
-  const [caption, setCaption] = useState('');
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [previewUrl, setPreviewUrl] = useState('');
+  const [image, setImage] = useState<File | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string>("");
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [hashtags, setHashtags] = useState<string[]>([]);
-  const [isTagInputActive, setIsTagInputActive] = useState(false);
-  const [currentTag, setCurrentTag] = useState('');
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const { user } = useAuth();
-  const { playHeartSound } = useHeartSound();
   const { toast } = useToast();
-  
-  // Add new state for spaces
-  const [spaces, setSpaces] = useState<Space[]>([]);
-  const [selectedSpace, setSelectedSpace] = useState<string | null>(null);
-  const location = useLocation();
-  
-  // Extract space ID from URL if we're on a space page
-  const pathSpaceId = location.pathname.startsWith('/spaces/') 
-    ? location.pathname.split('/')[2] 
-    : null;
+  const { user } = useAuth();
 
-  useEffect(() => {
-    // Initialize selectedSpace if we're on a space page
-    if (pathSpaceId && pathSpaceId !== 'new') {
-      setSelectedSpace(pathSpaceId);
-    }
-    
-    // Fetch user's spaces
-    if (user) {
-      fetchUserSpaces();
-    }
-  }, [user, pathSpaceId, open]);
-
-  const fetchUserSpaces = async () => {
-    try {
-      // Fetch spaces where the user is the owner
-      const { data: ownedSpaces, error: ownedError } = await supabase
-        .from('spaces')
-        .select('*')
-        .eq('owner_id', user?.id);
-      
-      if (ownedError) throw ownedError;
-      
-      // Fetch spaces where the user is a member
-      const { data: memberSpaces, error: memberError } = await supabase
-        .from('spaces')
-        .select('*')
-        .not('owner_id', 'eq', user?.id)
-        .in('id', (await supabase
-          .from('space_members')
-          .select('space_id')
-          .eq('user_id', user?.id))
-          .data?.map(sm => sm.space_id) || []);
-      
-      if (memberError) throw memberError;
-      
-      setSpaces([...(ownedSpaces || []), ...(memberSpaces || [])]);
-    } catch (error) {
-      console.error('Error fetching spaces:', error);
-    }
-  };
-
-  const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
     if (file) {
-      setSelectedFile(file);
-      setPreviewUrl(URL.createObjectURL(file));
+      setImage(file);
+      const url = URL.createObjectURL(file);
+      setPreviewUrl(url);
     }
   };
 
-  const uploadPhoto = async () => {
-    if (!selectedFile) {
-      console.error("No file selected");
-      return { photoUrl: null, photoId: null };
-    }
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!image || isSubmitting || !user) return;
+
+    setIsSubmitting(true);
 
     try {
-      // Generate a unique file name to avoid collisions
-      const fileExt = selectedFile.name.split('.').pop();
-      const fileName = `${Math.random().toString(36).substring(2, 15)}.${fileExt}`;
-      const filePath = `lovable-uploads/${fileName}`;
+      // تسجيل معلومات عن الملف للتصحيح
+      console.log('File info:', {
+        name: image.name,
+        type: image.type,
+        size: image.size
+      });
 
-      // Upload the file to Supabase Storage
-      const { error: uploadError, data } = await supabase.storage
+      // التأكد من امتداد الملف
+      const fileExt = image.name.split('.').pop()?.toLowerCase() || 'jpg';
+      const fileName = `photo_${Date.now()}.${fileExt}`;
+      
+      console.log('Uploading file:', fileName);
+      
+      // تحميل الملف
+      console.log('Starting file upload...');
+      const { error: uploadError, data: uploadData } = await supabase.storage
         .from('photos')
-        .upload(filePath, selectedFile, {
+        .upload(fileName, image, {
           cacheControl: '3600',
-          upsert: false
+          upsert: true
         });
 
       if (uploadError) {
-        console.error("Error uploading file:", uploadError);
-        return { photoUrl: null, photoId: null };
+        console.error('Upload error:', uploadError);
+        throw uploadError;
       }
 
-      // Get the public URL for the uploaded file
+      console.log('Upload completed:', uploadData);
+
+      // الحصول على رابط عام للصورة
       const { data: { publicUrl } } = supabase.storage
         .from('photos')
-        .getPublicUrl(filePath);
+        .getPublicUrl(fileName);
 
-      console.log("Upload successful, public URL:", publicUrl);
-      return { photoUrl: publicUrl, photoId: fileName };
-    } catch (error) {
-      console.error("Unexpected error during upload:", error);
-      return { photoUrl: null, photoId: null };
-    }
-  };
+      console.log('Public URL:', publicUrl);
 
-  const handleAddTag = () => {
-    if (currentTag.trim() && !hashtags.includes(currentTag.trim())) {
-      setHashtags([...hashtags, currentTag.trim()]);
-      setCurrentTag('');
-    }
-    setIsTagInputActive(false);
-  };
-
-  const handleRemoveTag = (tagToRemove: string) => {
-    setHashtags(hashtags.filter(tag => tag !== tagToRemove));
-  };
-
-  const toggleTagInput = () => {
-    setIsTagInputActive(!isTagInputActive);
-  };
-
-  // Modify the handleSubmit function to include space_id
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!selectedFile) {
-      toast({
-        variant: "destructive",
-        title: "خطأ",
-        description: "الرجاء اختيار صورة أولاً"
-      });
-      return;
-    }
-    
-    setIsSubmitting(true);
-    
-    try {
-      console.log("Starting upload process...");
+      // إضافة الصورة إلى قاعدة البيانات
+      console.log('Adding photo to database:', publicUrl);
       
-      // Upload the photo
-      const { photoUrl, photoId } = await uploadPhoto();
-      
-      if (!photoUrl) {
-        throw new Error("Failed to upload photo");
-      }
-      
-      console.log("Photo uploaded successfully, URL:", photoUrl);
-      
-      // Insert record into photos table
-      const { error: insertError } = await supabase
+      const { data, error } = await supabase
         .from('photos')
-        .insert([
-          {
-            image_url: photoUrl,
-            caption: caption || null,
-            hashtags: hashtags.length > 0 ? hashtags : null,
-            user_id: user?.id,
-            space_id: selectedSpace
-          }
-        ]);
-      
-      if (insertError) {
-        console.error("Error inserting photo record:", insertError);
-        throw insertError;
+        .insert({
+          image_url: publicUrl,
+          likes: 0,
+          caption: null,
+          hashtags: [],
+          user_id: user.id,
+          order: 0
+        })
+        .select();
+
+      if (error) {
+        console.error('Error adding photo to database:', error);
+        throw error;
       }
-      
-      console.log("Photo record inserted successfully");
-      
-      // Play heart sound on successful submission
-      playHeartSound();
-      
-      toast({
-        title: "تم بنجاح",
-        description: "تم حفظ الامتنان بنجاح"
-      });
-      
-      // Reset form
-      setCaption('');
-      setHashtags([]);
-      setSelectedFile(null);
-      setPreviewUrl('');
-      setIsTagInputActive(false);
-      setCurrentTag('');
-      setSelectedSpace(pathSpaceId);
-      
-      // Close dialog
+
+      console.log('Photo added successfully:', data);
+
+      // إعادة تعيين النموذج
+      setImage(null);
+      setPreviewUrl("");
       onOpenChange(false);
-      
-      // Refresh photos
-      window.dispatchEvent(new Event('refresh-photos'));
-      
-    } catch (error) {
-      console.error('Error creating post:', error);
+
+      // إظهار رسالة نجاح
       toast({
+        title: "تمت الإضافة بنجاح",
+        description: "تمت إضافة الصورة الجديدة إلى المعرض",
+      });
+
+      // إعادة تحميل الصفحة لإظهار الصورة الجديدة
+      window.location.reload();
+
+    } catch (error) {
+      console.error('Error submitting photo:', error);
+      toast({
+        title: "حدث خطأ",
+        description: "لم نتمكن من إضافة الصورة. يرجى المحاولة مرة أخرى.",
         variant: "destructive",
-        title: "خطأ",
-        description: "حدث خطأ أثناء حفظ الامتنان"
       });
     } finally {
       setIsSubmitting(false);
@@ -244,136 +121,61 @@ const CreateNewDialog = ({ open, onOpenChange }: CreateNewDialogProps) => {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="top-[20%] sm:max-w-[400px] bg-gray-900/70 backdrop-blur-xl text-white border-0 shadow-xl">
         <DialogHeader>
-          <DialogTitle className="text-center">إضافة امتنان جديد</DialogTitle>
+          <DialogTitle>إضافة صورة جديدة</DialogTitle>
+          <DialogDescription className="text-gray-300">
+            قم بتحميل صورة لإضافتها إلى المعرض.
+          </DialogDescription>
         </DialogHeader>
-
         <form onSubmit={handleSubmit} className="space-y-4">
-          {/* Photo upload section */}
-          <div className="flex flex-col items-center space-y-2">
-            {previewUrl ? (
-              <img
-                src={previewUrl}
-                alt="Preview"
-                className="max-w-full h-auto rounded-md"
-                style={{ maxHeight: '200px' }}
-              />
-            ) : (
-              <div className="border-2 border-dashed rounded-md p-4 text-center">
-                <Label htmlFor="image-upload" className="cursor-pointer">
-                  <Plus className="mx-auto w-6 h-6 text-gray-500" />
-                  <span className="text-sm text-gray-500">
-                    {selectedFile ? selectedFile.name : 'إضغط لرفع صورة'}
-                  </span>
-                </Label>
-              </div>
-            )}
-
-            <Input
+          <div className="flex flex-col items-center gap-4">
+            <input
+              id="image"
               type="file"
-              id="image-upload"
               accept="image/*"
+              onChange={handleImageChange}
               className="hidden"
-              onChange={handleFileSelect}
-              ref={fileInputRef}
             />
-            <Button
-              type="button"
-              variant="secondary"
-              size="sm"
-              onClick={() => fileInputRef.current?.click()}
+            <div 
+              className="w-full h-44 border-2 border-dashed border-gray-600 rounded-lg flex flex-col items-center justify-center cursor-pointer hover:border-gray-500 transition-colors"
+              onClick={() => document.getElementById('image')?.click()}
             >
-              تغيير الصورة
-            </Button>
-          </div>
-          
-          {/* Caption input */}
-          <div className="space-y-2">
-            <Label htmlFor="caption">
-              وصف الصورة (اختياري)
-            </Label>
-            <Input
-              id="caption"
-              value={caption}
-              onChange={(e) => setCaption(e.target.value)}
-              placeholder="أضف وصفا للصورة"
-              dir="rtl"
-            />
-          </div>
-          
-          {/* Hashtag input */}
-          <div className="space-y-2">
-            <Label>
-              الهاشتاجات (اختياري)
-            </Label>
-            <div className="flex items-center space-x-2">
-              {hashtags.map(tag => (
-                <Button
-                  key={tag}
-                  variant="outline"
-                  size="sm"
-                  onClick={() => handleRemoveTag(tag)}
-                >
-                  {tag}
-                </Button>
-              ))}
-              {!isTagInputActive ? (
-                <Button variant="ghost" size="sm" onClick={toggleTagInput}>
-                  إضافة هاشتاج
-                </Button>
+              {previewUrl ? (
+                <img 
+                  src={previewUrl} 
+                  alt="Preview" 
+                  className="w-full h-full object-contain rounded-lg"
+                />
               ) : (
-                <div className="flex items-center space-x-2">
-                  <Input
-                    type="text"
-                    placeholder="أدخل هاشتاج"
-                    value={currentTag}
-                    onChange={(e) => setCurrentTag(e.target.value)}
-                    dir="rtl"
-                  />
-                  <Button size="sm" onClick={handleAddTag}>
-                    حفظ
-                  </Button>
-                </div>
+                <>
+                  <ImagePlus className="w-10 h-10 text-gray-400" />
+                  <p className="mt-2 text-sm text-gray-400">اضغط لاختيار صورة</p>
+                </>
               )}
             </div>
           </div>
-
-          {/* Space selection - new section */}
-          <div className="space-y-2">
-            <label className="text-sm font-medium">
-              المساحة المشتركة (اختياري)
-            </label>
-            <Select
-              value={selectedSpace || ''}
-              onValueChange={(value) => setSelectedSpace(value || null)}
+          <div className="flex justify-end gap-3">
+            <Button 
+              type="button" 
+              variant="outline" 
+              onClick={() => {
+                onOpenChange(false);
+                setPreviewUrl("");
+                setImage(null);
+              }}
+              className="bg-transparent border-gray-600 text-gray-300 hover:bg-gray-800"
             >
-              <SelectTrigger>
-                <SelectValue placeholder="اختر مساحة مشتركة (اختياري)" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="">الصفحة الشخصية</SelectItem>
-                {spaces.map((space) => (
-                  <SelectItem key={space.id} value={space.id}>
-                    {space.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          <DialogFooter className="sm:justify-end">
-            <Button type="submit" disabled={isSubmitting}>
-              {isSubmitting ? (
-                <div className="flex items-center">
-                  <span className="animate-spin mr-2">●</span>
-                  جاري الحفظ...
-                </div>
-              ) : (
-                'حفظ الامتنان'
-              )}
+              إلغاء
             </Button>
-          </DialogFooter>
+            <Button 
+              type="submit" 
+              disabled={!image || isSubmitting}
+              className="bg-[#ea384c] hover:bg-[#ea384c]/90 text-white"
+            >
+              {isSubmitting ? "جاري الحفظ..." : "حفظ"}
+            </Button>
+          </div>
         </form>
       </DialogContent>
     </Dialog>
