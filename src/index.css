@@ -62,6 +62,14 @@
   .destructive-button {
     @apply bg-destructive text-destructive-foreground rounded-lg px-4 py-2 hover:bg-destructive/80 transition-colors;
   }
+
+  .circular-button {
+    @apply rounded-full p-4; /* اجعل الزر دائريًا */
+  }
+
+  * {
+    color: white; /* اجعل جميع النصوص باللون الأبيض */
+  }
 }
 
 .glass-effect {
