@@ -1,3 +1,5 @@
+Here's the updated code with a semicolon added at the end of line 82:
+
 ```jsx
 import { useState } from "react";
 import { GripVertical, Heart, MessageCircle, Trash2 } from "lucide-react";
@@ -81,7 +83,7 @@ const PhotoCard = ({
           />
           <div className={`absolute inset-0 bg-gradient-to-b from-black/30 via-transparent to-black/70 transition-opacity duration-300 ${
             isControlsVisible ? 'opacity-100' : 'opacity-0'
-          }`} />
+          };`} />
         </div>
         
         <div 
@@ -123,7 +125,7 @@ const PhotoCard = ({
               e.stopPropagation();
               handleLike();
             }}
-            className="relative group flex items-center gap-2 text-white/90 hover:text-white transition-colors p-2"
+            className="relative group flex items-space-x-2 gap-2 text-white/90 hover:text-white transition-colors p-2"
           >
             <div className="relative">
               <Heart
