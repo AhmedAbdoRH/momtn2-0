@@ -32,8 +32,7 @@ const PhotoCard = ({
 
   const handleLike = async () => {
     setIsHeartAnimating(true);
-    const newLikeCount = likes + (isLoved ? -1 : 1);
-    setIsLoved(!isLoved);
+    const newLikeCount = likes + 1;
     setLikes(newLikeCount);
 
     const { error } = await supabase
@@ -43,7 +42,6 @@ const PhotoCard = ({
 
     if (error) {
       console.error('Error updating likes:', error);
-      setIsLoved(isLoved);
       setLikes(likes);
     }
 
