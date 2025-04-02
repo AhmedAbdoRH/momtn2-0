@@ -2,7 +2,7 @@
 @tailwind components;
 @tailwind utilities;
 
-@layer base { 
+@layer base {
   :root {
     --background: 283 32% 15%; /* #2D1F3D */
     --foreground: 0 0% 100%; /* نص أبيض */
@@ -64,7 +64,7 @@
   }
 
   .circular-button {
-    @apply rounded-full p-4; /* اجعل الزر دائريًا */
+    @apply rounded-full p-4 w-12 h-12; /* اجعل الزر دائريًا مع تحديد العرض والارتفاع */
   }
 
   * {
