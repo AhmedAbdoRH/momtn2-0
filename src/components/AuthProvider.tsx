@@ -150,7 +150,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     try {
       console.log("Attempting to sign up:", email);
       
-      // Validate email format before attempting signup
+      // Pre-validate email format before sending to Supabase
+      // Using a more permissive regex to let Supabase handle more complex validations
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
       if (!emailRegex.test(email)) {
         return { 
@@ -160,9 +161,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         };
       }
       
+      // Sanitize the email by trimming whitespace
+      const sanitizedEmail = email.trim().toLowerCase();
+      
       // Make sure to specify we want an email confirmation
       const { error } = await supabase.auth.signUp({ 
-        email, 
+        email: sanitizedEmail, 
         password,
         options: {
           emailRedirectTo: `${window.location.origin}/auth/callback`,
