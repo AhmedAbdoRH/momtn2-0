@@ -3,7 +3,7 @@
   margin: 0 auto;
   padding: 2rem;
   text-align: center;
-  color: white; /* إضافة هذا السطر لتحديد لون النص الأبيض */
+  color: white; /* لون النص الأبيض */
 }
 
 .logo {
@@ -39,6 +39,5 @@
 }
 
 .read-the-docs {
-  color: #888; /* هذا السطر قد يحتاج إلى تعديل إذا كنت تريد أن يكون أبيض أيضًا */
-  color: white; /* تعديل لون النص إلى الأبيض */
+  color: white; /* لون النص الأبيض */
 }
