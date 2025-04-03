@@ -69,7 +69,7 @@
 
   /* تعديل الزر العائم هنا */
   .floating-button {
-    @apply fixed bottom-6 left-6 w-14 h-14 rounded-full bg-pink-500 text-white shadow-lg flex items-center justify-center;
+    @apply fixed bottom-6 left-6 w-14 h-14 rounded-full bg-pink-500 text-white shadow-lg flex items-center justify-center cursor-pointer;
   }
 
   * {
