@@ -98,7 +98,7 @@ const Index = () => {
 
           <Button
             onClick={handleCreateNew}
-            className="fixed bottom-6 left-6 w-14 h-14 rounded-full glass-effect text-pink-500 shadow-lg transition-all duration-300"
+            className="fixed bottom-6 left-6 w-14 h-14 rounded-full glass-effect text-pink-500 shadow-lg transition-all duration-300" // تم تعديل className هنا
           >
             <Plus className="w-6 h-6" />
           </Button>
