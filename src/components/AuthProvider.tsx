@@ -34,16 +34,30 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     
     // First set up the auth listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
-        console.log("Auth state changed:", event, session?.user?.email);
-        setSession(session);
-        setUser(session?.user ?? null);
-        setLoading(false);
-
-        // Redirect user when logging in
-        if (session && window.location.pathname === '/auth') {
-          navigate('/');
+      (event, newSession) => {
+        console.log("Auth state changed:", event, newSession?.user?.email);
+        
+        if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+          console.log("User signed in or token refreshed");
+          setSession(newSession);
+          setUser(newSession?.user ?? null);
+          
+          // Redirect user when logging in
+          if (newSession && window.location.pathname === '/auth') {
+            navigate('/');
+          }
+        } else if (event === 'SIGNED_OUT') {
+          console.log("User signed out");
+          setSession(null);
+          setUser(null);
+          navigate('/auth');
+        } else if (event === 'USER_UPDATED') {
+          console.log("User updated");
+          setSession(newSession);
+          setUser(newSession?.user ?? null);
         }
+        
+        setLoading(false);
       }
     );
 
@@ -52,7 +66,13 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       try {
         console.log("Getting current session...");
         setLoading(true);
-        const { data: { session } } = await supabase.auth.getSession();
+        const { data: { session }, error } = await supabase.auth.getSession();
+        
+        if (error) {
+          console.error('Error getting session:', error);
+          return;
+        }
+        
         console.log("Current session:", session?.user?.email);
         setSession(session);
         setUser(session?.user ?? null);

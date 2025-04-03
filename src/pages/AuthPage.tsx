@@ -111,17 +111,26 @@ const AuthPage = () => {
   const signInWithGoogle = async () => {
     try {
       setLoading(true);
-      const { error } = await supabase.auth.signInWithOAuth({
+      console.log("Attempting to sign in with Google...");
+      
+      const { error, data } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
           redirectTo: window.location.origin,
+          queryParams: {
+            access_type: 'offline',
+            prompt: 'consent',
+          }
         }
       });
 
       if (error) {
+        console.error("Error signing in with Google:", error);
         let errorMessage = "فشل في تسجيل الدخول بواسطة جوجل";
         if (error.message?.includes("network")) {
           errorMessage = "خطأ في الاتصال بالخادم، يرجى التحقق من اتصالك بالإنترنت";
+        } else {
+          errorMessage = `خطأ: ${error.message || "حدث خطأ غير معروف"}`;
         }
         
         uiToast({
@@ -131,13 +140,15 @@ const AuthPage = () => {
         });
         
         toast.error(errorMessage);
+      } else {
+        console.log("Google OAuth initiated:", data);
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error signing in with Google:", error);
       uiToast({
         variant: "destructive",
         title: "حدث خطأ",
-        description: "فشل في تسجيل الدخول بواسطة جوجل",
+        description: "فشل في تسجيل الدخول بواسطة جوجل: " + (error.message || "خطأ غير معروف"),
       });
       
       toast.error("فشل في تسجيل الدخول بواسطة جوجل");
