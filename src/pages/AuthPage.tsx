@@ -44,6 +44,8 @@ const AuthPage = () => {
           let errorMessage = "فشل في تسجيل الدخول";
           if (error.message === "Invalid login credentials") {
             errorMessage = "بيانات الدخول غير صحيحة";
+          } else if (error.message === "Email not confirmed") {
+            errorMessage = "البريد الإلكتروني غير مؤكد، يرجى التحقق من بريدك الإلكتروني";
           } else if (error.message?.includes("network")) {
             errorMessage = "خطأ في الاتصال بالخادم، يرجى التحقق من اتصالك بالإنترنت";
           } else {
@@ -86,12 +88,18 @@ const AuthPage = () => {
           // Also use the more visible Sonner toast
           toast.error(errorMessage);
         } else {
+          // Show clear message about email verification
           uiToast({
             title: "تم إنشاء الحساب بنجاح",
-            description: "يرجى التحقق من بريدك الإلكتروني لتأكيد الحساب",
+            description: "تم إرسال رسالة تأكيد إلى بريدك الإلكتروني، يرجى تأكيد حسابك للمتابعة",
           });
           
-          toast.success("تم إنشاء الحساب بنجاح، يرجى التحقق من بريدك الإلكتروني");
+          toast.success("تم إنشاء الحساب بنجاح، يرجى التحقق من بريدك الإلكتروني لتأكيد الحساب");
+          
+          // Redirect to verification page
+          setTimeout(() => {
+            window.location.href = '/verify-email';
+          }, 2000);
         }
       }
     } catch (error) {
