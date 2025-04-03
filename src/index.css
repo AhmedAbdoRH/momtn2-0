@@ -67,6 +67,11 @@
     @apply rounded-full p-4 w-12 h-12; /* اجعل الزر دائريًا مع تحديد العرض والارتفاع */
   }
 
+  /* تعديل الزر العائم هنا */
+  .floating-button {
+    @apply fixed bottom-6 left-6 w-14 h-14 rounded-full bg-pink-500 text-white shadow-lg flex items-center justify-center;
+  }
+
   * {
     color: white; /* اجعل جميع النصوص باللون الأبيض */
   }
