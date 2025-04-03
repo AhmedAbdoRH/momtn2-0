@@ -4,10 +4,13 @@ import { useAuth } from '@/components/AuthProvider';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { toast } from 'sonner';
+import { Loader2 } from 'lucide-react';
 
 const VerifyEmailPage = () => {
   const { user, signOut, resendConfirmationEmail, isEmailConfirmed } = useAuth();
   const [resending, setResending] = useState(false);
+  const [resendSuccess, setResendSuccess] = useState(false);
+  const [resendCount, setResendCount] = useState(0);
   const { toast: uiToast } = useToast();
   
   const handleResendEmail = async () => {
@@ -34,6 +37,8 @@ const VerifyEmailPage = () => {
           title: "تم الإرسال",
           description: "تم إرسال رسالة التأكيد، يرجى التحقق من بريدك الإلكتروني",
         });
+        setResendSuccess(true);
+        setResendCount(prev => prev + 1);
       }
     } catch (error) {
       console.error("Error resending email:", error);
@@ -81,7 +86,16 @@ const VerifyEmailPage = () => {
                   disabled={resending} 
                   className="w-full bg-indigo-600 hover:bg-indigo-700"
                 >
-                  {resending ? 'جاري إعادة الإرسال...' : 'إعادة إرسال رسالة التأكيد'}
+                  {resending ? (
+                    <span className="flex items-center justify-center">
+                      <Loader2 className="animate-spin mr-2 h-4 w-4" />
+                      جاري إعادة الإرسال...
+                    </span>
+                  ) : (
+                    resendSuccess && resendCount > 0 
+                      ? `إعادة إرسال رسالة التأكيد مرة أخرى (${resendCount})` 
+                      : 'إعادة إرسال رسالة التأكيد'
+                  )}
                 </Button>
                 
                 <Button
@@ -95,6 +109,11 @@ const VerifyEmailPage = () => {
               
               <div className="text-center text-sm text-gray-500 mt-4">
                 <p>لم تستلم البريد الإلكتروني؟ تأكد من مجلد البريد العشوائي (spam) أو انقر على زر "إعادة إرسال رسالة التأكيد"</p>
+                {resendSuccess && (
+                  <p className="mt-2 text-indigo-400">
+                    تم إرسال رسالة جديدة! يرجى التحقق من بريدك الإلكتروني، قد يستغرق وصولها بضع دقائق
+                  </p>
+                )}
               </div>
             </>
           )}

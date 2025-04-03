@@ -10,6 +10,8 @@ import AuthPage from "./pages/AuthPage";
 import VerifyEmailPage from "./pages/VerifyEmailPage";
 import { AuthProvider } from "./components/AuthProvider";
 import ProtectedRoute from "./components/ProtectedRoute";
+import { useEffect } from "react";
+import { supabase } from "./integrations/supabase/client";
 
 // Create a client
 const queryClient = new QueryClient({
@@ -20,6 +22,24 @@ const queryClient = new QueryClient({
     },
   },
 });
+
+// Component to handle auth callback and refresh session
+const AuthCallback = () => {
+  useEffect(() => {
+    // Refresh the session after processing the auth callback
+    const refreshSession = async () => {
+      try {
+        await supabase.auth.refreshSession();
+      } catch (error) {
+        console.error("Error refreshing session:", error);
+      }
+    };
+
+    refreshSession();
+  }, []);
+
+  return <Navigate to="/" replace />;
+};
 
 function App() {
   return (
@@ -32,7 +52,7 @@ function App() {
             <Routes>
               <Route path="/auth" element={<AuthPage />} />
               <Route path="/verify-email" element={<VerifyEmailPage />} />
-              <Route path="/auth/callback" element={<Navigate to="/" replace />} />
+              <Route path="/auth/callback" element={<AuthCallback />} />
               <Route path="/" element={
                 <ProtectedRoute>
                   <Index />

@@ -3,6 +3,7 @@ import { createContext, useContext, useEffect, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Session, User } from '@supabase/supabase-js';
+import { toast } from 'sonner';
 
 interface AuthContextType {
   session: Session | null;
@@ -55,7 +56,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           // Redirect based on confirmation status
           if (newSession) {
             if (!emailConfirmed && newSession.user.email && 
-                !['/auth', '/verify-email'].includes(location.pathname)) {
+                !['/auth', '/verify-email', '/auth/callback'].includes(location.pathname)) {
               console.log("Redirecting to email verification page");
               navigate('/verify-email');
             } else if (emailConfirmed && location.pathname === '/auth') {
@@ -109,7 +110,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           
           // Redirect to verification page if needed
           if (!emailConfirmed && session.user.email && 
-              !['/auth', '/verify-email'].includes(location.pathname)) {
+              !['/auth', '/verify-email', '/auth/callback'].includes(location.pathname)) {
             console.log("Initial redirect to email verification page");
             navigate('/verify-email');
           }
@@ -122,6 +123,25 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     };
 
     getSession();
+
+    // Check if we have a hash error in the URL (like from an expired confirmation link)
+    const handleHashError = () => {
+      const hash = window.location.hash;
+      if (hash && hash.includes('error=')) {
+        const errorParams = new URLSearchParams(hash.substring(1));
+        const errorCode = errorParams.get('error_code');
+        const errorDesc = errorParams.get('error_description');
+        
+        if (errorCode === 'otp_expired') {
+          toast.error('رابط التأكيد منتهي الصلاحية. يرجى طلب رابط جديد.');
+          // Clear the hash
+          window.history.replaceState(null, '', window.location.pathname);
+          navigate('/verify-email');
+        }
+      }
+    };
+    
+    handleHashError();
 
     return () => subscription.unsubscribe();
   }, [navigate, location.pathname]);
@@ -140,14 +160,25 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         };
       }
       
+      // Make sure to specify we want an email confirmation
       const { error } = await supabase.auth.signUp({ 
         email, 
         password,
         options: {
           emailRedirectTo: `${window.location.origin}/auth/callback`,
+          data: {
+            email_confirmed: false
+          }
         } 
       });
+      
       console.log("Sign up result:", error ? `Error: ${error.message}` : "Success");
+      
+      if (!error) {
+        // Show success toast for better UX
+        toast.success("تم إنشاء الحساب بنجاح، يرجى التحقق من بريدك الإلكتروني لتأكيد الحساب");
+      }
+      
       return { error };
     } catch (error: any) {
       console.error('Error during sign up:', error);
@@ -212,6 +243,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       });
       
       console.log("Resend result:", error ? `Error: ${error.message}` : "Success");
+      
+      if (!error) {
+        // Show success toast
+        toast.success("تم إرسال رسالة التأكيد بنجاح");
+      }
+      
       return { error };
     } catch (error: any) {
       console.error('Error resending confirmation email:', error);
