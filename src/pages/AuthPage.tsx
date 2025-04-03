@@ -20,6 +20,12 @@ const AuthPage = () => {
     return <Navigate to="/" replace />;
   }
 
+  const validateEmail = (email: string): boolean => {
+    // More comprehensive email validation regex
+    const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+    return emailRegex.test(email);
+  };
+
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -29,6 +35,17 @@ const AuthPage = () => {
         title: "حقول مطلوبة",
         description: "يرجى إدخال البريد الإلكتروني وكلمة المرور",
       });
+      return;
+    }
+    
+    // Validate email format
+    if (!validateEmail(email)) {
+      uiToast({
+        variant: "destructive",
+        title: "بريد إلكتروني غير صالح",
+        description: "يرجى إدخال عنوان بريد إلكتروني صالح",
+      });
+      toast.error("صيغة البريد الإلكتروني غير صحيحة");
       return;
     }
     
@@ -73,6 +90,8 @@ const AuthPage = () => {
             errorMessage = "البريد الإلكتروني مسجل بالفعل";
           } else if (error.message?.includes("network")) {
             errorMessage = "خطأ في الاتصال بالخادم، يرجى التحقق من اتصالك بالإنترنت";
+          } else if (error.message?.includes("invalid")) {
+            errorMessage = "البريد الإلكتروني غير صالح، يرجى التأكد من صحة البريد الإلكتروني";
           } else {
             // Handle other specific errors
             console.error("Sign-up error details:", error);
@@ -124,7 +143,7 @@ const AuthPage = () => {
       const { error, data } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: window.location.origin,
+          redirectTo: `${window.location.origin}/auth/callback`,
           queryParams: {
             access_type: 'offline',
             prompt: 'consent',

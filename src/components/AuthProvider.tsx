@@ -58,7 +58,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
                 !['/auth', '/verify-email'].includes(location.pathname)) {
               console.log("Redirecting to email verification page");
               navigate('/verify-email');
-            } else if (emailConfirmed && window.location.pathname === '/auth') {
+            } else if (emailConfirmed && location.pathname === '/auth') {
               navigate('/');
             }
           }
@@ -129,6 +129,17 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const signUp = async (email: string, password: string) => {
     try {
       console.log("Attempting to sign up:", email);
+      
+      // Validate email format before attempting signup
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(email)) {
+        return { 
+          error: { 
+            message: "صيغة البريد الإلكتروني غير صحيحة" 
+          } 
+        };
+      }
+      
       const { error } = await supabase.auth.signUp({ 
         email, 
         password,
@@ -147,6 +158,17 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const signIn = async (email: string, password: string) => {
     try {
       console.log("Attempting to sign in:", email);
+      
+      // Validate email format before attempting signin
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(email)) {
+        return { 
+          error: { 
+            message: "صيغة البريد الإلكتروني غير صحيحة" 
+          } 
+        };
+      }
+      
       const { error } = await supabase.auth.signInWithPassword({ email, password });
       console.log("Sign in result:", error ? `Error: ${error.message}` : "Success");
       
@@ -170,6 +192,17 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const resendConfirmationEmail = async (email: string) => {
     try {
       console.log("Resending confirmation email to:", email);
+      
+      // Validate email before attempting to resend
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(email)) {
+        return { 
+          error: { 
+            message: "صيغة البريد الإلكتروني غير صحيحة" 
+          } 
+        };
+      }
+      
       const { error } = await supabase.auth.resend({
         type: 'signup',
         email,
