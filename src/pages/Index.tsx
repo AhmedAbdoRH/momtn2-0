@@ -1,6 +1,5 @@
 import { Plus, Menu, LogOut, User } from "lucide-react";
 import PhotoGrid from "@/components/PhotoGrid";
-import { Button } from "@/components/ui/button";
 import CreateNewDialog from "@/components/CreateNewDialog";
 import { useState } from "react";
 import { useAuth } from "@/components/AuthProvider";
@@ -27,21 +26,19 @@ const Index = () => {
   return (
     <HeartSoundProvider>
       <div className="min-h-screen bg-background text-foreground">
-        <Button
-          variant="ghost"
-          size="icon"
+        <button
           onClick={() => setSidebarOpen(!sidebarOpen)}
-          className="fixed top-4 right-4 z-50 glass-effect text-gray-700"
+          className="fixed top-4 right-4 z-50 glass-effect text-gray-700 p-2 rounded-full" // تعديل هنا
         >
           <Menu className="h-5 w-5" />
-        </Button>
+        </button>
 
         <div className="fixed top-4 left-4 z-50">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon" className="glass-effect text-gray-700">
+              <button className="glass-effect text-gray-700 p-2 rounded-full"> // تعديل هنا
                 <User className="h-5 w-5" />
-              </Button>
+              </button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="start" className="w-56 glass-effect text-gray-700 border border-border">
               <div className="px-2 py-1.5 text-sm font-medium text-gray-600 truncate">
@@ -82,7 +79,7 @@ const Index = () => {
               ﴾ يَا أَيُّهَا النَّاسُ اذْكُرُوا نِعْمَتَ اللَّهِ عَلَيْكُمْ ﴿ 
             </p>
             
-            <Button
+            <button
               onClick={handleCreateNew}
               className={`px-5 py-3 bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg rounded-lg mx-auto transition-all duration-300 ${
                 btnAnimation ? 'scale-95 shadow-inner' : 'hover:scale-105'
@@ -90,18 +87,18 @@ const Index = () => {
             >
               <Plus className={`w-5 h-5 mr-2 transition-transform duration-300 ${btnAnimation ? 'rotate-180' : ''}`} />
               إضافة امتنان جديد
-            </Button>
+            </button>
           </div>
 
           <PhotoGrid />
           <CreateNewDialog open={dialogOpen} onOpenChange={setDialogOpen} />
 
-          <Button
+          <div // تعديل هنا
             onClick={handleCreateNew}
-            className="fixed bottom-6 left-6 w-14 h-14 rounded-full glass-effect text-pink-500 shadow-lg transition-all duration-300" // تم تعديل className هنا
+            className="fixed bottom-6 left-6 w-14 h-14 rounded-full glass-effect text-pink-500 shadow-lg flex items-center justify-center cursor-pointer" 
           >
             <Plus className="w-6 h-6" />
-          </Button>
+          </div>
         </main>
 
         {sidebarOpen && (
