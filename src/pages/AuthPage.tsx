@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { useAuth } from '@/components/AuthProvider';
 import { Button } from '@/components/ui/button';
@@ -19,72 +20,15 @@ const AuthPage = () => {
     return <Navigate to="/" replace />;
   }
 
-  const validateEmail = (email: string): boolean => {
-    // More comprehensive email validation regex that catches common typos
-    // This regex will validate common email formats and domains
-    const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
-    
-    // Basic check with regex
-    if (!emailRegex.test(email)) return false;
-
-    // Additional check for common typos in domain names
-    const commonTypos: Record<string, string> = {
-      'gamil.com': 'gmail.com',
-      'gmial.com': 'gmail.com',
-      'gmai.com': 'gmail.com',
-      'hotmai.com': 'hotmail.com',
-      'hotmal.com': 'hotmail.com',
-      'yaho.com': 'yahoo.com',
-      'yahooo.com': 'yahoo.com',
-      'outloo.com': 'outlook.com',
-    };
-
-    const domain = email.split('@')[1].toLowerCase();
-    
-    if (commonTypos[domain]) {
-      const suggestion = email.replace(domain, commonTypos[domain]);
-      uiToast({
-        variant: "destructive",
-        title: "خطأ محتمل في البريد الإلكتروني",
-        description: `هل تقصد: ${suggestion}؟`,
-      });
-      return false;
-    }
-
-    return true;
-  };
-
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!email || !password) {
       uiToast({
         variant: "destructive",
-        title: "حقو�� مطلوبة",
+        title: "حقول مطلوبة",
         description: "يرجى إدخال البريد الإلكتروني وكلمة المرور",
       });
-      return;
-    }
-    
-    // Validate email format
-    if (!validateEmail(email)) {
-      uiToast({
-        variant: "destructive",
-        title: "بريد إلكتروني غير صالح",
-        description: "يرجى إدخال عنوان بريد إلكتروني صالح",
-      });
-      toast.error("صيغة البريد الإلكتروني غير صحيحة");
-      return;
-    }
-    
-    // Add additional validation for password
-    if (password.length < 6) {
-      uiToast({
-        variant: "destructive",
-        title: "كلمة مرور قصيرة",
-        description: "يجب أن تكون كلمة المرور 6 أحرف على الأقل",
-      });
-      toast.error("كلمة المرور قصيرة جدًا");
       return;
     }
     
@@ -120,7 +64,6 @@ const AuthPage = () => {
           toast.error(errorMessage);
         }
       } else {
-        console.log("Attempting signup with:", email);
         const result = await signUp(email, password);
         error = result.error;
         
@@ -130,9 +73,6 @@ const AuthPage = () => {
             errorMessage = "البريد الإلكتروني مسجل بالفعل";
           } else if (error.message?.includes("network")) {
             errorMessage = "خطأ في الاتصال بالخادم، يرجى التحقق من اتصالك بالإنترنت";
-          } else if (error.message?.includes("invalid")) {
-            errorMessage = "البريد الإلكتروني غير صالح، يرجى التأكد من صحة البريد الإلكتروني";
-            console.error("Email validation error:", error);
           } else {
             // Handle other specific errors
             console.error("Sign-up error details:", error);
@@ -184,7 +124,7 @@ const AuthPage = () => {
       const { error, data } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${window.location.origin}/auth/callback`,
+          redirectTo: window.location.origin,
           queryParams: {
             access_type: 'offline',
             prompt: 'consent',
