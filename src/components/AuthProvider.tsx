@@ -54,12 +54,14 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           
           // Redirect based on confirmation status
           if (newSession) {
-            if (!emailConfirmed && newSession.user.email && 
-                !['/auth', '/verify-email'].includes(location.pathname)) {
+            if (!emailConfirmed && newSession.user.email) {
               console.log("Redirecting to email verification page");
-              navigate('/verify-email');
-            } else if (emailConfirmed && window.location.pathname === '/auth') {
-              navigate('/');
+              // Ensure we're not already on the verification page to avoid redirect loops
+              if (location.pathname !== '/verify-email') {
+                navigate('/verify-email', { replace: true });
+              }
+            } else if (emailConfirmed && location.pathname === '/auth') {
+              navigate('/', { replace: true });
             }
           }
         } else if (event === 'SIGNED_OUT') {
@@ -67,7 +69,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           setSession(null);
           setUser(null);
           setIsEmailConfirmed(false);
-          navigate('/auth');
+          navigate('/auth', { replace: true });
         } else if (event === 'USER_UPDATED') {
           console.log("User updated");
           setSession(newSession);
@@ -78,7 +80,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           setIsEmailConfirmed(emailConfirmed);
           
           if (emailConfirmed && location.pathname === '/verify-email') {
-            navigate('/');
+            navigate('/', { replace: true });
           }
         }
         
@@ -108,10 +110,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           setIsEmailConfirmed(emailConfirmed);
           
           // Redirect to verification page if needed
-          if (!emailConfirmed && session.user.email && 
-              !['/auth', '/verify-email'].includes(location.pathname)) {
+          if (!emailConfirmed && session.user.email) {
             console.log("Initial redirect to email verification page");
-            navigate('/verify-email');
+            if (location.pathname !== '/verify-email' && 
+                location.pathname !== '/auth') {
+              navigate('/verify-email', { replace: true });
+            }
           }
         }
       } catch (error) {

@@ -31,7 +31,10 @@ function App() {
           <AuthProvider>
             <Routes>
               <Route path="/auth" element={<AuthPage />} />
-              <Route path="/verify-email" element={<VerifyEmailPage />} />
+              <Route 
+                path="/verify-email" 
+                element={<VerifyEmailPage />} 
+              />
               <Route 
                 path="/auth/callback" 
                 element={<Navigate to="/" replace />} 

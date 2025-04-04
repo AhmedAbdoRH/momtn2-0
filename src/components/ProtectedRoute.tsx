@@ -1,5 +1,5 @@
 
-import { Navigate } from "react-router-dom";
+import { Navigate, useLocation } from "react-router-dom";
 import { useAuth } from "./AuthProvider";
 
 interface ProtectedRouteProps {
@@ -8,6 +8,7 @@ interface ProtectedRouteProps {
 
 const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
   const { user, loading, isEmailConfirmed } = useAuth();
+  const location = useLocation();
 
   if (loading) {
     return (
@@ -22,7 +23,11 @@ const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
   }
 
   if (user && !isEmailConfirmed && user.email) {
-    return <Navigate to="/verify-email" replace />;
+    // Check if we're not already on the verification page to prevent infinite redirects
+    if (location.pathname !== '/verify-email') {
+      console.log("Redirecting from protected route to verification page");
+      return <Navigate to="/verify-email" replace />;
+    }
   }
 
   return <>{children}</>;
