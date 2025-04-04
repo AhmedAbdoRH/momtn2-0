@@ -3,6 +3,7 @@ import { createContext, useContext, useEffect, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Session, User } from '@supabase/supabase-js';
+import { toast } from 'sonner';
 
 interface AuthContextType {
   session: Session | null;
@@ -33,6 +34,13 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const navigate = useNavigate();
   const location = useLocation();
 
+  // Helper to validate email format
+  const isValidEmail = (email: string): boolean => {
+    // Basic email validation regex
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+  };
+
   useEffect(() => {
     console.log("Setting up auth listener...");
     
@@ -55,10 +63,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           // Redirect based on confirmation status
           if (newSession) {
             if (!emailConfirmed && newSession.user.email && 
-                !['/auth', '/verify-email'].includes(location.pathname)) {
+                !['/auth', '/verify-email', '/auth/callback'].includes(location.pathname)) {
               console.log("Redirecting to email verification page");
               navigate('/verify-email');
-            } else if (emailConfirmed && window.location.pathname === '/auth') {
+            } else if (emailConfirmed && location.pathname === '/auth') {
               navigate('/');
             }
           }
@@ -78,6 +86,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           setIsEmailConfirmed(emailConfirmed);
           
           if (emailConfirmed && location.pathname === '/verify-email') {
+            toast.success("تم تأكيد بريدك الإلكتروني بنجاح!");
             navigate('/');
           }
         }
@@ -109,7 +118,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           
           // Redirect to verification page if needed
           if (!emailConfirmed && session.user.email && 
-              !['/auth', '/verify-email'].includes(location.pathname)) {
+              !['/auth', '/verify-email', '/auth/callback'].includes(location.pathname)) {
             console.log("Initial redirect to email verification page");
             navigate('/verify-email');
           }
@@ -128,6 +137,18 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const signUp = async (email: string, password: string) => {
     try {
+      // Trim and normalize email
+      email = email.trim().toLowerCase();
+      
+      if (!isValidEmail(email)) {
+        console.log("Invalid email format:", email);
+        return { 
+          error: { 
+            message: "البريد الإلكتروني غير صالح، يرجى التأكد من صحة البريد الإلكتروني"
+          } 
+        };
+      }
+      
       console.log("Attempting to sign up:", email);
       const { error } = await supabase.auth.signUp({ 
         email, 
@@ -136,8 +157,23 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           emailRedirectTo: `${window.location.origin}/auth/callback`,
         } 
       });
-      console.log("Sign up result:", error ? `Error: ${error.message}` : "Success");
-      return { error };
+      
+      if (error) {
+        console.error("Sign up error:", error.message);
+        let errorMessage = error.message;
+        
+        // Translate common error messages to Arabic
+        if (error.message.includes("already registered")) {
+          errorMessage = "البريد الإلكتروني مسجل بالفعل";
+        } else if (error.message.includes("invalid")) {
+          errorMessage = "البريد الإلكتروني غير صالح، يرجى التأكد من صحة البريد الإلكتروني";
+        }
+        
+        return { error: { message: errorMessage } };
+      }
+      
+      console.log("Sign up successful, verification email sent");
+      return { error: null };
     } catch (error: any) {
       console.error('Error during sign up:', error);
       return { error };
@@ -146,11 +182,37 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const signIn = async (email: string, password: string) => {
     try {
+      // Trim and normalize email
+      email = email.trim().toLowerCase();
+      
+      if (!isValidEmail(email)) {
+        console.log("Invalid email format:", email);
+        return { 
+          error: { 
+            message: "البريد الإلكتروني غير صالح، يرجى التأكد من صحة البريد الإلكتروني"
+          } 
+        };
+      }
+      
       console.log("Attempting to sign in:", email);
       const { error } = await supabase.auth.signInWithPassword({ email, password });
-      console.log("Sign in result:", error ? `Error: ${error.message}` : "Success");
       
-      return { error };
+      if (error) {
+        console.error("Sign in error:", error.message);
+        let errorMessage = error.message;
+        
+        // Translate common error messages to Arabic
+        if (error.message.includes("Invalid login credentials")) {
+          errorMessage = "بيانات الدخول غير صحيحة";
+        } else if (error.message.includes("Email not confirmed")) {
+          errorMessage = "البريد الإلكتروني غير مؤكد، يرجى التحقق من بريدك الإلكتروني";
+        }
+        
+        return { error: { message: errorMessage } };
+      }
+      
+      console.log("Sign in successful");
+      return { error: null };
     } catch (error: any) {
       console.error('Error during sign in:', error);
       return { error };
@@ -169,6 +231,18 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const resendConfirmationEmail = async (email: string) => {
     try {
+      // Trim and normalize email
+      email = email.trim().toLowerCase();
+      
+      if (!isValidEmail(email)) {
+        console.log("Invalid email format for resend:", email);
+        return { 
+          error: { 
+            message: "البريد الإلكتروني غير صالح، يرجى التأكد من صحة البريد الإلكتروني"
+          } 
+        };
+      }
+      
       console.log("Resending confirmation email to:", email);
       const { error } = await supabase.auth.resend({
         type: 'signup',
@@ -178,8 +252,13 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         },
       });
       
-      console.log("Resend result:", error ? `Error: ${error.message}` : "Success");
-      return { error };
+      if (error) {
+        console.error("Resend error:", error.message);
+        return { error };
+      }
+      
+      console.log("Confirmation email resent successfully");
+      return { error: null };
     } catch (error: any) {
       console.error('Error resending confirmation email:', error);
       return { error };
