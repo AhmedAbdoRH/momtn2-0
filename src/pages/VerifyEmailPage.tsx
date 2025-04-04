@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/components/AuthProvider';
 import { Button } from '@/components/ui/button';
@@ -6,6 +5,7 @@ import { useToast } from '@/hooks/use-toast';
 import { toast } from 'sonner';
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import { AlertCircle, CheckCircle2, MailCheck } from "lucide-react";
+import { supabase } from '@/integrations/supabase/client';
 
 const VerifyEmailPage = () => {
   const { user, signOut, resendConfirmationEmail, isEmailConfirmed } = useAuth();
