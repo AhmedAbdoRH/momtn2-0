@@ -32,12 +32,18 @@ function App() {
             <Routes>
               <Route path="/auth" element={<AuthPage />} />
               <Route path="/verify-email" element={<VerifyEmailPage />} />
-              <Route path="/auth/callback" element={<Navigate to="/" replace />} />
-              <Route path="/" element={
-                <ProtectedRoute>
-                  <Index />
-                </ProtectedRoute>
-              } />
+              <Route 
+                path="/auth/callback" 
+                element={<Navigate to="/" replace />} 
+              />
+              <Route 
+                path="/" 
+                element={
+                  <ProtectedRoute>
+                    <Index />
+                  </ProtectedRoute>
+                } 
+              />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </AuthProvider>
