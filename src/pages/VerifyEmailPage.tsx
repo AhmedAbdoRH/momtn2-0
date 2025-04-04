@@ -1,50 +1,18 @@
-import { useState, useEffect } from 'react';
+
+import { useState } from 'react';
 import { useAuth } from '@/components/AuthProvider';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { toast } from 'sonner';
-import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
-import { AlertCircle, CheckCircle2, MailCheck } from "lucide-react";
-import { supabase } from '@/integrations/supabase/client';
 
 const VerifyEmailPage = () => {
   const { user, signOut, resendConfirmationEmail, isEmailConfirmed } = useAuth();
   const [resending, setResending] = useState(false);
-  const [countdown, setCountdown] = useState(0);
   const { toast: uiToast } = useToast();
-  
-  // Check for verification status on initial load and every 5 seconds
-  useEffect(() => {
-    if (!isEmailConfirmed && user?.email) {
-      const interval = setInterval(async () => {
-        // Force refresh the session to check for email confirmation
-        try {
-          const { data } = await supabase.auth.refreshSession();
-          console.log("Session refreshed, email confirmed:", data?.session?.user?.email_confirmed_at);
-        } catch (error) {
-          console.error("Error refreshing session:", error);
-        }
-      }, 5000);
-      
-      return () => clearInterval(interval);
-    }
-  }, [isEmailConfirmed, user?.email]);
-  
-  // Countdown timer for resend button
-  useEffect(() => {
-    if (countdown > 0) {
-      const timer = setTimeout(() => setCountdown(countdown - 1), 1000);
-      return () => clearTimeout(timer);
-    }
-  }, [countdown]);
   
   const handleResendEmail = async () => {
     if (!user?.email) {
       toast.error("لا يمكن إرسال رسالة التأكيد، يرجى تسجيل الدخول مرة أخرى");
-      return;
-    }
-    
-    if (countdown > 0) {
       return;
     }
     
@@ -54,7 +22,6 @@ const VerifyEmailPage = () => {
       const { error } = await resendConfirmationEmail(user.email);
       
       if (error) {
-        console.error("Error resending confirmation email:", error);
         toast.error(`فشل في إرسال رسالة التأكيد: ${error.message}`);
         uiToast({
           variant: "destructive",
@@ -67,9 +34,6 @@ const VerifyEmailPage = () => {
           title: "تم الإرسال",
           description: "تم إرسال رسالة التأكيد، يرجى التحقق من بريدك الإلكتروني",
         });
-        
-        // Set 60 second countdown before allowing another resend
-        setCountdown(60);
       }
     } catch (error) {
       console.error("Error resending email:", error);
@@ -101,25 +65,23 @@ const VerifyEmailPage = () => {
         <div className="space-y-6 mt-8">
           {!isEmailConfirmed && (
             <>
-              <Alert className="bg-gray-800/50 border-indigo-600/30">
-                <MailCheck className="h-5 w-5 text-indigo-400" />
-                <AlertTitle className="text-white">تم إرسال رسالة تأكيد</AlertTitle>
-                <AlertDescription className="text-gray-300">
+              <div className="bg-gray-800/50 p-6 rounded-xl">
+                <p className="text-white text-center leading-relaxed">
                   لقد أرسلنا رسالة تأكيد إلى:
-                  <span className="font-bold text-indigo-300 block mt-2 text-lg">{user?.email}</span>
+                  <br />
+                  <span className="font-bold text-indigo-300 block mt-2">{user?.email}</span>
+                  <br />
                   يرجى النقر على الرابط في البريد الإلكتروني لتأكيد حسابك
-                </AlertDescription>
-              </Alert>
+                </p>
+              </div>
               
               <div className="space-y-4">
                 <Button 
                   onClick={handleResendEmail} 
-                  disabled={resending || countdown > 0} 
+                  disabled={resending} 
                   className="w-full bg-indigo-600 hover:bg-indigo-700"
                 >
-                  {resending ? 'جاري إعادة الإرسال...' : 
-                   countdown > 0 ? `إعادة الإرسال (${countdown})` :
-                   'إعادة إرسال رسالة التأكيد'}
+                  {resending ? 'جاري إعادة الإرسال...' : 'إعادة إرسال رسالة التأكيد'}
                 </Button>
                 
                 <Button
@@ -138,26 +100,12 @@ const VerifyEmailPage = () => {
           )}
           
           {isEmailConfirmed && (
-            <div className="text-center space-y-6">
-              <div className="flex justify-center">
-                <CheckCircle2 className="h-20 w-20 text-green-500" />
-              </div>
-              
-              <Alert className="bg-green-900/30 border-green-600/30">
-                <CheckCircle2 className="h-5 w-5 text-green-400" />
-                <AlertTitle className="text-white">تم التأكيد بنجاح</AlertTitle>
-                <AlertDescription className="text-gray-300">
-                  تم تأكيد بريدك الإلكتروني بنجاح! يمكنك الآن استخدام التطبيق
-                </AlertDescription>
-              </Alert>
-              
-              <Button 
-                onClick={() => window.location.href = '/'} 
-                className="w-full bg-green-600 hover:bg-green-700"
-              >
-                الذهاب إلى التطبيق
-              </Button>
-            </div>
+            <Button 
+              onClick={() => window.location.href = '/'} 
+              className="w-full bg-green-600 hover:bg-green-700"
+            >
+              الذهاب إلى التطبيق
+            </Button>
           )}
         </div>
       </div>

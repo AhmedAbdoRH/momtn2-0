@@ -1,85 +1,28 @@
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useAuth } from '@/components/AuthProvider';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
-import { Navigate, useLocation } from 'react-router-dom';
+import { Navigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
-import { AlertCircle } from 'lucide-react';
-import { Alert, AlertDescription } from '@/components/ui/alert';
 
 const AuthPage = () => {
   const [mode, setMode] = useState<'signIn' | 'signUp'>('signIn');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
-  const [emailError, setEmailError] = useState('');
   const { signIn, signUp, user } = useAuth();
   const { toast: uiToast } = useToast();
-  const location = useLocation();
-
-  // Reset errors when changing fields
-  useEffect(() => {
-    setEmailError('');
-  }, [email]);
-
-  // Get error parameter from URL if it exists
-  useEffect(() => {
-    const query = new URLSearchParams(location.search);
-    const error = query.get('error');
-    const errorDescription = query.get('error_description');
-    
-    if (error) {
-      console.log("Error from URL:", error, errorDescription);
-      
-      let errorMessage = "حدث خطأ أثناء المصادقة";
-      if (errorDescription) {
-        if (errorDescription.includes("expired")) {
-          errorMessage = "انتهت صلاحية رابط التأكيد، يرجى طلب رابط جديد";
-        } else if (errorDescription.includes("invalid")) {
-          errorMessage = "رابط التأكيد غير صالح، يرجى طلب رابط جديد";
-        } else {
-          errorMessage = errorDescription;
-        }
-      }
-      
-      toast.error(errorMessage);
-      uiToast({
-        variant: "destructive",
-        title: "حدث خطأ",
-        description: errorMessage,
-      });
-    }
-  }, [location, uiToast]);
 
   // Redirect if already logged in
   if (user) {
     return <Navigate to="/" replace />;
   }
-  
-  // Validate email format
-  const validateEmail = (email: string): boolean => {
-    // Trim whitespace
-    const trimmedEmail = email.trim();
-    
-    // Basic email validation regex
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    const isValid = emailRegex.test(trimmedEmail);
-    
-    if (!isValid) {
-      setEmailError('البريد الإلكتروني غير صالح، يرجى التأكد من صحة البريد الإلكتروني');
-    } else {
-      setEmailError('');
-    }
-    
-    return isValid;
-  };
 
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Validate fields
     if (!email || !password) {
       uiToast({
         variant: "destructive",
@@ -89,17 +32,12 @@ const AuthPage = () => {
       return;
     }
     
-    // Validate email format
-    if (!validateEmail(email)) {
-      return;
-    }
-    
     setLoading(true);
     try {
       let error;
       
       if (mode === 'signIn') {
-        const result = await signIn(email.trim(), password);
+        const result = await signIn(email, password);
         error = result.error;
         
         if (error) {
@@ -113,7 +51,7 @@ const AuthPage = () => {
           } else {
             // Handle other specific errors
             console.error("Sign-in error details:", error);
-            errorMessage = error.message || "حدث خطأ غير معروف";
+            errorMessage = `خطأ: ${error.message || "حدث خطأ غير معروف"}`;
           }
           
           uiToast({
@@ -126,7 +64,7 @@ const AuthPage = () => {
           toast.error(errorMessage);
         }
       } else {
-        const result = await signUp(email.trim(), password);
+        const result = await signUp(email, password);
         error = result.error;
         
         if (error) {
@@ -135,12 +73,10 @@ const AuthPage = () => {
             errorMessage = "البريد الإلكتروني مسجل بالفعل";
           } else if (error.message?.includes("network")) {
             errorMessage = "خطأ في الاتصال بالخادم، يرجى التحقق من اتصالك بالإنترنت";
-          } else if (error.message?.includes("invalid")) {
-            errorMessage = "البريد الإلكتروني غير صالح، يرجى التأكد من صحة البريد الإلكتروني";
           } else {
             // Handle other specific errors
             console.error("Sign-up error details:", error);
-            errorMessage = error.message || "حدث خطأ غير معروف";
+            errorMessage = `خطأ: ${error.message || "حدث خطأ غير معروف"}`;
           }
           
           uiToast({
@@ -188,7 +124,7 @@ const AuthPage = () => {
       const { error, data } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${window.location.origin}/auth/callback`,
+          redirectTo: window.location.origin,
           queryParams: {
             access_type: 'offline',
             prompt: 'consent',
@@ -247,7 +183,6 @@ const AuthPage = () => {
             {mode === 'signIn' ? 'قم بتسجيل الدخول للوصول إلى حسابك' : 'أنشئ حسابًا جديدًا للبدء'}
           </p>
         </div>
-        
         <form className="mt-8 space-y-6" onSubmit={handleAuth}>
           <div className="space-y-4 rounded-md shadow-sm">
             <div>
@@ -262,18 +197,10 @@ const AuthPage = () => {
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className={`appearance-none bg-gray-800/50 backdrop-blur-sm relative block w-full px-3 py-3 border ${
-                  emailError ? 'border-red-500' : 'border-gray-700'
-                } placeholder-gray-500 text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500`}
+                className="appearance-none bg-gray-800/50 backdrop-blur-sm relative block w-full px-3 py-3 border border-gray-700 placeholder-gray-500 text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                 placeholder="البريد الإلكتروني"
                 dir="rtl"
               />
-              {emailError && (
-                <Alert variant="destructive" className="mt-2 py-2 bg-red-900/30 border-red-500/30">
-                  <AlertCircle className="h-4 w-4" />
-                  <AlertDescription className="text-xs">{emailError}</AlertDescription>
-                </Alert>
-              )}
             </div>
             <div>
               <label htmlFor="password" className="sr-only">
@@ -290,7 +217,6 @@ const AuthPage = () => {
                 className="appearance-none bg-gray-800/50 backdrop-blur-sm relative block w-full px-3 py-3 border border-gray-700 placeholder-gray-500 text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                 placeholder="كلمة المرور"
                 dir="rtl"
-                minLength={6}
               />
             </div>
           </div>
@@ -298,7 +224,7 @@ const AuthPage = () => {
           <div>
             <Button
               type="submit"
-              className="group relative w-full flex justify-center py-3 px-4 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg"
+              className="group relative w-full flex justify-center py-3 px-4 bg-white/10 backdrop-blur-md hover:bg-white/20 text-white rounded-lg"
               disabled={loading}
             >
               {loading ? (
