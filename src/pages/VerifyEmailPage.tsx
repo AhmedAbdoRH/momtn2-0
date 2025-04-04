@@ -1,85 +1,27 @@
 
-import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useState } from 'react';
 import { useAuth } from '@/components/AuthProvider';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { toast } from 'sonner';
-import { supabase } from '@/integrations/supabase/client';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Mail, MailCheck, Check } from 'lucide-react';
 
 const VerifyEmailPage = () => {
-  const { user, signOut, isEmailConfirmed } = useAuth();
+  const { user, signOut, resendConfirmationEmail, isEmailConfirmed } = useAuth();
   const [resending, setResending] = useState(false);
-  const [verifying, setVerifying] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const { toast: uiToast } = useToast();
-  const navigate = useNavigate();
-  
-  useEffect(() => {
-    // Check if user is already confirmed
-    if (isEmailConfirmed) {
-      setVerifying(false);
-      return;
-    }
-
-    // Check verification status periodically
-    const checkEmailConfirmation = async () => {
-      if (!user) return;
-      
-      try {
-        const { data, error } = await supabase.auth.getUser();
-        
-        if (error) {
-          console.error("Error checking user:", error);
-          return;
-        }
-        
-        if (data.user?.email_confirmed_at) {
-          // Email is confirmed, refresh page or redirect
-          uiToast({
-            title: "تم التأكيد",
-            description: "تم تأكيد بريدك الإلكتروني بنجاح!",
-          });
-          window.location.href = '/';
-        }
-      } catch (err) {
-        console.error("Error checking email confirmation:", err);
-      }
-    };
-    
-    // Check immediately
-    checkEmailConfirmation();
-    
-    // Then set up an interval to check periodically
-    const interval = setInterval(checkEmailConfirmation, 5000);
-    setVerifying(false);
-    
-    return () => clearInterval(interval);
-  }, [user, isEmailConfirmed, uiToast]);
   
   const handleResendEmail = async () => {
     if (!user?.email) {
-      setError("لا يمكن إرسال رسالة التأكيد، يرجى تسجيل الدخول مرة أخرى");
       toast.error("لا يمكن إرسال رسالة التأكيد، يرجى تسجيل الدخول مرة أخرى");
       return;
     }
     
     setResending(true);
-    setError(null);
     
     try {
-      const { error } = await supabase.auth.resend({
-        type: 'signup',
-        email: user.email,
-        options: {
-          emailRedirectTo: `${window.location.origin}/auth/callback`,
-        },
-      });
+      const { error } = await resendConfirmationEmail(user.email);
       
       if (error) {
-        setError(`فشل في إرسال رسالة التأكيد: ${error.message}`);
         toast.error(`فشل في إرسال رسالة التأكيد: ${error.message}`);
         uiToast({
           variant: "destructive",
@@ -93,9 +35,8 @@ const VerifyEmailPage = () => {
           description: "تم إرسال رسالة التأكيد، يرجى التحقق من بريدك الإلكتروني",
         });
       }
-    } catch (error: any) {
+    } catch (error) {
       console.error("Error resending email:", error);
-      setError("حدث خطأ أثناء إرسال رسالة التأكيد");
       toast.error("حدث خطأ أثناء إرسال رسالة التأكيد");
     } finally {
       setResending(false);
@@ -122,24 +63,9 @@ const VerifyEmailPage = () => {
         </div>
         
         <div className="space-y-6 mt-8">
-          {verifying && (
-            <div className="flex justify-center items-center py-4">
-              <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-indigo-500"></div>
-            </div>
-          )}
-          
-          {error && (
-            <Alert variant="destructive">
-              <AlertDescription>{error}</AlertDescription>
-            </Alert>
-          )}
-          
-          {!isEmailConfirmed && !verifying && (
+          {!isEmailConfirmed && (
             <>
               <div className="bg-gray-800/50 p-6 rounded-xl">
-                <div className="flex justify-center mb-4">
-                  <Mail className="h-16 w-16 text-indigo-400" />
-                </div>
                 <p className="text-white text-center leading-relaxed">
                   لقد أرسلنا رسالة تأكيد إلى:
                   <br />
@@ -153,19 +79,9 @@ const VerifyEmailPage = () => {
                 <Button 
                   onClick={handleResendEmail} 
                   disabled={resending} 
-                  className="w-full bg-indigo-600 hover:bg-indigo-700 flex items-center justify-center"
+                  className="w-full bg-indigo-600 hover:bg-indigo-700"
                 >
-                  {resending ? (
-                    <>
-                      <span className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-white mr-2"></span>
-                      جاري إعادة الإرسال...
-                    </>
-                  ) : (
-                    <>
-                      <MailCheck className="mr-2 h-5 w-5" />
-                      إعادة إرسال رسالة التأكيد
-                    </>
-                  )}
+                  {resending ? 'جاري إعادة الإرسال...' : 'إعادة إرسال رسالة التأكيد'}
                 </Button>
                 
                 <Button
@@ -184,20 +100,12 @@ const VerifyEmailPage = () => {
           )}
           
           {isEmailConfirmed && (
-            <div className="space-y-6">
-              <div className="flex justify-center">
-                <div className="bg-green-500/20 p-4 rounded-full">
-                  <Check className="h-16 w-16 text-green-500" />
-                </div>
-              </div>
-              <p className="text-center text-white text-lg">تم تأكيد بريدك الإلكتروني بنجاح!</p>
-              <Button 
-                onClick={() => navigate('/')} 
-                className="w-full bg-green-600 hover:bg-green-700"
-              >
-                الذهاب إلى التطبيق
-              </Button>
-            </div>
+            <Button 
+              onClick={() => window.location.href = '/'} 
+              className="w-full bg-green-600 hover:bg-green-700"
+            >
+              الذهاب إلى التطبيق
+            </Button>
           )}
         </div>
       </div>
