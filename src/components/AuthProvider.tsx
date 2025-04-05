@@ -1,6 +1,6 @@
 
 import { createContext, useContext, useEffect, useState } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Session, User } from '@supabase/supabase-js';
 
@@ -11,8 +11,6 @@ interface AuthContextType {
   signIn: (email: string, password: string) => Promise<{ error: any }>;
   signOut: () => Promise<void>;
   loading: boolean;
-  isEmailConfirmed: boolean;
-  resendConfirmationEmail: (email: string) => Promise<{ error: any }>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -29,9 +27,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
-  const [isEmailConfirmed, setIsEmailConfirmed] = useState(false);
   const navigate = useNavigate();
-  const location = useLocation();
 
   useEffect(() => {
     console.log("Setting up auth listener...");
@@ -46,42 +42,19 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           setSession(newSession);
           setUser(newSession?.user ?? null);
           
-          // Check if email is confirmed
-          const emailConfirmed = newSession?.user?.email_confirmed_at != null;
-          setIsEmailConfirmed(emailConfirmed);
-          
-          console.log("Email confirmed:", emailConfirmed);
-          
-          // Redirect based on confirmation status
-          if (newSession) {
-            if (!emailConfirmed && newSession.user.email) {
-              console.log("Redirecting to email verification page");
-              // Ensure we're not already on the verification page to avoid redirect loops
-              if (location.pathname !== '/verify-email') {
-                navigate('/verify-email', { replace: true });
-              }
-            } else if (emailConfirmed && location.pathname === '/auth') {
-              navigate('/', { replace: true });
-            }
+          // Redirect user when logging in
+          if (newSession && window.location.pathname === '/auth') {
+            navigate('/');
           }
         } else if (event === 'SIGNED_OUT') {
           console.log("User signed out");
           setSession(null);
           setUser(null);
-          setIsEmailConfirmed(false);
-          navigate('/auth', { replace: true });
+          navigate('/auth');
         } else if (event === 'USER_UPDATED') {
           console.log("User updated");
           setSession(newSession);
           setUser(newSession?.user ?? null);
-          
-          // Re-check email confirmation status on update
-          const emailConfirmed = newSession?.user?.email_confirmed_at != null;
-          setIsEmailConfirmed(emailConfirmed);
-          
-          if (emailConfirmed && location.pathname === '/verify-email') {
-            navigate('/', { replace: true });
-          }
         }
         
         setLoading(false);
@@ -103,21 +76,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         console.log("Current session:", session?.user?.email);
         setSession(session);
         setUser(session?.user ?? null);
-        
-        // Check if email is confirmed for initial load
-        if (session?.user) {
-          const emailConfirmed = session.user.email_confirmed_at != null;
-          setIsEmailConfirmed(emailConfirmed);
-          
-          // Redirect to verification page if needed
-          if (!emailConfirmed && session.user.email) {
-            console.log("Initial redirect to email verification page");
-            if (location.pathname !== '/verify-email' && 
-                location.pathname !== '/auth') {
-              navigate('/verify-email', { replace: true });
-            }
-          }
-        }
       } catch (error) {
         console.error('Error getting session:', error);
       } finally {
@@ -128,7 +86,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     getSession();
 
     return () => subscription.unsubscribe();
-  }, [navigate, location.pathname]);
+  }, [navigate]);
 
   const signUp = async (email: string, password: string) => {
     try {
@@ -137,7 +95,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         email, 
         password,
         options: {
-          emailRedirectTo: `${window.location.origin}/auth/callback`,
+          emailRedirectTo: window.location.origin,
         } 
       });
       console.log("Sign up result:", error ? `Error: ${error.message}` : "Success");
@@ -154,6 +112,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       const { error } = await supabase.auth.signInWithPassword({ email, password });
       console.log("Sign in result:", error ? `Error: ${error.message}` : "Success");
       
+      if (!error) {
+        navigate('/');
+      }
       return { error };
     } catch (error: any) {
       console.error('Error during sign in:', error);
@@ -171,34 +132,13 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
   };
 
-  const resendConfirmationEmail = async (email: string) => {
-    try {
-      console.log("Resending confirmation email to:", email);
-      const { error } = await supabase.auth.resend({
-        type: 'signup',
-        email,
-        options: {
-          emailRedirectTo: `${window.location.origin}/auth/callback`,
-        },
-      });
-      
-      console.log("Resend result:", error ? `Error: ${error.message}` : "Success");
-      return { error };
-    } catch (error: any) {
-      console.error('Error resending confirmation email:', error);
-      return { error };
-    }
-  };
-
   const value = {
     session,
     user,
     signUp,
     signIn,
     signOut,
-    loading,
-    isEmailConfirmed,
-    resendConfirmationEmail
+    loading
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
