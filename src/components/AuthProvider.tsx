@@ -1,6 +1,6 @@
 
 import { createContext, useContext, useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Session, User } from '@supabase/supabase-js';
 
@@ -11,6 +11,7 @@ interface AuthContextType {
   signIn: (email: string, password: string) => Promise<{ error: any }>;
   signOut: () => Promise<void>;
   loading: boolean;
+  isEmailVerified: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -27,14 +28,16 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isEmailVerified, setIsEmailVerified] = useState(false);
   const navigate = useNavigate();
+  const location = useLocation();
 
   useEffect(() => {
     console.log("Setting up auth listener...");
     
     // First set up the auth listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, newSession) => {
+      async (event, newSession) => {
         console.log("Auth state changed:", event, newSession?.user?.email);
         
         if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
@@ -42,19 +45,36 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           setSession(newSession);
           setUser(newSession?.user ?? null);
           
-          // Redirect user when logging in
-          if (newSession && window.location.pathname === '/auth') {
-            navigate('/');
+          // Check if email is verified via user metadata
+          const isVerified = newSession?.user?.user_metadata?.email_verified === true;
+          setIsEmailVerified(isVerified);
+          
+          // Redirect based on verification status
+          if (newSession && location.pathname === '/auth') {
+            if (isVerified) {
+              navigate('/');
+            } else {
+              navigate('/verify-email');
+            }
           }
         } else if (event === 'SIGNED_OUT') {
           console.log("User signed out");
           setSession(null);
           setUser(null);
+          setIsEmailVerified(false);
           navigate('/auth');
         } else if (event === 'USER_UPDATED') {
           console.log("User updated");
           setSession(newSession);
           setUser(newSession?.user ?? null);
+          
+          // Re-check verification status after user update
+          const isVerified = newSession?.user?.user_metadata?.email_verified === true;
+          setIsEmailVerified(isVerified);
+          
+          if (isVerified && location.pathname === '/verify-email') {
+            navigate('/');
+          }
         }
         
         setLoading(false);
@@ -76,6 +96,21 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         console.log("Current session:", session?.user?.email);
         setSession(session);
         setUser(session?.user ?? null);
+        
+        // Check if email is verified
+        if (session?.user) {
+          const isVerified = session.user.user_metadata?.email_verified === true;
+          setIsEmailVerified(isVerified);
+          
+          // Redirect if needed
+          if (location.pathname === '/auth' && session) {
+            if (isVerified) {
+              navigate('/');
+            } else {
+              navigate('/verify-email');
+            }
+          }
+        }
       } catch (error) {
         console.error('Error getting session:', error);
       } finally {
@@ -86,7 +121,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     getSession();
 
     return () => subscription.unsubscribe();
-  }, [navigate]);
+  }, [navigate, location.pathname]);
 
   const signUp = async (email: string, password: string) => {
     try {
@@ -99,6 +134,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         } 
       });
       console.log("Sign up result:", error ? `Error: ${error.message}` : "Success");
+      
+      // After successful signup, redirect to verification page
+      if (!error) {
+        navigate('/verify-email');
+      }
+      
       return { error };
     } catch (error: any) {
       console.error('Error during sign up:', error);
@@ -113,7 +154,15 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       console.log("Sign in result:", error ? `Error: ${error.message}` : "Success");
       
       if (!error) {
-        navigate('/');
+        // Get updated user data to check verification status
+        const { data } = await supabase.auth.getUser();
+        const isVerified = data.user?.user_metadata?.email_verified === true;
+        
+        if (isVerified) {
+          navigate('/');
+        } else {
+          navigate('/verify-email');
+        }
       }
       return { error };
     } catch (error: any) {
@@ -138,7 +187,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     signUp,
     signIn,
     signOut,
-    loading
+    loading,
+    isEmailVerified
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
