@@ -15,16 +15,16 @@ const EmailVerificationPage = () => {
   const { toast: uiToast } = useToast();
   const { user, isEmailVerified } = useAuth();
   
-  // Fixed verification code
+  // رمز التحقق الثابت 
   const FIXED_CODE = "1490";
 
-  // Redirect if already verified
+  // إعادة توجيه إذا كان البريد مُحقق بالفعل
   if (isEmailVerified) {
     navigate("/");
     return null;
   }
 
-  // Redirect if not logged in
+  // إعادة التوجيه إذا لم يكن المستخدم مسجل الدخول
   if (!user) {
     navigate("/auth");
     return null;
@@ -35,7 +35,7 @@ const EmailVerificationPage = () => {
       setIsVerifying(true);
       
       try {
-        // Get current user
+        // الحصول على المستخدم الحالي
         const { data: { user } } = await supabase.auth.getUser();
         
         if (!user) {
@@ -49,7 +49,7 @@ const EmailVerificationPage = () => {
           return;
         }
 
-        // Set custom user metadata to mark email as verified
+        // تعيين بيانات تعريف المستخدم المخصصة لوضع علامة على البريد الإلكتروني كمُحقق
         const { error } = await supabase.auth.updateUser({
           data: { email_verified: true }
         });
@@ -64,7 +64,7 @@ const EmailVerificationPage = () => {
         });
         toast.success("تم التحقق من بريدك الإلكتروني بنجاح");
         
-        // Redirect to the main page after successful verification
+        // إعادة التوجيه إلى الصفحة الرئيسية بعد التحقق الناجح
         navigate("/");
       } catch (error: any) {
         uiToast({
@@ -87,8 +87,8 @@ const EmailVerificationPage = () => {
   };
 
   const handleResendCode = () => {
-    // In a real system, this would send a new email with the code
-    // For now, we'll just show a toast message
+    // في نظام حقيقي، هذا سيرسل بريدًا إلكترونيًا جديدًا برمز التحقق
+    // حاليًا، سنعرض فقط رسالة تنبيه
     uiToast({
       title: "تم إرسال الرمز",
       description: "تم إرسال رمز التحقق إلى بريدك الإلكتروني",
