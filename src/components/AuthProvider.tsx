@@ -1,3 +1,4 @@
+
 import { createContext, useContext, useEffect, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
@@ -49,19 +50,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           setIsEmailVerified(isVerified);
           
           // Redirect based on verification status
-          if (newSession) {
+          if (newSession && location.pathname === '/auth') {
             if (isVerified) {
-              // إذا كان المستخدم في صفحة التحقق وتم التحقق بالفعل، انتقل إلى الصفحة الرئيسية
-              if (location.pathname === '/verify-email') {
-                navigate('/');
-              } else if (location.pathname === '/auth') {
-                navigate('/');
-              }
+              navigate('/');
             } else {
-              // إذا لم يتم التحقق من البريد وكان المستخدم ليس في صفحة التحقق، اذهب إلى صفحة التحقق
-              if (location.pathname !== '/verify-email') {
-                navigate('/verify-email');
-              }
+              navigate('/verify-email');
             }
           }
         } else if (event === 'SIGNED_OUT') {
@@ -80,8 +73,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           setIsEmailVerified(isVerified);
           
           if (isVerified && location.pathname === '/verify-email') {
-            // إذا تم التحقق أثناء وجود المستخدم في صفحة التحقق، انتظر قليلاً قبل التوجيه
-            // سنترك للصفحة نفسها إظهار رسالة النجاح ثم إعادة التوجيه
+            navigate('/');
           }
         }
         
@@ -111,15 +103,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           setIsEmailVerified(isVerified);
           
           // Redirect if needed
-          if (session) {
+          if (location.pathname === '/auth' && session) {
             if (isVerified) {
-              if (location.pathname === '/verify-email' || location.pathname === '/auth') {
-                navigate('/');
-              }
+              navigate('/');
             } else {
-              if (location.pathname !== '/verify-email' && location.pathname !== '/auth') {
-                navigate('/verify-email');
-              }
+              navigate('/verify-email');
             }
           }
         }
@@ -142,13 +130,15 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         email, 
         password,
         options: {
-          emailRedirectTo: `${window.location.origin}/verify-email`,
+          emailRedirectTo: window.location.origin,
         } 
       });
       console.log("Sign up result:", error ? `Error: ${error.message}` : "Success");
       
-      // Improved navigation - don't rely on the AuthProvider to handle navigation
-      // We'll handle it explicitly in the component after calling signUp
+      // After successful signup, redirect to verification page
+      if (!error) {
+        navigate('/verify-email');
+      }
       
       return { error };
     } catch (error: any) {
