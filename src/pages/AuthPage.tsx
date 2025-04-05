@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { useAuth } from '@/components/AuthProvider';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
-import { Navigate } from 'react-router-dom';
+import { Navigate, useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -14,6 +14,7 @@ const AuthPage = () => {
   const [loading, setLoading] = useState(false);
   const { signIn, signUp, user } = useAuth();
   const { toast: uiToast } = useToast();
+  const navigate = useNavigate();
 
   // Redirect if already logged in
   if (user) {
@@ -92,6 +93,9 @@ const AuthPage = () => {
           });
           
           toast.success("تم إنشاء الحساب بنجاح، يرجى التحقق من بريدك الإلكتروني");
+          
+          // Explicitly navigate to the verification page after successful signup
+          navigate('/verify-email');
         }
       }
     } catch (error) {

@@ -1,4 +1,3 @@
-
 import { createContext, useContext, useEffect, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
@@ -148,10 +147,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       });
       console.log("Sign up result:", error ? `Error: ${error.message}` : "Success");
       
-      // After successful signup, redirect to verification page
-      if (!error) {
-        navigate('/verify-email');
-      }
+      // Improved navigation - don't rely on the AuthProvider to handle navigation
+      // We'll handle it explicitly in the component after calling signUp
       
       return { error };
     } catch (error: any) {
