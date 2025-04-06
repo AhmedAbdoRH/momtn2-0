@@ -126,20 +126,23 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const signUp = async (email: string, password: string) => {
     try {
       console.log("Attempting to sign up:", email);
-      const { error } = await supabase.auth.signUp({ 
+      const { data, error } = await supabase.auth.signUp({ 
         email, 
         password,
         options: {
-          emailRedirectTo: `${window.location.origin}/verify-email`,
           data: {
             email_verified: false // Mark as unverified initially
           }
         } 
       });
-      console.log("Sign up result:", error ? `Error: ${error.message}` : "Success");
       
-      // After successful signup, redirect to verification page
-      if (!error) {
+      console.log("Sign up result:", error ? `Error: ${error.message}` : "Success", data);
+      
+      // After successful signup, explicitly redirect to verification page
+      if (!error && data.user) {
+        setUser(data.user);
+        setIsEmailVerified(false);
+        console.log("Redirecting to /verify-email after sign up");
         navigate('/verify-email');
       }
       
@@ -153,17 +156,18 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const signIn = async (email: string, password: string) => {
     try {
       console.log("Attempting to sign in:", email);
-      const { error } = await supabase.auth.signInWithPassword({ email, password });
-      console.log("Sign in result:", error ? `Error: ${error.message}` : "Success");
+      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+      console.log("Sign in result:", error ? `Error: ${error.message}` : "Success", data);
       
-      if (!error) {
+      if (!error && data.user) {
         // Get updated user data to check verification status
-        const { data } = await supabase.auth.getUser();
-        const isVerified = data.user?.user_metadata?.email_verified === true;
+        const isVerified = data.user.user_metadata?.email_verified === true;
+        setIsEmailVerified(isVerified);
         
         if (isVerified) {
           navigate('/');
         } else {
+          console.log("Redirecting to /verify-email after sign in");
           navigate('/verify-email');
         }
       }

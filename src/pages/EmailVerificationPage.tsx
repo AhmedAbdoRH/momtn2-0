@@ -7,6 +7,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
 import { useAuth } from "@/components/AuthProvider";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
+import { toast as sonnerToast } from "sonner";
 
 const EmailVerificationPage = () => {
   const [verificationCode, setVerificationCode] = useState("");
@@ -25,13 +26,19 @@ const EmailVerificationPage = () => {
   useEffect(() => {
     // If not logged in, redirect to auth page
     if (!user) {
+      console.log("No user found, redirecting to auth page");
       navigate('/auth');
       return;
     }
 
+    console.log("Email verification page loaded for user:", user.email);
+    
     // Automatically send verification code when the page loads
     if (user && !user.user_metadata?.email_verified) {
+      console.log("User is not verified, sending verification code");
       handleSendCode();
+    } else {
+      console.log("User is already verified");
     }
   }, [user]);
 
@@ -64,10 +71,12 @@ const EmailVerificationPage = () => {
             description: "يجب تسجيل الدخول أولاً",
             variant: "destructive",
           });
+          sonnerToast.error("يجب تسجيل الدخول أولاً");
           navigate("/auth");
           return;
         }
 
+        console.log("Verifying user email for:", user.email);
         // Set custom user metadata to mark email as verified
         const { error } = await supabase.auth.updateUser({
           data: { email_verified: true }
@@ -82,14 +91,18 @@ const EmailVerificationPage = () => {
           description: "تم التحقق من بريدك الإلكتروني بنجاح",
         });
         
+        sonnerToast.success("تم التحقق من بريدك الإلكتروني بنجاح");
+        
         // Redirect to the main page after successful verification
         navigate("/");
       } catch (error: any) {
+        console.error("Error during verification:", error);
         toast({
           title: "خطأ في التحقق",
           description: error.message || "حدث خطأ أثناء التحقق من البريد الإلكتروني",
           variant: "destructive",
         });
+        sonnerToast.error("خطأ في التحقق: " + (error.message || "حدث خطأ أثناء التحقق من البريد الإلكتروني"));
       } finally {
         setIsVerifying(false);
       }
@@ -99,6 +112,7 @@ const EmailVerificationPage = () => {
         description: "الرمز الذي أدخلته غير صحيح",
         variant: "destructive",
       });
+      sonnerToast.error("الرمز الذي أدخلته غير صحيح");
     }
   };
 
@@ -107,17 +121,25 @@ const EmailVerificationPage = () => {
     
     setIsResending(true);
     try {
+      if (!user || !user.email) {
+        throw new Error("لا يوجد مستخدم مسجل الدخول");
+      }
+      
       // Generate a new code
       const newCode = Math.floor(1000 + Math.random() * 9000).toString();
       setGeneratedCode(newCode);
       
+      console.log("Sending verification code to:", user.email, "Code:", newCode);
+      
       // Send verification code via our edge function
-      const { error } = await supabase.functions.invoke('send-verification-email', {
+      const { error, data } = await supabase.functions.invoke('send-verification-email', {
         body: { 
-          email: user?.email,
+          email: user.email,
           code: newCode
         }
       });
+      
+      console.log("Edge function response:", data, error);
       
       if (error) throw error;
       
@@ -126,8 +148,10 @@ const EmailVerificationPage = () => {
       
       toast({
         title: "تم إرسال الرمز",
-        description: `تم إرسال رمز التحقق إلى بريدك الإلكتروني: ${user?.email}`,
+        description: `تم إرسال رمز التحقق إلى بريدك الإلكتروني: ${user.email}`,
       });
+      
+      sonnerToast.success(`تم إرسال رمز التحقق إلى: ${user.email}`);
     } catch (error: any) {
       console.error("Error sending verification email:", error);
       toast({
@@ -135,6 +159,8 @@ const EmailVerificationPage = () => {
         description: error.message || "حدث خطأ أثناء إرسال رمز التحقق",
         variant: "destructive",
       });
+      
+      sonnerToast.error("خطأ في إرسال رمز التحقق: " + (error.message || "حدث خطأ غير معروف"));
     } finally {
       setIsResending(false);
     }

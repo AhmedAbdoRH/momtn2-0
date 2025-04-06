@@ -34,6 +34,8 @@ const handler = async (req: Request): Promise<Response> => {
 
     const resend = new Resend(RESEND_API_KEY);
 
+    console.log("Attempting to send email to:", email, "with code:", code);
+
     // Send email via Resend API
     const response = await resend.emails.send({
       from: "تطبيقك <onboarding@resend.dev>",
