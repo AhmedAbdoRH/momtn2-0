@@ -131,6 +131,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         password,
         options: {
           emailRedirectTo: window.location.origin,
+          data: {
+            email_verified: false // Mark as unverified initially
+          }
         } 
       });
       console.log("Sign up result:", error ? `Error: ${error.message}` : "Success");

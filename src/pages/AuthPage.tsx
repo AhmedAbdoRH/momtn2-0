@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { useAuth } from '@/components/AuthProvider';
 import { Button } from '@/components/ui/button';
@@ -47,7 +46,6 @@ const AuthPage = () => {
           } else if (error.message?.includes("network")) {
             errorMessage = "خطأ في الاتصال بالخادم، يرجى التحقق من اتصالك بالإنترنت";
           } else {
-            // Handle other specific errors
             console.error("Sign-in error details:", error);
             errorMessage = `خطأ: ${error.message || "حدث خطأ غير معروف"}`;
           }
@@ -72,7 +70,6 @@ const AuthPage = () => {
           } else if (error.message?.includes("network")) {
             errorMessage = "خطأ في الاتصال بالخادم، يرجى التحقق من اتصالك بالإنترنت";
           } else {
-            // Handle other specific errors
             console.error("Sign-up error details:", error);
             errorMessage = `خطأ: ${error.message || "حدث خطأ غير معروف"}`;
           }
@@ -83,15 +80,16 @@ const AuthPage = () => {
             description: errorMessage,
           });
           
-          // Also use the more visible Sonner toast
           toast.error(errorMessage);
         } else {
           uiToast({
             title: "تم إنشاء الحساب بنجاح",
-            description: "يرجى التحقق من بريدك الإلكتروني لتأكيد الحساب",
+            description: "سيتم توجيهك إلى صفحة التحقق من البريد الإلكتروني",
           });
           
-          toast.success("تم إنشاء الحساب بنجاح، يرجى التحقق من بريدك الإلكتروني");
+          toast.success("تم إنشاء الحساب بنجاح، سيتم توجيهك إلى صفحة التحقق");
+          
+          // Redirect to verification page is handled in AuthProvider
         }
       }
     } catch (error) {
@@ -156,7 +154,7 @@ const AuthPage = () => {
       setLoading(false);
     }
   };
-
+  
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#2D1F3D] via-[#1A1F2C] to-[#3D1F2C] flex items-center justify-center p-4">
       <div className="max-w-md w-full space-y-8 bg-gray-900/60 backdrop-blur-xl p-8 rounded-2xl shadow-xl">
