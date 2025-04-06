@@ -17,8 +17,10 @@ const EmailVerificationPage = () => {
   const { toast } = useToast();
   const { user } = useAuth();
   
-  // Fixed verification code for testing purposes
-  const FIXED_CODE = "1490";
+  // Generate a random 4-digit code when the component mounts
+  const [generatedCode, setGeneratedCode] = useState(() => {
+    return Math.floor(1000 + Math.random() * 9000).toString();
+  });
 
   useEffect(() => {
     // If not logged in, redirect to auth page
@@ -29,7 +31,7 @@ const EmailVerificationPage = () => {
 
     // Automatically send verification code when the page loads
     if (user && !user.user_metadata?.email_verified) {
-      handleResendCode();
+      handleSendCode();
     }
   }, [user]);
 
@@ -49,7 +51,7 @@ const EmailVerificationPage = () => {
   }, [countdown]);
 
   const handleVerify = async () => {
-    if (verificationCode === FIXED_CODE) {
+    if (verificationCode === generatedCode) {
       setIsVerifying(true);
       
       try {
@@ -100,19 +102,24 @@ const EmailVerificationPage = () => {
     }
   };
 
-  const handleResendCode = async () => {
+  const handleSendCode = async () => {
     if (countdown > 0) return;
     
     setIsResending(true);
     try {
-      // In a real implementation, this would send an actual email
-      // For now, we'll just show a success message since we're using the fixed code
+      // Generate a new code
+      const newCode = Math.floor(1000 + Math.random() * 9000).toString();
+      setGeneratedCode(newCode);
       
-      // To make it more realistic, we'll use the OTP (one-time password) API
-      // This sends an email, but we'll still use our fixed code for verification
-      await supabase.auth.resetPasswordForEmail(user?.email || "", {
-        redirectTo: window.location.origin + "/verify-email"
+      // Send verification code via our edge function
+      const { error } = await supabase.functions.invoke('send-verification-email', {
+        body: { 
+          email: user?.email,
+          code: newCode
+        }
       });
+      
+      if (error) throw error;
       
       // Start countdown for 60 seconds
       setCountdown(60);
@@ -122,6 +129,7 @@ const EmailVerificationPage = () => {
         description: `تم إرسال رمز التحقق إلى بريدك الإلكتروني: ${user?.email}`,
       });
     } catch (error: any) {
+      console.error("Error sending verification email:", error);
       toast({
         title: "خطأ في الإرسال",
         description: error.message || "حدث خطأ أثناء إرسال رمز التحقق",
@@ -140,12 +148,15 @@ const EmailVerificationPage = () => {
           أدخل رمز التحقق المرسل إلى بريدك الإلكتروني {user?.email}
         </p>
         
-        <Alert className="mb-6 bg-amber-100 border-amber-300 text-amber-800">
-          <AlertTitle className="mb-2">ملاحظة</AlertTitle>
-          <AlertDescription>
-            للتسهيل عليك، رمز التحقق الثابت هو: <span className="font-bold">1490</span>
-          </AlertDescription>
-        </Alert>
+        {/* Only show this in development mode or for testing */}
+        {import.meta.env.DEV && (
+          <Alert className="mb-6 bg-amber-100 border-amber-300 text-amber-800">
+            <AlertTitle className="mb-2">ملاحظة (وضع التطوير فقط)</AlertTitle>
+            <AlertDescription>
+              رمز التحقق الحالي هو: <span className="font-bold">{generatedCode}</span>
+            </AlertDescription>
+          </Alert>
+        )}
         
         <div className="space-y-6">
           <div className="flex justify-center">
@@ -176,7 +187,7 @@ const EmailVerificationPage = () => {
           <Button 
             variant="outline" 
             className="w-full" 
-            onClick={handleResendCode} 
+            onClick={handleSendCode} 
             disabled={countdown > 0 || isResending}
           >
             {countdown > 0 
