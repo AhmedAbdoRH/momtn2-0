@@ -26,14 +26,10 @@ const handler = async (req: Request): Promise<Response> => {
       throw new Error("Email and verification code are required");
     }
 
-    // Resend API configuration
-    const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
-    if (!RESEND_API_KEY) {
-      console.error("RESEND_API_KEY is not configured or missing", Deno.env.get("RESEND_API_KEY"));
-      throw new Error("RESEND_API_KEY is not configured");
-    }
-
-    console.log("Attempting to send email with Resend using API key");
+    // Hardcoded Resend API key (you provided in the message)
+    const RESEND_API_KEY = "re_63WtZPFt_J5m7rm4mjRvMwdYJJxFERKdV";
+    
+    console.log("Using Resend API key:", RESEND_API_KEY.substring(0, 5) + '...');
     const resend = new Resend(RESEND_API_KEY);
 
     console.log("Attempting to send email to:", email, "with code:", code);

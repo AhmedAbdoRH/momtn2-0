@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -13,6 +14,7 @@ const EmailVerificationPage = () => {
   const [isVerifying, setIsVerifying] = useState(false);
   const [isResending, setIsResending] = useState(false);
   const [countdown, setCountdown] = useState(0);
+  const [emailSent, setEmailSent] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
   const { user } = useAuth();
@@ -30,13 +32,15 @@ const EmailVerificationPage = () => {
 
     console.log("Email verification page loaded for user:", user.email);
     
-    if (user && !user.user_metadata?.email_verified) {
-      console.log("User is not verified, sending verification code");
+    // Send verification code immediately when page loads, but only once
+    if (user && !user.user_metadata?.email_verified && !emailSent) {
+      console.log("User is not verified, sending verification code automatically");
       handleSendCode();
-    } else {
-      console.log("User is already verified");
+    } else if (user.user_metadata?.email_verified) {
+      console.log("User is already verified, redirecting to home");
+      navigate('/');
     }
-  }, [user]);
+  }, [user, emailSent]);
 
   useEffect(() => {
     let timer: number | undefined;
@@ -134,6 +138,7 @@ const EmailVerificationPage = () => {
       if (error) throw error;
       
       setCountdown(60);
+      setEmailSent(true);
       
       toast({
         title: "تم إرسال الرمز",
