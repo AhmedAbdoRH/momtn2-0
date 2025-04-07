@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -18,13 +17,11 @@ const EmailVerificationPage = () => {
   const { toast } = useToast();
   const { user } = useAuth();
   
-  // Generate a random 4-digit code when the component mounts
   const [generatedCode, setGeneratedCode] = useState(() => {
     return Math.floor(1000 + Math.random() * 9000).toString();
   });
 
   useEffect(() => {
-    // If not logged in, redirect to auth page
     if (!user) {
       console.log("No user found, redirecting to auth page");
       navigate('/auth');
@@ -33,7 +30,6 @@ const EmailVerificationPage = () => {
 
     console.log("Email verification page loaded for user:", user.email);
     
-    // Automatically send verification code when the page loads
     if (user && !user.user_metadata?.email_verified) {
       console.log("User is not verified, sending verification code");
       handleSendCode();
@@ -42,7 +38,6 @@ const EmailVerificationPage = () => {
     }
   }, [user]);
 
-  // Countdown timer for resend button
   useEffect(() => {
     let timer: number | undefined;
     
@@ -62,7 +57,6 @@ const EmailVerificationPage = () => {
       setIsVerifying(true);
       
       try {
-        // Get current user
         const { data: { user } } = await supabase.auth.getUser();
         
         if (!user) {
@@ -77,7 +71,6 @@ const EmailVerificationPage = () => {
         }
 
         console.log("Verifying user email for:", user.email);
-        // Set custom user metadata to mark email as verified
         const { error } = await supabase.auth.updateUser({
           data: { email_verified: true }
         });
@@ -93,7 +86,6 @@ const EmailVerificationPage = () => {
         
         sonnerToast.success("تم التحقق من بريدك الإلكتروني بنجاح");
         
-        // Redirect to the main page after successful verification
         navigate("/");
       } catch (error: any) {
         console.error("Error during verification:", error);
@@ -125,13 +117,11 @@ const EmailVerificationPage = () => {
         throw new Error("لا يوجد مستخدم مسجل الدخول");
       }
       
-      // Generate a new code
       const newCode = Math.floor(1000 + Math.random() * 9000).toString();
       setGeneratedCode(newCode);
       
       console.log("Sending verification code to:", user.email, "Code:", newCode);
       
-      // Send verification code via our edge function
       const { error, data } = await supabase.functions.invoke('send-verification-email', {
         body: { 
           email: user.email,
@@ -143,7 +133,6 @@ const EmailVerificationPage = () => {
       
       if (error) throw error;
       
-      // Start countdown for 60 seconds
       setCountdown(60);
       
       toast({
@@ -174,7 +163,6 @@ const EmailVerificationPage = () => {
           أدخل رمز التحقق المرسل إلى بريدك الإلكتروني {user?.email}
         </p>
         
-        {/* Only show this in development mode or for testing */}
         {import.meta.env.DEV && (
           <Alert className="mb-6 bg-amber-100 border-amber-300 text-amber-800">
             <AlertTitle className="mb-2">ملاحظة (وضع التطوير فقط)</AlertTitle>

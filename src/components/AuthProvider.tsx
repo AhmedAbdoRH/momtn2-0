@@ -1,4 +1,3 @@
-
 import { createContext, useContext, useEffect, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
@@ -54,6 +53,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             if (isVerified) {
               navigate('/');
             } else {
+              console.log("Redirecting to verification page - user not verified");
               navigate('/verify-email');
             }
           }
@@ -107,6 +107,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             if (isVerified) {
               navigate('/');
             } else {
+              console.log("Redirecting to verification page - user not verified");
               navigate('/verify-email');
             }
           }
@@ -142,6 +143,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       if (!error && data.user) {
         setUser(data.user);
         setIsEmailVerified(false);
+        setSession(data.session);
         console.log("Redirecting to /verify-email after sign up");
         navigate('/verify-email');
       }
@@ -167,7 +169,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         if (isVerified) {
           navigate('/');
         } else {
-          console.log("Redirecting to /verify-email after sign in");
+          console.log("Redirecting to verification page - user not verified");
           navigate('/verify-email');
         }
       }
