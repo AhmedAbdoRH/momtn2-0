@@ -13,14 +13,14 @@ interface PhotoCardProps {
   onUpdateCaption?: (caption: string, hashtags: string[]) => Promise<void>;
 }
 
-const PhotoCard = ({ 
-  imageUrl, 
-  likes: initialLikes, 
+const PhotoCard = ({
+  imageUrl,
+  likes: initialLikes,
   caption: initialCaption = '',
   hashtags: initialHashtags = [],
   onDelete,
   dragHandleProps,
-  onUpdateCaption 
+  onUpdateCaption
 }: PhotoCardProps) => {
   const [isLoved, setIsLoved] = useState(false);
   const [likes, setLikes] = useState(initialLikes);
@@ -70,7 +70,7 @@ const PhotoCard = ({
 
   return (
     <>
-      <div 
+      <div
         className="relative group overflow-hidden rounded-xl shadow-xl transition-all duration-300"
         onClick={toggleControls}
       >
@@ -85,8 +85,8 @@ const PhotoCard = ({
             isControlsVisible ? 'opacity-100' : 'opacity-0'
           }`} />
         </div>
-        
-        <div 
+
+        <div
           {...dragHandleProps}
           className={`absolute top-2 right-2 p-2 rounded-full bg-black/20 backdrop-blur-sm transition-opacity duration-300 cursor-move ${
             isControlsVisible ? 'opacity-50' : 'opacity-0'
