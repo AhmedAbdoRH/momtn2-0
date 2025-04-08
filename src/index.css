@@ -1,196 +1,199 @@
+
+
+
 @tailwind base;
+
 @tailwind components;
+
 @tailwind utilities;
 
-/*
-  هذه الطبقة الأساسية تحدد الأنماط الافتراضية للعناصر الأساسية في HTML.
-  تستخدم متغيرات CSS لتخصيص الألوان والخصائص بشكل مركزي.
-*/
+
+
 @layer base {
-  /*
-    تعريف متغيرات CSS (Custom Properties) لتخزين قيم الألوان والخصائص القابلة لإعادة الاستخدام.
-    يمكن الوصول إلى هذه المتغيرات في أي مكان في ملف CSS باستخدام `var(--اسم-المتغير)`.
-  */
-  :root {
-    --background: 283 32% 15%; /* #2D1F3D - لون الخلفية الرئيسي */
-    --foreground: 0 0% 100%; /* نص أبيض - اللون الافتراضي للنص */
 
-    --primary: 280 80% 40%; /* لون الزر الأساسي (يمكنك إضافة هذا المتغير إذا كنت تستخدمه بشكل مباشر) */
-    --primary-foreground: 0 0% 100%; /* لون نص الزر الأساسي (أبيض) */
+  :root {
 
-    --secondary: 280 30% 30%; /* لون زر ثانوي */
-    --secondary-foreground: 0 0% 100%; /* لون نص الزر الثانوي (أبيض) */
+    --background: 283 32% 15%; /* #2D1F3D */
 
-    --muted: 270 20% 35%; /* لون خلفية زر معطل أو عنصر باهت */
-    --muted-foreground: 0 0% 70%; /* لون نص الزر المعطل أو العنصر الباهت (رمادي فاتح) */
+    --foreground: 0 0% 100%; /* نص أبيض */
 
-    --accent: 275 30% 40%; /* لون زر مميز أو عنصر 강조 */
-    --accent-foreground: 0 0% 100%; /* لون نص الزر المميز (أبيض) */
+    
 
-    --destructive: 0 84.2% 60.2%; /* لون زر مدمر أو للتنبيهات الخطيرة (أحمر) */
-    --destructive-foreground: 210 40% 98%; /* لون نص الزر المدمر (أبيض مائل للأزرق الفاتح) */
 
-    --border: 275 20% 45%; /* لون حدود العناصر */
-    --input: 275 20% 50%; /* لون خلفية حقول الإدخال */
-    --ring: 283 32% 55%; /* لون حلقة التركيز (focus ring) للعناصر التفاعلية */
 
-    --sidebar: 280 30% 100%; /* لون الشريط الجانبي (مثال على لون مخصص) */
+    --primary-foreground: 0 0% 100%; /* لون نص الزر الأساسي */
 
-    --radius: 1rem; /* نصف قطر الحدود الافتراضي للعناصر */
-  }
+    
 
-  /*
-    تطبيق أنماط على عنصر `body`.
-    `@apply` تستخدم لتضمين فئات Tailwind CSS الموجودة.
-    - `bg-gradient-to-br`: يطبق تدرجًا لونيًا قطريًا من الزاوية العلوية اليسرى إلى الزاوية السفلية اليمنى.
-    - `from-[#2D1F3D]`: اللون الذي يبدأ به التدرج.
-    - `via-[#1A1F2C]`: اللون المتوسط في التدرج.
-    - `to-[#3D1F2C]`: اللون الذي ينتهي به التدرج.
-    - `text-foreground`: يطبق لون النص المحدد في متغير `--foreground` (أبيض).
-    - `antialiased`: يحسن عرض الخطوط لجعلها تبدو أكثر سلاسة.
-  */
-  body {
-    @apply bg-gradient-to-br from-[#2D1F3D] via-[#1A1F2C] to-[#3D1F2C] text-foreground antialiased;
-  }
+    --secondary: 280 30% 30%; /* لون زر ثانوي */
 
-  /*
-    تطبيق نمط على عنصر `img` لجعل الصور غير قابلة للتحديد (لمنع السحب العرضي).
-  */
-  img {
-    @apply select-none;
-  }
+    --secondary-foreground: 0 0% 100%; /* لون نص الزر الثانوي */
 
-  /*
-    تطبيق أنماط افتراضية على عنصر `button`.
-    - `bg-primary`: يطبق لون الخلفية المحدد (يفترض وجود فئة `bg-primary` في Tailwind config أو تم تعريفها في طبقات أخرى).
-    - `text-primary-foreground`: يطبق لون النص المحدد لزر أساسي (أبيض).
-    - `rounded-lg`: يضيف حدودًا دائرية صغيرة للزر.
-    - `px-4 py-2`: يضيف مساحة داخلية أفقية وعمودية للزر.
-    - `hover:bg-primary/0`: عند التHover، يجعل خلفية الزر شفافة (بافتراض أن `bg-primary` له لون).
-    - `transition-colors`: يضيف انتقالًا سلسًا لتغيير الألوان عند التفاعل.
-  */
-  button {
-    @apply bg-primary text-primary-foreground rounded-lg px-4 py-2 hover:bg-primary/13 transition-colors;
-  }
+    
 
-  /*
-    تطبيق أنماط على زر ثانوي باستخدام نفس المنطق كما في الزر الأساسي ولكن بألوان ثانوية.
-  */
-  .secondary-button {
-    @apply bg-secondary text-secondary-foreground rounded-lg px-4 py-2 hover:bg-secondary/80 transition-colors;
-  }
+    --muted: 270 20% 35%; /* لون خلفية زر معطل */
 
-  /*
-    تطبيق أنماط على زر معطل.
-    - `cursor-not-allowed`: يغير مؤشر الفأرة للإشارة إلى أن الزر غير تفاعلي.
-  */
-  .muted-button {
-    @apply bg-muted text-muted-foreground rounded-lg px-4 py-2 cursor-not-allowed;
-  }
+    --muted-foreground: 0 0% 70%; /* لون نص الزر المعطل */
 
-  /*
-    تطبيق أنماط على زر مميز بنفس المنطق مع ألوان مميزة.
-  */
-  .accent-button {
-    @apply bg-accent text-accent-foreground rounded-lg px-4 py-2 hover:bg-accent/80 transition-colors;
-  }
+    
 
-  /*
-    تطبيق أنماط على زر مدمر بنفس المنطق مع ألوان مدمرة.
-  */
-  .destructive-button {
-    @apply bg-destructive text-destructive-foreground rounded-lg px-4 py-2 hover:bg-destructive/80 transition-colors;
-  }
+    --accent: 275 30% 40%; /* لون زر مميز */
 
-  /*
-    تطبيق أنماط على زر دائري.
-    - `rounded-full`: يجعل الحواف دائرية تمامًا.
-    - `p-4`: يضيف مساحة داخلية من جميع الجوانب.
-    - `w-12 h-12`: يحدد عرض وارتفاع ثابتين لجعل الزر دائريًا بشكل صحيح.
-  */
-  .circular-button {
-    @apply rounded-full p-4 w-12 h-12; /* اجعل الزر دائريًا مع تحديد العرض والارتفاع */
-  }
+    --accent-foreground: 0 0% 100%; /* لون نص الزر المميز */
 
-  /*
-    تطبيق لون نص أبيض افتراضي على جميع العناصر (`*`).
-    هذا قد يتم تجاوزه بواسطة أنماط أكثر تحديدًا.
-  */
-  * {
-    color: white; /* اجعل جميع النصوص باللون الأبيض */
-  }
+    
+
+    --destructive: 0 84.2% 60.2%; /* لون زر مدمر */
+
+    --destructive-foreground: 210 40% 98%; /* لون نص الزر المدمر */
+
+    
+
+    --border: 275 20% 45%; /* لون حدود */
+
+    --input: 275 20% 50%; /* لون حقول الإدخال */
+
+    --ring: 283 32% 55%; /* لون حلقات */
+
+    
+
+    --sidebar: 280 30% 30%; 
+
+    
+
+    --radius: 1rem;
+
+  }
+
+
+
+  body {
+
+    @apply bg-gradient-to-br from-[#2D1F3D] via-[#1A1F2C] to-[#3D1F2C] text-foreground antialiased;
+
+  }
+
+
+
+  img {
+
+    @apply select-none;
+
+  }
+
+
+
+  button {
+
+    @apply bg-primary text-primary-foreground rounded-lg px-4 py-2 hover:bg-primary/0 transition-colors;
+
+  }
+
+
+
+  .secondary-button {
+
+    @apply bg-secondary text-secondary-foreground rounded-lg px-4 py-2 hover:bg-secondary/80 transition-colors;
+
+  }
+
+
+
+  .muted-button {
+
+    @apply bg-muted text-muted-foreground rounded-lg px-4 py-2 cursor-not-allowed;
+
+  }
+
+
+
+  .accent-button {
+
+    @apply bg-accent text-accent-foreground rounded-lg px-4 py-2 hover:bg-accent/80 transition-colors;
+
+  }
+
+
+
+  .destructive-button {
+
+    @apply bg-destructive text-destructive-foreground rounded-lg px-4 py-2 hover:bg-destructive/80 transition-colors;
+
+  }
+
+
+
+  .circular-button {
+
+    @apply rounded-full p-4 w-12 h-12; /* اجعل الزر دائريًا مع تحديد العرض والارتفاع */
+
+  }
+
+
+
+  * {
+
+    color: white; /* اجعل جميع النصوص باللون الأبيض */
+
+  }
+
 }
 
-/*
-  نمط مخصص لتطبيق تأثير زجاجي (شبه شفاف مع ضبابية للخلفية).
-*/
+
+
 .glass-effect {
+
   @apply backdrop-blur-lg bg-black/20 border border-border rounded-lg;
-  /*
-    - `backdrop-blur-lg`: يطبق تأثير ضبابية على خلفية العنصر.
-    - `bg-white/10`: يطبق لون خلفية أبيض بشفافية 10%.
-    - `border border-border`: يضيف حدًا باستخدام لون الحدود المحدد في متغير `--border`.
-    - `rounded-lg`: يضيف حدودًا دائرية صغيرة.
-  */
+
 }
 
-/*
-  تعريف إطار مفتاحي لإنشاء تأثير نبض بطيء.
-  `@keyframes` تستخدم لتعريف سلسلة من الأنماط التي يتم تطبيقها تدريجيًا لإنشاء حركة.
-*/
+
+
+/* تحسين تأثير النبض ليكون دائم وأكثر نعومة */
+
 @keyframes pulse-slow {
-  0%, 100% {
-    transform: scale(1); /* يبدأ وينتهي العنصر بحجمه الأصلي */
-    opacity: 0.55; /* يبدأ وينتهي العنصر بشفافية 15% */
-  }
-  50% {
-    transform: scale(1.4); /* يصل العنصر إلى حجم أكبر بنسبة 140% في منتصف الحركة */
-    opacity: 0.75; /* يصبح العنصر أكثر شفافية في منتصف الحركة */
-  }
+
+  0%, 100% {
+
+    transform: scale(1);
+
+    opacity: 0.15;
+
+  }
+
+  50% {
+
+    transform: scale(1.4);
+
+    opacity: 0.05;
+
+  }
+
 }
 
-/*
-  تطبيق إطار مفتاحي `pulse-slow` على فئة `animate-pulse-slow`.
-  - `animation`: خاصية CSS لتطبيق الرسوم المتحركة.
-  - `pulse-slow`: اسم إطار المفتاحي الذي سيتم استخدامه.
-  - `3s`: مدة دورة الرسوم المتحركة (3 ثوانٍ).
-  - `cubic-bezier(0.4, 0, 0.6, 1)`: دالة توقيت تحدد تسارع وتباطؤ الرسوم المتحركة (لجعلها أكثر نعومة).
-  - `infinite`: يجعل الرسوم المتحركة تتكرر بلا نهاية.
-*/
+
+
 .animate-pulse-slow {
-  animation: pulse-slow 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+
+  animation: pulse-slow 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+
 }
 
-/*
-  تنسيق قائمة الاقتراحات (مثل قائمة منسدلة للاقتراحات عند البحث).
-*/
+
+
+/* تنسيق قائمة الاقتراحات */
+
 .suggestions-list {
-  @apply absolute bg-gray-900/90 backdrop-blur-md border border-gray-700 rounded-md shadow-lg w-full mt-1 max-h-40 overflow-y-auto z-50;
-  /*
-    - `absolute`: يضع العنصر خارج التدفق الطبيعي للمستند ويتم وضعه بالنسبة لأقرب عنصر أبوي ذي موضع غير ثابت.
-    - `bg-gray-900/90`: خلفية رمادية داكنة بشفافية 90%.
-    - `backdrop-blur-md`: يطبق تأثير ضبابية متوسط على خلفية العنصر.
-    - `border border-gray-700`: يضيف حدًا رماديًا داكنًا.
-    - `rounded-md`: يضيف حدودًا دائرية متوسطة.
-    - `shadow-lg`: يضيف ظلًا كبيرًا للعنصر.
-    - `w-full`: يجعل عرض العنصر 100% من عرض العنصر الأبوي.
-    - `mt-1`: يضيف هامشًا علويًا صغيرًا.
-    - `max-h-40`: يحدد أقصى ارتفاع للعنصر لمنع تجاوز الصفحة.
-    - `overflow-y-auto`: يضيف شريط تمرير عمودي إذا كان المحتوى يتجاوز الحد الأقصى للارتفاع.
-    - `z-50`: يحدد ترتيب التراص للعنصر لضمان ظهوره فوق العناصر الأخرى.
-  */
+
+  @apply absolute bg-gray-900/90 backdrop-blur-md border border-gray-700 rounded-md shadow-lg w-full mt-1 max-h-40 overflow-y-auto z-50;
+
 }
 
-/*
-  تنسيق عنصر فردي داخل قائمة الاقتراحات.
-*/
+
+
 .suggestion-item {
-  @apply px-3 py-2 hover:bg-white/10 cursor-pointer text-sm text-right;
-  /*
-    - `px-3 py-2`: يضيف مساحة داخلية أفقية وعمودية صغيرة.
-    - `hover:bg-white/10`: عند التHover، يغير لون الخلفية إلى أبيض شفاف قليلاً.
-    - `cursor-pointer`: يغير مؤشر الفأرة إلى شكل يد للإشارة إلى أنه قابل للنقر.
-    - `text-sm`: يجعل حجم الخط صغيرًا.
-    - `text-right`: يجعل محاذاة النص إلى اليمين (قد يكون هذا مخصصًا للغة العربية).
-  */
+
+  @apply px-3 py-2 hover:bg-white/10 cursor-pointer text-sm text-right;
+
 }
+
