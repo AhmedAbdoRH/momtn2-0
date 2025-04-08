@@ -125,7 +125,7 @@
   نمط مخصص لتطبيق تأثير زجاجي (شبه شفاف مع ضبابية للخلفية).
 */
 .glass-effect {
-  @apply backdrop-blur-lg bg-white/20 border border-border rounded-lg;
+  @apply backdrop-blur-lg bg-white/10 border border-border rounded-lg;
   /*
     - `backdrop-blur-lg`: يطبق تأثير ضبابية على خلفية العنصر.
     - `bg-white/10`: يطبق لون خلفية أبيض بشفافية 10%.
@@ -141,11 +141,11 @@
 @keyframes pulse-slow {
   0%, 100% {
     transform: scale(1); /* يبدأ وينتهي العنصر بحجمه الأصلي */
-    opacity: 0.55; /* يبدأ وينتهي العنصر بشفافية 15% */
+    opacity: 0.15; /* يبدأ وينتهي العنصر بشفافية 15% */
   }
   50% {
     transform: scale(1.4); /* يصل العنصر إلى حجم أكبر بنسبة 140% في منتصف الحركة */
-    opacity: 0.75; /* يصبح العنصر أكثر شفافية في منتصف الحركة */
+    opacity: 0.05; /* يصبح العنصر أكثر شفافية في منتصف الحركة */
   }
 }
 
