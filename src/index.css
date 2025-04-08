@@ -1,3 +1,4 @@
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -67,11 +68,6 @@
     @apply rounded-full p-4 w-12 h-12; /* اجعل الزر دائريًا مع تحديد العرض والارتفاع */
   }
 
-  /* تعديل الزر العائم هنا */
-  .floating-button {
-    @apply fixed bottom-6 left-6 w-14 h-14 rounded-full bg-pink-500 text-white shadow-lg flex items-center justify-center;
-  }
-
   * {
     color: white; /* اجعل جميع النصوص باللون الأبيض */
   }
@@ -79,4 +75,20 @@
 
 .glass-effect {
   @apply backdrop-blur-lg bg-white/10 border border-border rounded-lg;
+}
+
+/* إضافة تأثير النبض البطيء */
+@keyframes pulse-slow {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 0.3;
+  }
+  50% {
+    transform: scale(1.3);
+    opacity: 0.1;
+  }
+}
+
+.animate-pulse-slow {
+  animation: pulse-slow 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }

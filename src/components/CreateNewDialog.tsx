@@ -1,7 +1,7 @@
 
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { ImagePlus } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -16,8 +16,37 @@ const CreateNewDialog = ({ open, onOpenChange }: CreateNewDialogProps) => {
   const [image, setImage] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string>("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [albumName, setAlbumName] = useState<string>("");
   const { toast } = useToast();
   const { user } = useAuth();
+  
+  // تعديل لاستجابة النافذة للوحة المفاتيح
+  useEffect(() => {
+    const adjustDialogPosition = () => {
+      const dialogElement = document.querySelector('[data-dialog-content]');
+      if (dialogElement && window.visualViewport) {
+        const currentVisualViewport = window.visualViewport.height;
+        const windowHeight = window.innerHeight;
+        
+        if (currentVisualViewport < windowHeight) {
+          // لوحة المفاتيح مفتوحة
+          const keyboardHeight = windowHeight - currentVisualViewport;
+          const newTop = `calc(45% - ${keyboardHeight / 2}px)`;
+          (dialogElement as HTMLElement).style.top = newTop;
+        } else {
+          // لوحة المفاتيح مغلقة
+          (dialogElement as HTMLElement).style.top = '45%';
+        }
+      }
+    };
+
+    // إضافة مستمع للتغيير في حجم الشاشة
+    window.visualViewport?.addEventListener('resize', adjustDialogPosition);
+    
+    return () => {
+      window.visualViewport?.removeEventListener('resize', adjustDialogPosition);
+    };
+  }, [open]);
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -71,8 +100,12 @@ const CreateNewDialog = ({ open, onOpenChange }: CreateNewDialogProps) => {
 
       console.log('Public URL:', publicUrl);
 
+      // تحضير الهاشتاجات (الألبومات)
+      const hashtags = albumName ? [albumName] : [];
+      console.log('Albums:', hashtags);
+
       // إضافة الصورة إلى قاعدة البيانات
-      console.log('Adding photo to database:', publicUrl);
+      console.log('Adding photo to database with albums:', hashtags);
       
       const { data, error } = await supabase
         .from('photos')
@@ -80,7 +113,7 @@ const CreateNewDialog = ({ open, onOpenChange }: CreateNewDialogProps) => {
           image_url: publicUrl,
           likes: 0,
           caption: null,
-          hashtags: [],
+          hashtags: hashtags,
           user_id: user.id,
           "order": 0
         })
@@ -96,6 +129,7 @@ const CreateNewDialog = ({ open, onOpenChange }: CreateNewDialogProps) => {
       // إعادة تعيين النموذج
       setImage(null);
       setPreviewUrl("");
+      setAlbumName("");
       onOpenChange(false);
 
       // إظهار رسالة نجاح
@@ -121,15 +155,18 @@ const CreateNewDialog = ({ open, onOpenChange }: CreateNewDialogProps) => {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="top-[20%] sm:max-w-[400px] bg-gray-900/70 backdrop-blur-xl text-white border-0 shadow-xl">
+      <DialogContent 
+        className="top-[45%] sm:max-w-[380px] max-h-[85vh] bg-gray-900/70 backdrop-blur-xl text-white border-0 shadow-xl"
+        data-dialog-content
+      >
         <DialogHeader>
           <DialogTitle>إضافة صورة جديدة</DialogTitle>
           <DialogDescription className="text-gray-300">
             قم بتحميل صورة لإضافتها إلى المعرض.
           </DialogDescription>
         </DialogHeader>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="flex flex-col items-center gap-4">
+        <form onSubmit={handleSubmit} className="space-y-3">
+          <div className="flex flex-col items-center gap-3">
             <input
               id="image"
               type="file"
@@ -138,7 +175,7 @@ const CreateNewDialog = ({ open, onOpenChange }: CreateNewDialogProps) => {
               className="hidden"
             />
             <div 
-              className="w-full h-44 border-2 border-dashed border-gray-600 rounded-lg flex flex-col items-center justify-center cursor-pointer hover:border-gray-500 transition-colors"
+              className="w-full h-36 border-2 border-dashed border-gray-600 rounded-lg flex flex-col items-center justify-center cursor-pointer hover:border-gray-500 transition-colors"
               onClick={() => document.getElementById('image')?.click()}
             >
               {previewUrl ? (
@@ -149,10 +186,25 @@ const CreateNewDialog = ({ open, onOpenChange }: CreateNewDialogProps) => {
                 />
               ) : (
                 <>
-                  <ImagePlus className="w-10 h-10 text-gray-400" />
+                  <ImagePlus className="w-8 h-8 text-gray-400" />
                   <p className="mt-2 text-sm text-gray-400">اضغط لاختيار صورة</p>
                 </>
               )}
+            </div>
+            
+            {/* إضافة حقل اسم الألبوم */}
+            <div className="w-full">
+              <label htmlFor="albumName" className="block text-sm text-gray-300 mb-1 text-right">
+                اسم الألبوم (اختياري)
+              </label>
+              <input
+                id="albumName"
+                type="text"
+                value={albumName}
+                onChange={(e) => setAlbumName(e.target.value)}
+                placeholder="أدخل اسم الألبوم"
+                className="w-full px-3 py-2 bg-gray-800/50 border border-gray-600 rounded-md text-right placeholder:text-gray-500 text-sm"
+              />
             </div>
           </div>
           <div className="flex justify-end gap-3">
@@ -163,6 +215,7 @@ const CreateNewDialog = ({ open, onOpenChange }: CreateNewDialogProps) => {
                 onOpenChange(false);
                 setPreviewUrl("");
                 setImage(null);
+                setAlbumName("");
               }}
               className="bg-transparent border-gray-600 text-gray-300 hover:bg-gray-800"
             >

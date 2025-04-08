@@ -1,3 +1,4 @@
+
 import { Plus, Menu, LogOut, User } from "lucide-react";
 import PhotoGrid from "@/components/PhotoGrid";
 import { Button } from "@/components/ui/button";
@@ -22,6 +23,11 @@ const Index = () => {
     setBtnAnimation(true);
     setTimeout(() => setBtnAnimation(false), 300);
     setDialogOpen(true);
+  };
+
+  const handleAlbumClick = () => {
+    // إغلاق القائمة الجانبية عند الضغط على ألبوم
+    setSidebarOpen(false);
   };
 
   return (
@@ -63,8 +69,8 @@ const Index = () => {
             ${sidebarOpen ? 'translate-x-0' : 'translate-x-full'}`}
         >
           <div className="flex-1 p-6 pt-20">
-            <h3 className="text-gray-700 font-semibold mb-4 text-right">الهاشتاجات</h3>
-            <div className="flex flex-col space-y-3 items-end" id="hashtags-container">
+            <h3 className="text-gray-700 font-semibold mb-4 text-right">الألبومات</h3>
+            <div className="flex flex-col space-y-3 items-end" id="hashtags-container" onClick={handleAlbumClick}>
             </div>
           </div>
         </div>
@@ -96,12 +102,17 @@ const Index = () => {
           <PhotoGrid />
           <CreateNewDialog open={dialogOpen} onOpenChange={setDialogOpen} />
 
-          <Button
-            onClick={handleCreateNew}
-            className="fixed bottom-6 left-6 w-14 h-14 rounded-full glass-effect text-pink-500 shadow-lg transition-all duration-300" // تم تعديل className هنا
-          >
-            <Plus className="w-6 h-6" />
-          </Button>
+          {/* زر الإضافة الدائري مع تأثير النبض */}
+          <div className="fixed bottom-6 left-6">
+            {/* طبقة النبض */}
+            <div className="absolute inset-0 rounded-full bg-pink-500/10 animate-pulse-slow"></div>
+            <Button
+              onClick={handleCreateNew}
+              className="w-14 h-14 rounded-full glass-effect flex items-center justify-center shadow-lg"
+            >
+              <Plus className="w-7 h-7 text-white/80" />
+            </Button>
+          </div>
         </main>
 
         {sidebarOpen && (
