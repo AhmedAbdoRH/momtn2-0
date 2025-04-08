@@ -65,11 +65,11 @@ const Index = () => {
         </div>
 
         <div
-          className={`fixed top-0 right-0 h-full glass-effect w-72 transform transition-transform duration-300 ease-in-out z-40 flex flex-col
+          className={`fixed top-0 right-0 h-full bg-sidebar border-l border-gray-800 w-72 transform transition-transform duration-300 ease-in-out z-40 flex flex-col
             ${sidebarOpen ? 'translate-x-0' : 'translate-x-full'}`}
         >
           <div className="flex-1 p-6 pt-20">
-            <h3 className="text-gray-700 font-semibold mb-4 text-right">الألبومات</h3>
+            <h3 className="text-gray-300 font-semibold mb-4 text-right">الألبومات</h3>
             <div className="flex flex-col space-y-3 items-end" id="hashtags-container" onClick={handleAlbumClick}>
             </div>
           </div>
@@ -84,7 +84,7 @@ const Index = () => {
                 className="w-full h-full object-contain animate-float"
               />
             </div>
-            <p className="text-lg text-gray-700 max-w-2xl mx-auto mb-6">
+            <p className="text-lg text-gray-300 max-w-2xl mx-auto mb-6">
               ﴾ يَا أَيُّهَا النَّاسُ اذْكُرُوا نِعْمَتَ اللَّهِ عَلَيْكُمْ ﴿ 
             </p>
             
@@ -102,15 +102,19 @@ const Index = () => {
           <PhotoGrid />
           <CreateNewDialog open={dialogOpen} onOpenChange={setDialogOpen} />
 
-          {/* زر الإضافة الدائري مع تأثير النبض */}
+          {/* زر الإضافة الدائري مع تأثير النبض الدائم */}
           <div className="fixed bottom-6 left-6">
-            {/* طبقة النبض */}
+            {/* طبقة النبض - الآن مستمرة وشفافة أكثر */}
             <div className="absolute inset-0 rounded-full bg-pink-500/10 animate-pulse-slow"></div>
+            
+            {/* الزر نفسه - دائري تمامًا مع علامة + شفافة */}
             <Button
               onClick={handleCreateNew}
-              className="w-14 h-14 rounded-full glass-effect flex items-center justify-center shadow-lg"
+              variant="glass"
+              size="circle"
+              className="w-14 h-14 shadow-lg relative"
             >
-              <Plus className="w-7 h-7 text-white/80" />
+              <Plus className="w-7 h-7 text-white/70" />
             </Button>
           </div>
         </main>

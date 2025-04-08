@@ -19,14 +19,14 @@ const buttonVariants = cva(
           "bg-secondary text-secondary-foreground hover:bg-secondary/80",
         ghost: "hover:bg-accent hover:text-accent-foreground",
         link: "text-primary underline-offset-4 hover:underline",
+        glass: "bg-white/10 backdrop-blur-sm text-white/80 hover:bg-white/20 hover:text-white",
       },
       size: {
         default: "h-10 px-4 py-2",
         sm: "h-9 rounded-full px-3",
         lg: "h-11 rounded-full px-8",
         icon: "h-10 w-10",
-        // إضافة حجم الزر الدائري
-        circle: "size-14 rounded-full p-0 flex items-center justify-center [&_svg]:size-7",
+        circle: "aspect-square rounded-full p-0 flex items-center justify-center",
       },
     },
     defaultVariants: {

@@ -17,6 +17,8 @@ const CreateNewDialog = ({ open, onOpenChange }: CreateNewDialogProps) => {
   const [previewUrl, setPreviewUrl] = useState<string>("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [albumName, setAlbumName] = useState<string>("");
+  const [suggestions, setSuggestions] = useState<string[]>([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
   const { toast } = useToast();
   const { user } = useAuth();
   
@@ -48,6 +50,31 @@ const CreateNewDialog = ({ open, onOpenChange }: CreateNewDialogProps) => {
     };
   }, [open]);
 
+  // جلب اقتراحات الألبومات من قاعدة البيانات
+  useEffect(() => {
+    if (open) {
+      fetchAlbumSuggestions();
+    }
+  }, [open]);
+
+  const fetchAlbumSuggestions = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('photos')
+        .select('hashtags')
+        .not('hashtags', 'is', null);
+      
+      if (error) throw error;
+      
+      // استخراج جميع الهاشتاجات الفريدة من النتائج
+      const allHashtags = data.flatMap(item => item.hashtags || []);
+      const uniqueHashtags = [...new Set(allHashtags)];
+      setSuggestions(uniqueHashtags);
+    } catch (error) {
+      console.error('Error fetching album suggestions:', error);
+    }
+  };
+
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
@@ -55,6 +82,23 @@ const CreateNewDialog = ({ open, onOpenChange }: CreateNewDialogProps) => {
       const url = URL.createObjectURL(file);
       setPreviewUrl(url);
     }
+  };
+
+  const handleAlbumChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    let value = e.target.value;
+    
+    // إذا كان المستخدم لم يضف # في البداية، فإننا نضيفه
+    if (value && !value.startsWith('#')) {
+      value = '#' + value;
+    }
+    
+    setAlbumName(value);
+    setShowSuggestions(value.length > 1);
+  };
+
+  const handleSuggestionClick = (suggestion: string) => {
+    setAlbumName(suggestion);
+    setShowSuggestions(false);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -156,7 +200,7 @@ const CreateNewDialog = ({ open, onOpenChange }: CreateNewDialogProps) => {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent 
-        className="top-[45%] sm:max-w-[380px] max-h-[85vh] bg-gray-900/70 backdrop-blur-xl text-white border-0 shadow-xl"
+        className="top-[45%] sm:max-w-[350px] max-h-[80vh] bg-gray-900/70 backdrop-blur-xl text-white border-0 shadow-xl"
         data-dialog-content
       >
         <DialogHeader>
@@ -175,7 +219,7 @@ const CreateNewDialog = ({ open, onOpenChange }: CreateNewDialogProps) => {
               className="hidden"
             />
             <div 
-              className="w-full h-36 border-2 border-dashed border-gray-600 rounded-lg flex flex-col items-center justify-center cursor-pointer hover:border-gray-500 transition-colors"
+              className="w-full h-32 border-2 border-dashed border-gray-600 rounded-lg flex flex-col items-center justify-center cursor-pointer hover:border-gray-500 transition-colors"
               onClick={() => document.getElementById('image')?.click()}
             >
               {previewUrl ? (
@@ -192,8 +236,8 @@ const CreateNewDialog = ({ open, onOpenChange }: CreateNewDialogProps) => {
               )}
             </div>
             
-            {/* إضافة حقل اسم الألبوم */}
-            <div className="w-full">
+            {/* حقل اسم الألبوم مع الاقتراحات */}
+            <div className="w-full relative">
               <label htmlFor="albumName" className="block text-sm text-gray-300 mb-1 text-right">
                 اسم الألبوم (اختياري)
               </label>
@@ -201,10 +245,30 @@ const CreateNewDialog = ({ open, onOpenChange }: CreateNewDialogProps) => {
                 id="albumName"
                 type="text"
                 value={albumName}
-                onChange={(e) => setAlbumName(e.target.value)}
-                placeholder="أدخل اسم الألبوم"
+                onChange={handleAlbumChange}
+                onFocus={() => setShowSuggestions(albumName.length > 1)}
+                onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
+                placeholder="أدخل اسم الألبوم (مثال: #رمضان)"
                 className="w-full px-3 py-2 bg-gray-800/50 border border-gray-600 rounded-md text-right placeholder:text-gray-500 text-sm"
               />
+              
+              {/* قائمة الاقتراحات */}
+              {showSuggestions && suggestions.length > 0 && (
+                <div className="suggestions-list">
+                  {suggestions
+                    .filter(suggestion => suggestion.includes(albumName.replace('#', '')) || albumName === '')
+                    .map((suggestion, index) => (
+                      <div 
+                        key={index}
+                        className="suggestion-item"
+                        onClick={() => handleSuggestionClick(suggestion)}
+                      >
+                        {suggestion}
+                      </div>
+                    ))
+                  }
+                </div>
+              )}
             </div>
           </div>
           <div className="flex justify-end gap-3">

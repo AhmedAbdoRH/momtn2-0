@@ -33,6 +33,8 @@
     --input: 275 20% 50%; /* لون حقول الإدخال */
     --ring: 283 32% 55%; /* لون حلقات */
     
+    --sidebar: 280 32% 10%; /* لون القائمة الجانبية - أغمق */
+    
     --radius: 1rem;
   }
 
@@ -77,18 +79,27 @@
   @apply backdrop-blur-lg bg-white/10 border border-border rounded-lg;
 }
 
-/* إضافة تأثير النبض البطيء */
+/* تحسين تأثير النبض ليكون دائم وأكثر نعومة */
 @keyframes pulse-slow {
   0%, 100% {
     transform: scale(1);
-    opacity: 0.3;
+    opacity: 0.15;
   }
   50% {
-    transform: scale(1.3);
-    opacity: 0.1;
+    transform: scale(1.4);
+    opacity: 0.05;
   }
 }
 
 .animate-pulse-slow {
   animation: pulse-slow 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+/* تنسيق قائمة الاقتراحات */
+.suggestions-list {
+  @apply absolute bg-gray-900/90 backdrop-blur-md border border-gray-700 rounded-md shadow-lg w-full mt-1 max-h-40 overflow-y-auto z-50;
+}
+
+.suggestion-item {
+  @apply px-3 py-2 hover:bg-white/10 cursor-pointer text-sm text-right;
 }

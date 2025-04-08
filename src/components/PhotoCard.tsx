@@ -145,7 +145,7 @@ const PhotoCard = ({
               )}
             </div>
           </button>
-          <span className="text-sm font-medium bg-black/30 backdrop-blur-sm px-2 py-1 rounded-full text-white/90">
+          <span className="text-sm font-medium text-white/90">
             {likes}
           </span>
         </div>
