@@ -127,23 +127,21 @@ const PhotoCard = ({
             }}
             className="relative group flex items-center gap-2 text-white/90 hover:text-white transition-colors p-2"
           >
-            <div className="relative">
-              <Heart
-                className={`w-6 h-6 transition-all duration-300 transform ${
-                  isLoved ? "fill-[#ea384c] text-[#ea384c] scale-125" : "hover:scale-110"
-                }`}
-              />
-              {isHeartAnimating && (
-                <>
-                  <div className="absolute inset-0 animate-ping">
-                    <Heart className="w-6 h-6 text-[#ea384c]/30" />
-                  </div>
-                  <div className="absolute inset-0 animate-pulse">
-                    <Heart className="w-6 h-6 text-[#ea384c]/20" />
-                  </div>
-                </>
-              )}
-            </div>
+            <Heart
+              className={`w-6 h-6 transition-all duration-300 transform ${
+                isLoved ? "fill-[#ea384c] text-[#ea384c] scale-125" : "hover:scale-110"
+              }`}
+            />
+            {isHeartAnimating && (
+              <>
+                <div className="absolute inset-0 animate-ping">
+                  <Heart className="w-6 h-6 text-[#ea384c]/30" />
+                </div>
+                <div className="absolute inset-0 animate-pulse">
+                  <Heart className="w-6 h-6 text-[#ea384c]/20" />
+                </div>
+              </>
+            )}
           </button>
           <span className="text-sm font-medium text-white/90">
             {likes}
