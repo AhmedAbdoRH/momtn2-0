@@ -34,7 +34,7 @@
     --input: 275 20% 50%; /* لون خلفية حقول الإدخال */
     --ring: 283 32% 55%; /* لون حلقة التركيز (focus ring) للعناصر التفاعلية */
 
-    --sidebar: 280 30% 30%; /* لون الشريط الجانبي (مثال على لون مخصص) */
+    --sidebar: 280 30% 100%; /* لون الشريط الجانبي (مثال على لون مخصص) */
 
     --radius: 1rem; /* نصف قطر الحدود الافتراضي للعناصر */
   }
@@ -125,7 +125,7 @@
   نمط مخصص لتطبيق تأثير زجاجي (شبه شفاف مع ضبابية للخلفية).
 */
 .glass-effect {
-  @apply backdrop-blur-lg bg-white/20 border border-border rounded-lg;
+  @apply backdrop-blur-lg bg-black/20 border border-border rounded-lg;
   /*
     - `backdrop-blur-lg`: يطبق تأثير ضبابية على خلفية العنصر.
     - `bg-white/10`: يطبق لون خلفية أبيض بشفافية 10%.
