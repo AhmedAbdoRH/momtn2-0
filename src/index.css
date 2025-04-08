@@ -5,7 +5,7 @@
 
 @layer base {
   :root {
-
+    --background: 283 32% 15%; /* #2D1F3D */
     --foreground: 0 0% 100%; /* نص أبيض */
     
 
