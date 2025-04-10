@@ -2,6 +2,14 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+@layer utilities {
+  .bg-addbtn {
+    background-color: hsl(var(--addbtn));
+  }
+
+  .text-addbtn-foreground {
+    color: hsl(var(--addbtn-foreground));
+  }
 
 @layer base {
   :root {
