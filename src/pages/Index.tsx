@@ -90,7 +90,7 @@ const Index = () => {
             
             <Button
               onClick={handleCreateNew}
-              className={`px-5 py-3 bg-primary hover:bg-addbtn/50 text-addbtn-foreground shadow-md rounded-lg mx-auto transition-all duration-300 ${
+              className={`px-5 py-3 bg-addbtn hover:bg-addbtn/80 text-addbtn-foreground shadow-md rounded-lg mx-auto transition-all duration-300 ${
                 btnAnimation ? 'scale-95 shadow-inner' : 'hover:scale-105'
               }`}
             >
