@@ -1,179 +1,169 @@
-import { useState } from "react"; // استيراد useState لإدارة الحالة في المكون
-import { GripVertical, Heart, MessageCircle, Trash2 } from "lucide-react"; // استيراد أيقونات من مكتبة lucide-react
-import { supabase } from "@/integrations/supabase/client"; // استيراد عميل supabase للتفاعل مع قاعدة البيانات
-import { Dialog, DialogContent } from "./ui/dialog"; // استيراد مكونات Dialog لعرض نافذة تحرير التعليق والهاشتاجات
+import { useState } from "react";
+import { GripVertical, Heart, MessageCircle, Trash2 } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { Dialog, DialogContent } from "./ui/dialog";
 
-// تعريف واجهة (interface) لتحديد خصائص المكون PhotoCard
 interface PhotoCardProps {
-  imageUrl: string; // رابط الصورة
-  likes: number; // عدد الإعجابات الأولية
-  caption?: string; // التعليق (اختياري)
-  hashtags?: string[]; // الهاشتاجات (اختيارية)
-  onDelete?: () => void; // دالة لحذف الصورة (اختيارية)
-  dragHandleProps?: any; // خصائص للسحب والإفلات (اختيارية)
-  onUpdateCaption?: (caption: string, hashtags: string[]) => Promise<void>; // دالة لتحديث التعليق والهاشتاجات (اختيارية)
+  imageUrl: string;
+  likes: number;
+  caption?: string;
+  hashtags?: string[];
+  onDelete?: () => void;
+  dragHandleProps?: any;
+  onUpdateCaption?: (caption: string, hashtags: string[]) => Promise<void>;
 }
 
-// تعريف المكون PhotoCard مع خصائصه
 const PhotoCard = ({ 
   imageUrl, 
   likes: initialLikes, 
-  caption: initialCaption = '', // قيمة افتراضية فارغة إذا لم يُحدد تعليق
-  hashtags: initialHashtags = [], // قيمة افتراضية مصفوفة فارغة إذا لم تُحدد هاشتاجات
+  caption: initialCaption = '',
+  hashtags: initialHashtags = [],
   onDelete,
   dragHandleProps,
   onUpdateCaption 
 }: PhotoCardProps) => {
-  // تعريف الحالات باستخدام useState
-  const [isLoved, setIsLoved] = useState(false); // حالة لتتبع ما إذا تم الإعجاب بالصورة
-  const [likes, setLikes] = useState(initialLikes); // حالة لتتبع عدد الإعجابات
-  const [isEditing, setIsEditing] = useState(false); // حالة لتتبع ما إذا كان وضع التحرير مفعلاً
-  const [caption, setCaption] = useState(initialCaption); // حالة لتتبع التعليق الحالي
-  const [hashtags, setHashtags] = useState(initialHashtags); // حالة لتتبع الهاشتاجات الحالية
-  const [isControlsVisible, setIsControlsVisible] = useState(false); // حالة لإظهار/إخفاء الأزرار (مثل الحذف والتحرير)
-  const [isHeartAnimating, setIsHeartAnimating] = useState(false); // حالة لتتبع تشغيل أنيميشن القلب
+  const [isLoved, setIsLoved] = useState(false);
+  const [likes, setLikes] = useState(initialLikes);
+  const [isEditing, setIsEditing] = useState(false);
+  const [caption, setCaption] = useState(initialCaption);
+  const [hashtags, setHashtags] = useState(initialHashtags);
+  const [isControlsVisible, setIsControlsVisible] = useState(false);
+  const [isHeartAnimating, setIsHeartAnimating] = useState(false);
 
-  // دالة لمعالجة الإعجاب بالصورة
+  // دالة معالجة الإعجاب مع حماية من التكرار
   const handleLike = async () => {
-    setIsHeartAnimating(true); // تفعيل أنيميشن القلب
-    const newLikeCount = likes + 1; // زيادة عدد الإعجابات بـ 1
-    setLikes(newLikeCount); // تحديث عدد الإعجابات في الحالة
-    setIsLoved(true); // تعيين حالة الإعجاب إلى صحيح
+    if (isHeartAnimating) return; // منع إعادة تشغيل الأنيميشن إذا كان قيد التشغيل بالفعل
 
-    // تحديث عدد الإعجابات في قاعدة البيانات باستخدام supabase
+    setIsHeartAnimating(true); // تفعيل الأنيميشن
+    const newLikeCount = likes + 1; // زيادة عدد الإعجابات
+    setLikes(newLikeCount);
+    setIsLoved(true);
+
     const { error } = await supabase
-      .from('photos') // الجدول في قاعدة البيانات
-      .update({ likes: newLikeCount }) // تحديث حقل الإعجابات
-      .eq('image_url', imageUrl); // شرط لتحديد الصورة بناءً على رابطها
+      .from('photos')
+      .update({ likes: newLikeCount })
+      .eq('image_url', imageUrl);
 
-    if (error) { // في حالة حدوث خطأ
-      console.error('Error updating likes:', error); // تسجيل الخطأ في وحدة التحكم
-      setLikes(likes); // إعادة عدد الإعجابات إلى القيمة السابقة
+    if (error) {
+      console.error('Error updating likes:', error);
+      setLikes(likes); // إعادة القيمة السابقة في حالة الخطأ
+      setIsHeartAnimating(false); // إيقاف الأنيميشن في حالة الخطأ
+      setIsLoved(false);
+      return;
     }
 
-    // إيقاف الأنيميشن بعد ثانية واحدة (1000 مللي ثانية)
+    // إيقاف الأنيميشن بعد مدة محددة (1000 مللي ثانية)
     setTimeout(() => {
-      setIsHeartAnimating(false); // إيقاف أنيميشن القلب
-      setIsLoved(false); // إعادة حالة الإعجاب إلى خطأ
+      setIsHeartAnimating(false);
+      setIsLoved(false);
     }, 1000);
   };
 
-  // دالة لتقديم التعليق والهاشتاجات بعد التحرير
   const handleCaptionSubmit = async () => {
-    if (onUpdateCaption) { // إذا كانت دالة التحديث موجودة
-      await onUpdateCaption(caption, hashtags); // استدعاء الدالة لتحديث التعليق والهاشتاجات
+    if (onUpdateCaption) {
+      await onUpdateCaption(caption, hashtags);
     }
-    setIsEditing(false); // إغلاق وضع التحرير
+    setIsEditing(false);
   };
 
-  // دالة لمعالجة تغيير الهاشتاجات
   const handleHashtagsChange = (value: string) => {
-    const tags = value.split(' ').filter(tag => tag.startsWith('#')); // تقسيم النص إلى كلمات وتصفية الهاشتاجات فقط
-    setHashtags(tags); // تحديث حالة الهاشتاجات
+    const tags = value.split(' ').filter(tag => tag.startsWith('#'));
+    setHashtags(tags);
   };
 
-  // دالة لتبديل إظهار/إخفاء الأزرار
   const toggleControls = () => {
-    setIsControlsVisible(!isControlsVisible); // تغيير الحالة بين الإظهار والإخفاء
+    setIsControlsVisible(!isControlsVisible);
   };
 
-  // العرض (render) للمكون
   return (
     <>
-      {/* الحاوية الرئيسية للبطاقة */}
       <div 
         className="relative group overflow-hidden rounded-xl shadow-xl transition-all duration-300"
-        onClick={toggleControls} // تبديل إظهار الأزرار عند النقر
+        onClick={toggleControls}
       >
-        {/* حاوية الصورة */}
         <div className="relative overflow-hidden rounded-xl">
           <img
-            src={imageUrl} // رابط الصورة
-            alt="Gallery" // نص بديل للصورة
-            className="w-full h-auto object-contain transition-transform duration-500 group-hover:scale-105" // تنسيق الصورة مع تأثير تكبير عند التمرير
-            loading="lazy" // تحميل كسول للصورة لتحسين الأداء
+            src={imageUrl}
+            alt="Gallery"
+            className="w-full h-auto object-contain transition-transform duration-500 group-hover:scale-105"
+            loading="lazy"
           />
-          {/* تدرج شفاف فوق الصورة يظهر عند إظهار الأزرار */}
           <div className={`absolute inset-0 bg-gradient-to-b from-black/30 via-transparent to-black/70 transition-opacity duration-300 ${
             isControlsVisible ? 'opacity-100' : 'opacity-0'
           }`} />
         </div>
         
-        {/* زر السحب (drag handle) */}
         <div 
-          {...dragHandleProps} // خصائص السحب والإفلات
+          {...dragHandleProps}
           className={`absolute top-2 right-2 p-2 rounded-full bg-black/20 backdrop-blur-sm transition-opacity duration-300 cursor-move ${
-            isControlsVisible ? 'opacity-50' : 'opacity-0' // يظهر عند تفعيل الأزرار
+            isControlsVisible ? 'opacity-50' : 'opacity-0'
           }`}
         >
-          <GripVertical className="w-4 h-4 text-white" /> {/* أيقونة السحب */}
+          <GripVertical className="w-4 h-4 text-white" />
         </div>
 
-        {/* زر التحرير (تعليق وهاشتاجات) */}
         <button
           onClick={(e) => {
-            e.stopPropagation(); // منع النقر من التأثير على الحاوية الرئيسية
-            setIsEditing(true); // فتح وضع التحرير
+            e.stopPropagation();
+            setIsEditing(true);
           }}
           className={`absolute top-2 left-2 p-2 rounded-full bg-black/20 backdrop-blur-sm transition-opacity duration-300 hover:opacity-100 ${
-            isControlsVisible ? 'opacity-50' : 'opacity-0' // يظهر عند تفعيل الأزرار
+            isControlsVisible ? 'opacity-50' : 'opacity-0'
           }`}
         >
-          <MessageCircle className="w-4 h-4 text-white" /> {/* أيقونة التعليق */}
+          <MessageCircle className="w-4 h-4 text-white" />
         </button>
 
-        {/* زر الحذف */}
         <button
           onClick={(e) => {
-            e.stopPropagation(); // منع النقر من التأثير على الحاوية الرئيسية
-            onDelete?.(); // استدعاء دالة الحذف إذا كانت موجودة
+            e.stopPropagation();
+            onDelete?.();
           }}
           className={`absolute bottom-2 right-2 p-2 rounded-full bg-black/20 backdrop-blur-sm transition-opacity duration-300 hover:bg-red-500/50 ${
-            isControlsVisible ? 'opacity-50' : 'opacity-0' // يظهر عند تفعيل الأزرار
+            isControlsVisible ? 'opacity-50' : 'opacity-0'
           } hover:opacity-100`}
         >
-          <Trash2 className="w-4 h-4 text-white" /> {/* أيقونة الحذف */}
+          <Trash2 className="w-4 h-4 text-white" />
         </button>
 
         {/* قسم الإعجابات */}
         <div className="absolute bottom-2 left-2 flex items-center gap-1">
           <button
             onClick={(e) => {
-              e.stopPropagation(); // منع النقر من التأثير على الحاوية الرئيسية
-              handleLike(); // استدعاء دالة الإعجاب
+              e.stopPropagation();
+              handleLike();
             }}
             className="relative group flex items-center gap-2 text-white/90 hover:text-white transition-colors p-2"
+            disabled={isHeartAnimating} // تعطيل الزر أثناء تشغيل الأنيميشن
           >
             <div className="relative">
               <Heart
                 className={`w-6 h-6 transition-all duration-300 transform ${
-                  isLoved ? "fill-[#ea384c] text-[#ea384c] scale-125" : "hover:scale-110" // تغيير شكل القلب عند الإعجاب
+                  isLoved ? "fill-[#ea384c] text-[#ea384c] scale-125" : "hover:scale-110"
                 }`}
               />
-              {isHeartAnimating && ( // عرض الأنيميشن عند تفعيله
+              {isHeartAnimating && (
                 <div className="absolute inset-0 animate-ping">
-                  <Heart className="w-6 h-6 text-[#ea384c]/30" /> {/* أنيميشن ping للقلب */}
+                  <Heart className="w-6 h-6 text-[#ea384c]/30" />
                 </div>
                 /* الإعدادات القديمة التي تحتوي على animate-pulse */
                 /* <div className="absolute inset-0 animate-pulse">
-                  <Heart className="w-6 h-6 text-[#ea384c]/20" /> // أنيميشن pulse (تم تعليقه)
+                  <Heart className="w-6 h-6 text-[#ea384c]/20" />
                 </div> */
               )}
             </div>
           </button>
-          {/* عرض عدد الإعجابات */}
-          <span className="text-sm font-medium bg-black/10 backdrop-blur-sm px-2 py-1 rounded-full text-white/90">
+          <span className="text-sm font-medium bg-black/30 backdrop-blur-sm px-2 py-1 rounded-full text-white/90">
             {likes}
           </span>
         </div>
 
-        {/* عرض التعليق والهاشتاجات إذا وجدت */}
         {(caption || hashtags.length > 0) && (
           <div className={`absolute left-2 right-2 bottom-14 p-2 bg-black/50 backdrop-blur-md rounded-lg transition-opacity duration-300 ${
-            isControlsVisible ? 'opacity-80' : 'opacity-0' // يظهر عند تفعيل الأزرار
+            isControlsVisible ? 'opacity-80' : 'opacity-0'
           }`}>
-            {caption && <p className="text-white text-sm mb-1">{caption}</p>} {/* التعليق */}
-            {hashtags.length > 0 && ( // الهاشتاجات
+            {caption && <p className="text-white text-sm mb-1">{caption}</p>}
+            {hashtags.length > 0 && (
               <div className="flex flex-wrap gap-1">
                 {hashtags.map((tag) => (
                   <span key={tag} className="text-xs text-blue-300">
@@ -186,42 +176,38 @@ const PhotoCard = ({
         )}
       </div>
 
-      {/* نافذة التحرير (Dialog) */}
       <Dialog open={isEditing} onOpenChange={setIsEditing}>
         <DialogContent className="bg-gray-900/60 backdrop-blur-xl text-white border-0">
           <div className="space-y-4">
-            {/* حقل التعليق */}
             <div>
               <label className="block text-sm font-medium mb-2">التعليق</label>
               <textarea
-                value={caption} // قيمة التعليق الحالية
-                onChange={(e) => setCaption(e.target.value)} // تحديث التعليق عند التغيير
+                value={caption}
+                onChange={(e) => setCaption(e.target.value)}
                 className="w-full px-3 py-2 bg-white/10 backdrop-blur-sm rounded-md text-white"
                 rows={3}
                 placeholder="أضف تعليقاً..."
               />
             </div>
-            {/* حقل الهاشتاجات */}
             <div>
               <label className="block text-sm font-medium mb-2">الهاشتاجات</label>
               <input
                 type="text"
-                value={hashtags.join(' ')} // عرض الهاشتاجات كسلسلة نصية
-                onChange={(e) => handleHashtagsChange(e.target.value)} // تحديث الهاشتاجات عند التغيير
+                value={hashtags.join(' ')}
+                onChange={(e) => handleHashtagsChange(e.target.value)}
                 className="w-full px-3 py-2 bg-white/10 backdrop-blur-sm rounded-md text-white"
                 placeholder="#رمضان #عبادة"
               />
             </div>
-            {/* أزرار الإلغاء والحفظ */}
             <div className="flex justify-end gap-2">
               <button
-                onClick={() => setIsEditing(false)} // إغلاق النافذة بدون حفظ
+                onClick={() => setIsEditing(false)}
                 className="px-4 py-2 rounded-md bg-white/10 backdrop-blur-sm text-white hover:bg-white/20 transition-colors"
               >
                 إلغاء
               </button>
               <button
-                onClick={handleCaptionSubmit} // حفظ التغييرات
+                onClick={handleCaptionSubmit}
                 className="px-4 py-2 rounded-md bg-white/20 backdrop-blur-sm text-white hover:bg-white/30 transition-colors"
               >
                 حفظ
@@ -234,5 +220,4 @@ const PhotoCard = ({
   );
 };
 
-// تصدير المكون لاستخدامه في مكان آخر
 export default PhotoCard;
