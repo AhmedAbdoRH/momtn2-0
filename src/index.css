@@ -8,7 +8,7 @@
     --background: 283 32% 15%;
     --foreground: 0 0% 100%;
     
-    --primary: 280 80% 40%;
+    --primary: 0 0% 100% / 0.15;
     --primary-foreground: 0 0% 100%;
 
     --secondary: 0 0% 100% / 0.05;
