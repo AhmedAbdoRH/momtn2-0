@@ -1,199 +1,97 @@
 
-
-
 @tailwind base;
-
 @tailwind components;
-
 @tailwind utilities;
 
-
-
 @layer base {
-
-  :root {
-
-    --background: 283 32% 15%; /* #2D1F3D */
-
-    --foreground: 0 0% 100%; /* نص أبيض */
-
-    
-
-
-
-    --primary-foreground: 0 0% 100%; /* لون نص الزر الأساسي */
-
-    
-
-    --secondary: 280 30% 30%; /* لون زر ثانوي */
-
-    --secondary-foreground: 0 0% 100%; /* لون نص الزر الثانوي */
-
-    
-
-    --muted: 270 20% 35%; /* لون خلفية زر معطل */
-
-    --muted-foreground: 0 0% 70%; /* لون نص الزر المعطل */
-
-    
-
-    --accent: 275 30% 40%; /* لون زر مميز */
-
-    --accent-foreground: 0 0% 100%; /* لون نص الزر المميز */
-
-    
-
-    --destructive: 0 84.2% 60.2%; /* لون زر مدمر */
-
-    --destructive-foreground: 210 40% 98%; /* لون نص الزر المدمر */
-
-    
-
-    --border: 275 20% 45%; /* لون حدود */
-
-    --input: 275 20% 50%; /* لون حقول الإدخال */
-
-    --ring: 283 32% 55%; /* لون حلقات */
-
-    
-
-    --sidebar: 280 30% 30%; 
-
-    
-
-    --radius: 1rem;
-
-  }
-
-
-
-  body {
-
-    @apply bg-gradient-to-br from-[#2D1F3D] via-[#1A1F2C] to-[#3D1F2C] text-foreground antialiased;
-
-  }
-
-
-
-  img {
-
-    @apply select-none;
-
-  }
-
-
-
-  button {
-
-    @apply bg-primary text-primary-foreground rounded-lg px-4 py-2 hover:bg-primary/0 transition-colors;
-
-  }
-
-
-
-  .secondary-button {
-
-    @apply bg-secondary text-secondary-foreground rounded-lg px-4 py-2 hover:bg-secondary/80 transition-colors;
-
-  }
-
-
-
-  .muted-button {
-
-    @apply bg-muted text-muted-foreground rounded-lg px-4 py-2 cursor-not-allowed;
-
-  }
-
-
-
-  .accent-button {
-
-    @apply bg-accent text-accent-foreground rounded-lg px-4 py-2 hover:bg-accent/80 transition-colors;
-
-  }
-
-
-
-  .destructive-button {
-
-    @apply bg-destructive text-destructive-foreground rounded-lg px-4 py-2 hover:bg-destructive/80 transition-colors;
-
-  }
-
-
-
-  .circular-button {
-
-    @apply rounded-full p-4 w-12 h-12; /* اجعل الزر دائريًا مع تحديد العرض والارتفاع */
-
-  }
-
-
-
-  * {
-
-    color: white; /* اجعل جميع النصوص باللون الأبيض */
-
-  }
-
+  :root {
+    --background: 283 32% 15%;
+    --foreground: 0 0% 100%;
+    
+    --primary: 280 80% 40%;
+    --primary-foreground: 0 0% 100%;
+    
+    --secondary: 280 30% 30%;
+    --secondary-foreground: 0 0% 100%;
+    
+    --muted: 270 20% 35%;
+    --muted-foreground: 0 0% 70%;
+    
+    --accent: 275 30% 40%;
+    --accent-foreground: 0 0% 100%;
+    
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
+    
+    --border: 275 20% 45%;
+    --input: 275 20% 50%;
+    --ring: 283 32% 55%;
+    
+    --sidebar: 280 30% 30%;
+    
+    --radius: 1rem;
+  }
+
+  body {
+    @apply bg-gradient-to-br from-[#2D1F3D] via-[#1A1F2C] to-[#3D1F2C] text-foreground antialiased;
+  }
+
+  img {
+    @apply select-none;
+  }
+
+  button {
+    @apply bg-primary text-primary-foreground rounded-lg px-4 py-2 hover:bg-primary/90 transition-colors;
+  }
+
+  .secondary-button {
+    @apply bg-secondary text-secondary-foreground rounded-lg px-4 py-2 hover:bg-secondary/80 transition-colors;
+  }
+
+  .muted-button {
+    @apply bg-muted text-muted-foreground rounded-lg px-4 py-2 cursor-not-allowed;
+  }
+
+  .accent-button {
+    @apply bg-accent text-accent-foreground rounded-lg px-4 py-2 hover:bg-accent/80 transition-colors;
+  }
+
+  .destructive-button {
+    @apply bg-destructive text-destructive-foreground rounded-lg px-4 py-2 hover:bg-destructive/80 transition-colors;
+  }
+
+  .circular-button {
+    @apply rounded-full p-4 w-12 h-12;
+  }
+
+  * {
+    color: white;
+  }
 }
-
-
 
 .glass-effect {
-
   @apply backdrop-blur-lg bg-black/20 border border-border rounded-lg;
-
 }
-
-
-
-/* تحسين تأثير النبض ليكون دائم وأكثر نعومة */
 
 @keyframes pulse-slow {
-
-  0%, 100% {
-
-    transform: scale(1);
-
-    opacity: 0.15;
-
-  }
-
-  50% {
-
-    transform: scale(1.4);
-
-    opacity: 0.05;
-
-  }
-
+  0%, 100% {
+    transform: scale(1);
+    opacity: 0.15;
+  }
+  50% {
+    transform: scale(1.4);
+    opacity: 0.05;
+  }
 }
-
-
 
 .animate-pulse-slow {
-
-  animation: pulse-slow 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
-
+  animation: pulse-slow 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }
-
-
-
-/* تنسيق قائمة الاقتراحات */
 
 .suggestions-list {
-
-  @apply absolute bg-gray-900/90 backdrop-blur-md border border-gray-700 rounded-md shadow-lg w-full mt-1 max-h-40 overflow-y-auto z-50;
-
+  @apply absolute bg-gray-900/90 backdrop-blur-md border border-gray-700 rounded-md shadow-lg w-full mt-1 max-h-40 overflow-y-auto z-50;
 }
-
-
 
 .suggestion-item {
-
-  @apply px-3 py-2 hover:bg-white/10 cursor-pointer text-sm text-right;
-
+  @apply px-3 py-2 hover:bg-white/10 cursor-pointer text-sm text-right;
 }
-
