@@ -261,7 +261,7 @@ const AuthPage = () => {
   
           <div className="text-center">
             <button
-              type="button"
+              type="button-red"
               onClick={() => setMode(mode === 'signIn' ? 'signUp' : 'signIn')}
               className="font-medium text-indigo-300 hover:text-indigo-200"
             >
