@@ -28,32 +28,28 @@ const PhotoCard = ({
   const [caption, setCaption] = useState(initialCaption);
   const [hashtags, setHashtags] = useState(initialHashtags);
   const [isControlsVisible, setIsControlsVisible] = useState(false);
-  const [isHeartAnimating, setIsHeartAnimating] = useState(false);
 
   const handleLike = async () => {
-    // فقط إذا لم يكن قد تم الضغط عليه من قبل
-    if (!isLoved) {
-      setIsHeartAnimating(true);
-      const newLikeCount = likes + 1;
-      setLikes(newLikeCount);
-      setIsLoved(true); // يبقى محبوبًا بعد الضغط
+    const newLikeCount = likes + 1;
+    setLikes(newLikeCount);
+    setIsLoved(true);
 
-      const { error } = await supabase
-        .from('photos')
-        .update({ likes: newLikeCount })
-        .eq('image_url', imageUrl);
+    const { error } = await supabase
+      .from('photos')
+      .update({ likes: newLikeCount })
+      .eq('image_url', imageUrl);
 
-      if (error) {
-        console.error('Error updating likes:', error);
-        setLikes(likes);
-        setIsLoved(false); // إعادة الحالة إذا فشل التحديث
-      }
-
-      // إنهاء الأنيميشن بعد 1000 مللي ثانية
-      setTimeout(() => {
-        setIsHeartAnimating(false);
-      }, 1000);
+    if (error) {
+      console.error('Error updating likes:', error);
+      setLikes(likes);
+      setIsLoved(false);
+      return;
     }
+
+    // بعد 1.5 ثانية، نعيد القلب إلى حالته الأصلية بشكل سلس
+    setTimeout(() => {
+      setIsLoved(false);
+    }, 1500);
   };
 
   const handleCaptionSubmit = async () => {
@@ -129,24 +125,20 @@ const PhotoCard = ({
               e.stopPropagation();
               handleLike();
             }}
-            className="relative group 
-   
-flex items-center gap-2 text-white/90 hover:text-white transition-colors p-2"
+            className="relative group flex items-center gap-2 text-white/90 hover:text-white transition-colors p-2"
           >
-            <div className="relative">
+            <Heart
+              className={`w-6 h-6 transition-all duration-700 ease-in-out ${
+                isLoved 
+                  ? "fill-[#ea384c] text-[#ea384c] scale-125" 
+                  : "fill-transparent scale-100 hover:scale-110"
+              }`}
+            />
+            {isLoved && (
               <Heart
-                className={`w-6 h-6 transition-all duration-500 ease-in-out ${
-                  isLoved ? "fill-[#ea384c] text-[#ea384c] scale-110" : "hover:scale-110"
-                }`}
+                className="absolute inset-0 w-6 h-6 text-[#ea384c]/30 animate-ping"
               />
-              {isHeartAnimating && (
-                <div className="absolute inset-0">
-                  <Heart 
-                    className="w-6 h-6 text-[#ea384c]/50 animate-[ping_1s_ease-in-out_1]" 
-                  />
-                </div>
-              )}
-            </div>
+            )}
           </button>
           <span className="text-sm font-medium bg-black/10 backdrop-blur-sm px-2 py-1 rounded-full text-white/90">
             {likes}
@@ -190,7 +182,7 @@ flex items-center gap-2 text-white/90 hover:text-white transition-colors p-2"
                 type="text"
                 value={hashtags.join(' ')}
                 onChange={(e) => handleHashtagsChange(e.target.value)}
-                className="w-full px-3 py-2 bg-white/10 backdrop-blur-sm rounded-md text-white"
+                className importation="w-full px-3 py-2 bg-white/10 backdrop-blur-sm rounded-md text-white"
                 placeholder="#رمضان #عبادة"
               />
             </div>
