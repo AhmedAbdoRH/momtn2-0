@@ -2,14 +2,6 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
-@layer utilities {
-  .bg-addbtn {
-    background-color: hsl(var(--addbtn));
-  }
-
-  .text-addbtn-foreground {
-    color: hsl(var(--addbtn-foreground));
-  }
 
 @layer base {
   :root {
@@ -19,7 +11,7 @@
     --primary: 0 0% 100% / 0.15;  
     --primary-foreground: 0 0% 100%; 
 
-    
+  
     --addbtn: 0 100% 72%;
     --addbtn-foreground: 0 0% 100%;
     
@@ -43,6 +35,16 @@
 
     --radius: 1rem;
   }
+
+  @layer utilities {
+  .bg-addbtn {
+    background-color: hsl(var(--addbtn));
+  }
+
+  .text-addbtn-foreground {
+    color: hsl(var(--addbtn-foreground));
+  }
+}
 
   body {
     @apply bg-gradient-to-br from-[#2D1F3D] via-[#1A1F2C] to-[#3D1F2C] text-foreground antialiased;
