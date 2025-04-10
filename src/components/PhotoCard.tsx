@@ -162,7 +162,7 @@ const PhotoCard = ({
             </div>
           </button>
           {/* عرض عدد الإعجابات */}
-          <span className="text-sm font-medium bg-black/30 backdrop-blur-sm px-2 py-1 rounded-full text-white/90">
+          <span className="text-sm font-medium bg-black/10 backdrop-blur-sm px-2 py-1 rounded-md text-white/90">
             {likes}
           </span>
         </div>
@@ -176,7 +176,7 @@ const PhotoCard = ({
             {hashtags.length > 0 && ( // الهاشتاجات
               <div className="flex flex-wrap gap-1">
                 {hashtags.map((tag) => (
-                  <span key={tag} className="text-xs text-blue-300">
+                  <span key={tag} className="text-xs text-white-300">
                     {tag}
                   </span>
                 ))}
