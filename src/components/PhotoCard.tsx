@@ -30,12 +30,9 @@ const PhotoCard = ({
   const [isControlsVisible, setIsControlsVisible] = useState(false);
   const [isHeartAnimating, setIsHeartAnimating] = useState(false);
 
-  // دالة معالجة الإعجاب مع حماية من التكرار
   const handleLike = async () => {
-    if (isHeartAnimating) return; // منع إعادة تشغيل الأنيميشن إذا كان قيد التشغيل بالفعل
-
-    setIsHeartAnimating(true); // تفعيل الأنيميشن
-    const newLikeCount = likes + 1; // زيادة عدد الإعجابات
+    setIsHeartAnimating(true);
+    const newLikeCount = likes + 1;
     setLikes(newLikeCount);
     setIsLoved(true);
 
@@ -46,13 +43,9 @@ const PhotoCard = ({
 
     if (error) {
       console.error('Error updating likes:', error);
-      setLikes(likes); // إعادة القيمة السابقة في حالة الخطأ
-      setIsHeartAnimating(false); // إيقاف الأنيميشن في حالة الخطأ
-      setIsLoved(false);
-      return;
+      setLikes(likes);
     }
 
-    // إيقاف الأنيميشن بعد مدة محددة (1000 مللي ثانية)
     setTimeout(() => {
       setIsHeartAnimating(false);
       setIsLoved(false);
@@ -126,7 +119,6 @@ const PhotoCard = ({
           <Trash2 className="w-4 h-4 text-white" />
         </button>
 
-        {/* قسم الإعجابات */}
         <div className="absolute bottom-2 left-2 flex items-center gap-1">
           <button
             onClick={(e) => {
@@ -134,7 +126,6 @@ const PhotoCard = ({
               handleLike();
             }}
             className="relative group flex items-center gap-2 text-white/90 hover:text-white transition-colors p-2"
-            disabled={isHeartAnimating} // تعطيل الزر أثناء تشغيل الأنيميشن
           >
             <div className="relative">
               <Heart
@@ -143,17 +134,18 @@ const PhotoCard = ({
                 }`}
               />
               {isHeartAnimating && (
-                <div className="absolute inset-0 animate-ping">
-                  <Heart className="w-6 h-6 text-[#ea384c]/30" />
-                </div>
-                /* الإعدادات القديمة التي تحتوي على animate-pulse */
-                /* <div className="absolute inset-0 animate-pulse">
-                  <Heart className="w-6 h-6 text-[#ea384c]/20" />
-                </div> */
+                <>
+                  <div className="absolute inset-0 animate-ping">
+                    <Heart className="w-6 h-6 text-[#ea384c]/30" />
+                  </div>
+                  <div className="absolute inset-0 animate-pulse">
+                    <Heart className="w-6 h-6 text-[#ea384c]/20" />
+                  </div>
+                </>
               )}
             </div>
           </button>
-          <span className="text-sm font-medium bg-black/30 backdrop-blur-sm px-2 py-1 rounded-full text-white/90">
+          <span className="text-sm font-medium bg-black/10 backdrop-blur-sm px-2 py-1 rounded-full text-white/90">
             {likes}
           </span>
         </div>
