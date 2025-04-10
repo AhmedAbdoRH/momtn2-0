@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useAuth } from '@/components/AuthProvider';
 import { Button } from '@/components/ui/button';
-import { Btn-red } from '@/components/ui/Btn-red;
+import { ButtonRed } from '@/components/ui/Btn-red;
 import { useToast } from '@/hooks/use-toast';
 import { Navigate } from 'react-router-dom';
 import { toast } from 'sonner';
@@ -262,7 +262,7 @@ const AuthPage = () => {
   
           <div className="text-center">
             <button
-              type="button-red"
+              type="ButtonRed"
               onClick={() => setMode(mode === 'signIn' ? 'signUp' : 'signIn')}
               className="font-medium text-indigo-300 hover:text-indigo-200"
             >
