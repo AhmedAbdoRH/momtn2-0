@@ -56,7 +56,7 @@
   }
 
   /* تعديل نمط الزر الأساسي لإضافة التأثير الزجاجي */
-  button-red {
+  btn-red {
     /* تطبيق الخلفية الشفافة (--primary) */
     /* إضافة تمويه الخلفية (backdrop-blur) وحدود خفيفة */
     @apply bg-secondary text-primary-foreground rounded-lg px-4 py-2 backdrop-blur-md border border-white/20 transition-colors; /* تم إضافة backdrop-blur-md و border */
