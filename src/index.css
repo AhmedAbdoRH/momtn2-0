@@ -1,4 +1,3 @@
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -11,11 +10,11 @@
     --primary: 0 0% 100% / 0.15;  
     --primary-foreground: 0 0% 100%; 
 
-  
+    
     --addbtn: 0 100% 72%;
     --addbtn-foreground: 0 0% 100%;
     
-    --secondary: 0 30% 30%;
+    --secondary: 280 30% 30%;
     --secondary-foreground: 0 0% 100%;
 
     --muted: 270 20% 35%;
@@ -31,20 +30,10 @@
     --input: 275 20% 50%;
     --ring: 283 32% 55%;
 
-    --sidebar: 240 30% 10%;
+    --sidebar: 280 30% 30%;
 
     --radius: 1rem;
   }
-
-  @layer utilities {
-  .bg-addbtn {
-    background-color: hsl(var(--addbtn));
-  }
-
-  .text-addbtn-foreground {
-    color: hsl(var(--addbtn-foreground));
-  }
-}
 
   body {
     @apply bg-gradient-to-br from-[#2D1F3D] via-[#1A1F2C] to-[#3D1F2C] text-foreground antialiased;
@@ -58,25 +47,12 @@
   button {
     /* تطبيق الخلفية الشفافة (--primary) */
     /* إضافة تمويه الخلفية (backdrop-blur) وحدود خفيفة */
-    @apply bg-primary text-primary-foreground rounded-lg px-4 py-2 backdrop-blur-md border border-white/20 transition-colors; /* تم إضافة backdrop-blur-md و border */
-    /* تعديل حالة الـ hover لتتناسب مع التأثير الزجاجي */
-    /* هنا نزيد شفافية الخلفية قليلاً عند الـ hover */
-    @apply hover:bg-[hsl(0_0%_100%/0.25)]; /* تعديل الشفافية في hover */
-    /* يمكنك أيضاً تغيير لون الحدود في hover: hover:border-white/40 */
-  }
-
-  /* تعديل نمط الزر الأساسي لإضافة التأثير الزجاجي */
-  btn-red {
-    /* تطبيق الخلفية الشفافة (--primary) */
-    /* إضافة تمويه الخلفية (backdrop-blur) وحدود خفيفة */
     @apply bg-addbtn text-addbtn-foreground rounded-lg px-4 py-2 backdrop-blur-md border border-white/20 transition-colors; /* تم إضافة backdrop-blur-md و border */
     /* تعديل حالة الـ hover لتتناسب مع التأثير الزجاجي */
     /* هنا نزيد شفافية الخلفية قليلاً عند الـ hover */
     @apply hover:bg-[hsl(0_0%_100%/0.25)]; /* تعديل الشفافية في hover */
     /* يمكنك أيضاً تغيير لون الحدود في hover: hover:border-white/40 */
   }
-
-
 
   /* الأنماط الأخرى للأزرار تبقى كما هي، لكنها لن تكون زجاجية إلا إذا تم تعديلها */
   .secondary-button {

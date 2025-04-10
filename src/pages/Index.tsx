@@ -2,7 +2,6 @@
 import { Plus, Menu, LogOut, User } from "lucide-react";
 import PhotoGrid from "@/components/PhotoGrid";
 import { Button } from "@/components/ui/button";
-import { ButtonRed } from "@/components/ui/ButtonRed";
 import CreateNewDialog from "@/components/CreateNewDialog";
 import { useState } from "react";
 import { useAuth } from "@/components/AuthProvider";
@@ -66,10 +65,8 @@ const Index = () => {
         </div>
 
         <div
-          className={`fixed top-0 right-0 h-full backdrop-blur-xl border-l border-gray-800 w-72 transform transition-transform duration-300 ease-in-out z-40 flex flex-col bg-sidebar/90`}
-          style={{
-            transform: sidebarOpen ? 'translateX(0)' : 'translateX(100%)'
-          }}
+          className={`fixed top-0 right-0 h-full bg-sidebar border-l border-gray-800 w-72 transform transition-transform duration-300 ease-in-out z-40 flex flex-col
+            ${sidebarOpen ? 'translate-x-0' : 'translate-x-full'}`}
         >
           <div className="flex-1 p-6 pt-20">
             <h3 className="text-gray-300 font-semibold mb-4 text-right">الألبومات</h3>
@@ -91,16 +88,15 @@ const Index = () => {
               ﴾ يَا أَيُّهَا النَّاسُ اذْكُرُوا نِعْمَتَ اللَّهِ عَلَيْكُمْ ﴿ 
             </p>
             
-<ButtonRed
-  onClick={handleCreateNew}
-  className={`px-5 py-3 bg-addbtn hover:bg-addbtn/80 text-addbtn-foreground shadow-md rounded-lg mx-auto transition-all duration-300 ${
-    btnAnimation ? 'scale-95 shadow-inner' : 'hover:scale-105'
-  }`}
->
-  <Plus className={`w-5 h-5 mr-2 transition-transform duration-300 ${btnAnimation ? 'rotate-180' : ''}`} />
-  إضافة امتنان جديد
-</ButtonRed>
-
+            <Button
+              onClick={handleCreateNew}
+              className={`px-5 py-3 bg-addbtn hover:bg-addbtn/80 text-addbtn-foreground shadow-md rounded-lg mx-auto transition-all duration-300 ${
+                btnAnimation ? 'scale-95 shadow-inner' : 'hover:scale-105'
+              }`}
+            >
+              <Plus className={`w-5 h-5 mr-2 transition-transform duration-300 ${btnAnimation ? 'rotate-180' : ''}`} />
+              إضافة امتنان جديد
+            </Button>
           </div>
 
           <PhotoGrid />
@@ -116,9 +112,9 @@ const Index = () => {
               onClick={handleCreateNew}
               variant="glass"
               size="circle"
-              className="w-14 h-14 shadow-lg relative bg-addbtn text-addbtn-foreground rounded-full"
+              className="w-14 h-14 shadow-lg relative"
             >
-              <Plus className="w-7 h-7 text-white" />
+              <Plus className="w-7 h-7 text-white/70" />
             </Button>
           </div>
         </main>
