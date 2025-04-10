@@ -28,11 +28,13 @@ const PhotoCard = ({
   const [caption, setCaption] = useState(initialCaption);
   const [hashtags, setHashtags] = useState(initialHashtags);
   const [isControlsVisible, setIsControlsVisible] = useState(false);
+  const [isScaling, setIsScaling] = useState(false);
 
   const handleLike = async () => {
     const newLikeCount = likes + 1;
     setLikes(newLikeCount);
-    setIsLoved(true);
+    setIsLoved(true); // امتلاء القلب
+    setIsScaling(true); // تكبير الحجم
 
     const { error } = await supabase
       .from('photos')
@@ -43,13 +45,19 @@ const PhotoCard = ({
       console.error('Error updating likes:', error);
       setLikes(likes);
       setIsLoved(false);
+      setIsScaling(false);
       return;
     }
 
-    // بعد 1.5 ثانية، نعيد القلب إلى حالته الأصلية بشكل سلس
+    // بعد 700ms، نبدأ بإعادة القلب إلى الحجم الطبيعي
     setTimeout(() => {
-      setIsLoved(false);
-    }, 1500);
+      setIsScaling(false); // نعيد الحجم
+    }, 700);
+
+    // بعد 1400ms، نعيد القلب إلى حالة الفراغ
+    setTimeout(() => {
+      setIsLoved(false); // نعيد الفراغ
+    }, 1400);
   };
 
   const handleCaptionSubmit = async () => {
@@ -92,7 +100,7 @@ const PhotoCard = ({
             isControlsVisible ? 'opacity-50' : 'opacity-0'
           }`}
         >
-          <GripVertical className="w-4 h-4 text-white" />
+          <GripVertical class uName="w-4 h-4 text-white" />
         </div>
 
         <button
@@ -128,17 +136,10 @@ const PhotoCard = ({
             className="relative group flex items-center gap-2 text-white/90 hover:text-white transition-colors p-2"
           >
             <Heart
-              className={`w-6 h-6 transition-all duration-700 ease-in-out ${
-                isLoved 
-                  ? "fill-[#ea384c] text-[#ea384c] scale-125" 
-                  : "fill-transparent scale-100 hover:scale-110"
-              }`}
+              className={`w-6 h-6 ${
+                isLoved ? "fill-[#ea384c] text-[#ea384c]" : "fill-transparent"
+              } ${isScaling ? "scale-125" : "scale-100"}`}
             />
-            {isLoved && (
-              <Heart
-                className="absolute inset-0 w-6 h-6 text-[#ea384c]/30 animate-ping"
-              />
-            )}
           </button>
           <span className="text-sm font-medium bg-black/10 backdrop-blur-sm px-2 py-1 rounded-full text-white/90">
             {likes}
@@ -182,7 +183,7 @@ const PhotoCard = ({
                 type="text"
                 value={hashtags.join(' ')}
                 onChange={(e) => handleHashtagsChange(e.target.value)}
-                className importation="w-full px-3 py-2 bg-white/10 backdrop-blur-sm rounded-md text-white"
+                className="w-full px-3 py-2 bg-white/10 backdrop-blur-sm rounded-md text-white"
                 placeholder="#رمضان #عبادة"
               />
             </div>
