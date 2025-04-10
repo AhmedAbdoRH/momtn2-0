@@ -31,25 +31,29 @@ const PhotoCard = ({
   const [isHeartAnimating, setIsHeartAnimating] = useState(false);
 
   const handleLike = async () => {
-    setIsHeartAnimating(true);
-    const newLikeCount = likes + 1;
-    setLikes(newLikeCount);
-    setIsLoved(true);
+    // فقط إذا لم يكن قد تم الضغط عليه من قبل
+    if (!isLoved) {
+      setIsHeartAnimating(true);
+      const newLikeCount = likes + 1;
+      setLikes(newLikeCount);
+      setIsLoved(true); // يبقى محبوبًا بعد الضغط
 
-    const { error } = await supabase
-      .from('photos')
-      .update({ likes: newLikeCount })
-      .eq('image_url', imageUrl);
+      const { error } = await supabase
+        .from('photos')
+        .update({ likes: newLikeCount })
+        .eq('image_url', imageUrl);
 
-    if (error) {
-      console.error('Error updating likes:', error);
-      setLikes(likes);
+      if (error) {
+        console.error('Error updating likes:', error);
+        setLikes(likes);
+        setIsLoved(false); // إعادة الحالة إذا فشل التحديث
+      }
+
+      // إنهاء الأنيميشن بعد 1000 مللي ثانية
+      setTimeout(() => {
+        setIsHeartAnimating(false);
+      }, 1000);
     }
-
-    setTimeout(() => {
-      setIsHeartAnimating(false);
-      setIsLoved(false);
-    }, 1000);
   };
 
   const handleCaptionSubmit = async () => {
@@ -125,23 +129,22 @@ const PhotoCard = ({
               e.stopPropagation();
               handleLike();
             }}
-            className="relative group flex items-center gap-2 text-white/90 hover:text-white transition-colors p-2"
+            className="relative group 
+   
+flex items-center gap-2 text-white/90 hover:text-white transition-colors p-2"
           >
             <div className="relative">
               <Heart
-                className={`w-6 h-6 transition-all duration-300 transform ${
-                  isLoved ? "fill-[#ea384c] text-[#ea384c] scale-125" : "hover:scale-110"
+                className={`w-6 h-6 transition-all duration-500 ease-in-out ${
+                  isLoved ? "fill-[#ea384c] text-[#ea384c] scale-110" : "hover:scale-110"
                 }`}
               />
               {isHeartAnimating && (
-                <>
-                  <div className="absolute inset-0 animate-ping">
-                    <Heart className="w-6 h-6 text-[#ea384c]/30" />
-                  </div>
-                  <div className="absolute inset-0 animate-pulse">
-                    <Heart className="w-6 h-6 text-[#ea384c]/20" />
-                  </div>
-                </>
+                <div className="absolute inset-0">
+                  <Heart 
+                    className="w-6 h-6 text-[#ea384c]/50 animate-[ping_1s_ease-in-out_1]" 
+                  />
+                </div>
               )}
             </div>
           </button>
