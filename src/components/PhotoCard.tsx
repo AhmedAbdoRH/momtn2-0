@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { GripVertical, Heart, MessageCircle, Trash2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -182,7 +183,7 @@ const PhotoCard = ({
               />
             </div>
             <div>
-              <label className="block text-sm font-medium mb-2">الهاشتاجات</label>
+              <label className="block text-sm font-medium mb-2">الألبومات</label>
               <input
                 type="text"
                 value={hashtags.join(' ')}

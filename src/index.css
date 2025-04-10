@@ -1,3 +1,4 @@
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -30,7 +31,7 @@
     --input: 275 20% 50%;
     --ring: 283 32% 55%;
 
-    --sidebar: 280 30% 30%;
+    --sidebar: 240 30% 10%;
 
     --radius: 1rem;
   }
@@ -47,7 +48,7 @@
   button {
     /* تطبيق الخلفية الشفافة (--primary) */
     /* إضافة تمويه الخلفية (backdrop-blur) وحدود خفيفة */
-    @apply bg-addbtn text-addbtn-foreground rounded-lg px-4 py-2 backdrop-blur-md border border-white/20 transition-colors; /* تم إضافة backdrop-blur-md و border */
+    @apply bg-primary text-primary-foreground rounded-lg px-4 py-2 backdrop-blur-md border border-white/20 transition-colors; /* تم إضافة backdrop-blur-md و border */
     /* تعديل حالة الـ hover لتتناسب مع التأثير الزجاجي */
     /* هنا نزيد شفافية الخلفية قليلاً عند الـ hover */
     @apply hover:bg-[hsl(0_0%_100%/0.25)]; /* تعديل الشفافية في hover */

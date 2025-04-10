@@ -65,8 +65,10 @@ const Index = () => {
         </div>
 
         <div
-          className={`fixed top-0 right-0 h-full bg-sidebar border-l border-gray-800 w-72 transform transition-transform duration-300 ease-in-out z-40 flex flex-col
-            ${sidebarOpen ? 'translate-x-0' : 'translate-x-full'}`}
+          className={`fixed top-0 right-0 h-full backdrop-blur-xl border-l border-gray-800 w-72 transform transition-transform duration-300 ease-in-out z-40 flex flex-col bg-sidebar/90`}
+          style={{
+            transform: sidebarOpen ? 'translateX(0)' : 'translateX(100%)'
+          }}
         >
           <div className="flex-1 p-6 pt-20">
             <h3 className="text-gray-300 font-semibold mb-4 text-right">الألبومات</h3>
@@ -112,9 +114,9 @@ const Index = () => {
               onClick={handleCreateNew}
               variant="glass"
               size="circle"
-              className="w-14 h-14 shadow-lg relative"
+              className="w-14 h-14 shadow-lg relative bg-addbtn text-addbtn-foreground rounded-full"
             >
-              <Plus className="w-7 h-7 text-white/70" />
+              <Plus className="w-7 h-7 text-white" />
             </Button>
           </div>
         </main>
