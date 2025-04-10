@@ -1,3 +1,4 @@
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -6,19 +7,12 @@
   :root {
     --background: 283 32% 15%;
     --foreground: 0 0% 100%;
+    
+    --primary: 280 80% 40%;
+    --primary-foreground: 0 0% 100%;
 
-    /* --primary: 280 80% 40%; /* <<< السطر الأصلي */
-    /* استبدال اللون الأساسي بلون شبه شفاف لتأثير الزجاج */
-    /* يمكنك تعديل القيمة (خاصة الشفافية - القيمة الأخيرة) حسب رغبتك */
-    /* هنا نستخدم لون أبيض خفيف مع شفافية 15% */
-    --primary: 0 0% 100% / 0.15; /* <<< السطر الجديد (HSL مع Alpha) */
-    /* بديل: استخدام لون بنفسجي خفيف شبه شفاف */
-    /* --primary: 280 50% 70% / 0.15; */
-
-    --primary-foreground: 0 0% 100%; /* قد تحتاج لتعديل لون الخط ليتناسب مع الخلفية الشفافة */
-
-    --secondary: 360 100% 66%;
-    --secondary-foreground: 360 100% 66%;
+    --secondary: 280 30% 30%;
+    --secondary-foreground: 0 0% 100%;
 
     --muted: 270 20% 35%;
     --muted-foreground: 0 0% 70%;
@@ -53,7 +47,7 @@
     @apply bg-primary text-primary-foreground rounded-lg px-4 py-2 backdrop-blur-md border border-white/20 transition-colors; /* تم إضافة backdrop-blur-md و border */
     /* تعديل حالة الـ hover لتتناسب مع التأثير الزجاجي */
     /* هنا نزيد شفافية الخلفية قليلاً عند الـ hover */
-    @apply hover:bg-[hsl(0_0%_100%/0.25)]; /* تعديل الشفافية في hover */
+    @apply hover:bg-primary/90; /* تعديل الشفافية في hover */
     /* يمكنك أيضاً تغيير لون الحدود في hover: hover:border-white/40 */
   }
 
@@ -79,7 +73,7 @@
   }
 
   * {
-    color: white; /* ملاحظة: هذا قد يجعل بعض النصوص صعبة القراءة على خلفيات فاتحة جداً أو زجاجية */
+    color: white;
   }
 }
 
