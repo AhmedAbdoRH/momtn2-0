@@ -92,10 +92,6 @@ export default {
           "50%": { transform: "scale(1)" },
           "75%": { transform: "scale(1.3)" },
           "100%": { transform: "scale(1)" }
-        },
-        "pulse-slow": {
-          "0%, 100%": { transform: "scale(1)", opacity: "0.15" },
-          "50%": { transform: "scale(1.4)", opacity: "0.05" },
         }
       },
       animation: {
@@ -104,8 +100,7 @@ export default {
         "float": "float 3s ease-in-out infinite",
         "scale": "scale 0.3s ease-in-out",
         "gradient": "gradient 15s ease infinite",
-        "heartBeat": "heartBeat 0.5s ease-in-out",
-        "pulse-slow": "pulse-slow 3s cubic-bezier(0.4, 0, 0.6, 1) infinite"
+        "heartBeat": "heartBeat 0.5s ease-in-out"
       },
     },
   },
