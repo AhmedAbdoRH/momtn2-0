@@ -1,4 +1,3 @@
-
 import * as React from "react"
 import { Slot } from "@radix-ui/react-slot"
 import { cva, type VariantProps } from "class-variance-authority"
@@ -17,6 +16,8 @@ const buttonVariants = cva(
           "border border-input bg-background hover:bg-accent hover:text-accent-foreground",
         secondary:
           "bg-secondary text-secondary-foreground hover:bg-secondary/80",
+        custom: // تم إضافة هذا الخيار الجديد
+          "bg-[#ff535f] text-white hover:bg-[#ff535f]/90", // اللون #ff535f
         ghost: "hover:bg-accent hover:text-accent-foreground",
         link: "text-primary underline-offset-4 hover:underline",
         glass: "bg-white/10 backdrop-blur-sm text-white/80 hover:bg-white/20 hover:text-white",
@@ -43,11 +44,11 @@ export interface ButtonProps
 }
 
 const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
-  ({ className, variant, size, asChild = false, ...props }, ref) => {
+  ({ className, variant = "custom", size, asChild = false, ...props }, ref) => {  // تم تعيين القيمة الافتراضية للـ variant إلى "custom"
     const Comp = asChild ? Slot : "button"
     return (
       <Comp
-        className={cn(buttonVariants({ variant, size, className }))}
+        className={cn(buttonVariants({ variant, size, className }))} 
         ref={ref}
         {...props}
       />
