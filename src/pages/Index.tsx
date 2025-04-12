@@ -1,8 +1,8 @@
-Import { Plus, Menu, LogOut, User } from "lucide-react";
+import { Plus, Menu, LogOut, User } from "lucide-react";
 import PhotoGrid from "@/components/PhotoGrid";
 import { Button } from "@/components/ui/button";
 import CreateNewDialog from "@/components/CreateNewDialog";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "@/components/AuthProvider";
 import {
   DropdownMenu,
@@ -16,7 +16,17 @@ const Index = () => {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [btnAnimation, setBtnAnimation] = useState(false);
+  const [albums, setAlbums] = useState([]); // حالة لتخزين الألبومات
   const { signOut, user } = useAuth();
+
+  // محاكاة جلب الألبومات
+  useEffect(() => {
+    setAlbums([
+      { id: 1, name: "ألبوم 1" },
+      { id: 2, name: "ألبوم 2" },
+      { id: 3, name: "ألبوم 3" },
+    ]);
+  }, []);
 
   const handleCreateNew = () => {
     setBtnAnimation(true);
@@ -24,9 +34,9 @@ const Index = () => {
     setDialogOpen(true);
   };
 
-  const handleAlbumClick = () => {
-    // إغلاق القائمة الجانبية عند الضغط على ألبوم
-    setSidebarOpen(false);
+  const handleAlbumClick = (albumId) => {
+    setSidebarOpen(false); // إغلاق القائمة الجانبية
+    console.log(`Album ${albumId} clicked`);
   };
 
   return (
@@ -52,7 +62,7 @@ const Index = () => {
               <div className="px-2 py-1.5 text-sm font-medium text-gray-600 truncate">
                 {user?.email}
               </div>
-              <DropdownMenuItem 
+              <DropdownMenuItem
                 onClick={signOut}
                 className="text-red-500 focus:text-red-500 cursor-pointer focus:bg-gray-100"
               >
@@ -65,12 +75,20 @@ const Index = () => {
 
         <div
           className={`fixed top-0 right-0 h-full bg-black/30 backdrop-blur-md border-l border-gray-800 w-72 transform transition-transform duration-300 ease-in-out z-40 flex flex-col
-            ${sidebarOpen ? 'translate-x-0' : 'translate-x-full'}`}
+            ${sidebarOpen ? "translate-x-0" : "translate-x-full"}`}
         >
           <div className="flex-1 p-6 pt-20">
             <h3 className="text-gray-300 font-semibold mb-4 text-right">الألبومات</h3>
-            <div className="flex flex-col space-y-3 items-end" id="hashtags-container" onClick={handleAlbumClick}>
-              {/* Here is where album items would be rendered */}
+            <div className="flex flex-col space-y-3 items-end" id="hashtags-container">
+              {albums.map((album) => (
+                <button
+                  key={album.id}
+                  onClick={() => handleAlbumClick(album.id)}
+                  className="text-gray-300 hover:text-white text-right"
+                >
+                  {album.name}
+                </button>
+              ))}
             </div>
           </div>
         </div>
@@ -78,36 +96,36 @@ const Index = () => {
         <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
           <div className="text-center mb-8">
             <div className="inline-block mb-6 w-40 h-40 sm:w-48 sm:h-48">
-              <img 
-                src="/lovable-uploads/f39108e3-15cc-458c-bb92-7e6b18e100cc.png" 
+              <img
+                src="/lovable-uploads/f39108e3-15cc-458c-bb92-7e6b18e100cc.png"
                 alt="Logo"
                 className="w-full h-full object-contain animate-float"
               />
             </div>
             <p className="text-lg text-gray-300 max-w-2xl mx-auto mb-6">
-              ﴾ يَا أَيُّهَا النَّاسُ اذْكُرُوا نِعْمَتَ اللَّهِ عَلَيْكُمْ ﴿ 
+              ﴾ يَا أَيُّهَا النَّاسُ اذْكُرُوا نِعْمَتَ اللَّهِ عَلَيْكُمْ ﴿
             </p>
-            
-<Button
-  onClick={handleCreateNew}
-  className={`px-5 py-3 bg-[#ff535f] hover:bg-[#ff535f]/90 text-white shadow-lg rounded-lg mx-auto transition-all duration-300 ${
-    btnAnimation ? 'scale-95 shadow-inner' : 'hover:scale-105'
-  }`}
->
-  <Plus className={`w-5 h-5 mr-2 transition-transform duration-300 ${btnAnimation ? 'rotate-180' : ''}`} />
-  إضافة امتنان جديد
-</Button>
+
+            <Button
+              onClick={handleCreateNew}
+              className={`px-5 py-3 bg-[#ff535f] hover:bg-[#ff535f]/90 text-white shadow-lg rounded-lg mx-auto transition-all duration-300 ${
+                btnAnimation ? "scale-95 shadow-inner" : "hover:scale-105"
+              }`}
+            >
+              <Plus
+                className={`w-5 h-5 mr-2 transition-transform duration-300 ${
+                  btnAnimation ? "rotate-180" : ""
+                }`}
+              />
+              إضافة امتنان جديد
+            </Button>
           </div>
 
           <PhotoGrid />
           <CreateNewDialog open={dialogOpen} onOpenChange={setDialogOpen} />
 
-          {/* زر الإضافة الدائري مع تأثير النبض الدائم */}
           <div className="fixed bottom-6 left-6">
-            {/* طبقة النبض - الآن مستمرة وشفافة أكثر */}
             <div className="absolute inset-0 rounded-full bg-pink-500/10 animate-pulse-slow"></div>
-            
-            {/* الزر نفسه - دائري تمامًا مع علامة + شفافة */}
             <Button
               onClick={handleCreateNew}
               variant="glass"
@@ -131,5 +149,3 @@ const Index = () => {
 };
 
 export default Index;
-
-حسنا افعل نفس الشيء مع هذه الصفحه ايضا
