@@ -98,8 +98,8 @@ const Index = () => {
                 className="w-full h-full object-contain animate-float"
               />
             </div>
-            <p className="text-lg text-gray-300 max-w-2xl mx-auto mb-6">
-              ﴾ يَا أَيُّهَا النَّاسُ اذْكُرُوا نِعْمَتَ اللَّهِ عَلَيْكُمْ ﴿
+            <p className="text-lg text-white-300 max-w-2xl mx-auto mb-6">
+            شارك لحظاتك السعيدة ، اذكر نعم الله عليك ..
             </p>
             
             <Button
