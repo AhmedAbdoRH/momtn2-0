@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { useAuth } from '@/components/AuthProvider';
 import { Button } from '@/components/ui/button';
@@ -252,6 +251,16 @@ const AuthPage = () => {
             placeholder="كلمة المرور"
             dir="rtl"
           />
+          {mode === 'signIn' && (
+            <div className="mt-1 text-right">
+              <span
+                className="text-sm text-indigo-300 hover:text-indigo-200 cursor-pointer"
+                onClick={() => setMode('resetPassword')}
+              >
+                نسيت كلمة المرور؟
+              </span>
+            </div>
+          )}
         </div>
       </div>
     );
@@ -309,18 +318,6 @@ const AuthPage = () => {
               )}
             </Button>
           </div>
-
-          {mode === 'signIn' && (
-            <div className="text-center">
-              <button
-                type="button"
-                onClick={() => setMode('resetPassword')}
-                className="font-medium text-indigo-300 hover:text-indigo-200"
-              >
-                نسيت كلمة المرور؟
-              </button>
-            </div>
-          )}
 
           <div className="relative">
             <div className="absolute inset-0 flex items-center">
