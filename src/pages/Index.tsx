@@ -1,4 +1,3 @@
-
 import { Plus, Menu, LogOut, User } from "lucide-react";
 import PhotoGrid from "@/components/PhotoGrid";
 import { Button } from "@/components/ui/button";
@@ -25,7 +24,7 @@ const Index = () => {
     setDialogOpen(true);
   };
 
-  const toggleSidebar = () => setSidebarOpen(prev => !prev);
+  const toggleSidebar = () => setSidebarOpen((prev) => !prev);
 
   return (
     <HeartSoundProvider>
@@ -49,9 +48,7 @@ const Index = () => {
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="start" className="w-56 glass-effect text-gray-700 border border-border">
-              <div className="px-2 py-1.5 text-sm font-medium text-gray-600 truncate">
-                {user?.email}
-              </div>
+              <div className="px-2 py-1.5 text-sm font-medium text-gray-600 truncate">{user?.email}</div>
               <DropdownMenuItem
                 onClick={signOut}
                 className="text-red-500 focus:text-red-500 cursor-pointer focus:bg-gray-100"
@@ -66,15 +63,12 @@ const Index = () => {
         {/* الشريط الجانبي */}
         <div
           className={`fixed top-0 right-0 h-full bg-black/30 backdrop-blur-md border-l border-gray-800 w-72 transform transition-transform duration-300 ease-in-out z-40 flex flex-col ${
-            sidebarOpen ? 'translate-x-0' : 'translate-x-full'
+            sidebarOpen ? "translate-x-0" : "translate-x-full"
           }`}
         >
           <div className="flex-1 p-6 pt-20">
             <h3 className="text-gray-300 font-semibold mb-4 text-right">الألبومات</h3>
-            <div
-              id="hashtags-container"
-              className="flex flex-col space-y-3 items-end"
-            >
+            <div id="hashtags-container" className="flex flex-col space-y-3 items-end">
               {/* هنا سيقوم PhotoGrid بإدخال الأزرار عبر createPortal */}
             </div>
           </div>
@@ -93,38 +87,51 @@ const Index = () => {
           <div className="text-center mb-8">
             <div className="inline-block mb-6 w-40 h-40 sm:w-48 sm:h-48">
               <img
-                src="/lovable-uploads/f39108e3-15cc-458c-bb92-7e6b18e100cc.png"
+                src="/lovable-Uploads/f39108e3-15cc-458c-bb92-7e6b18e100cc.png"
                 alt="Logo"
                 className="w-full h-full object-contain animate-float"
               />
             </div>
             <p className="text-lg text-white-300 max-w-2xl mx-auto mb-6">
-          .. شارك لحظاتك السعيدة، والأشياء الرائعة في حياتك
+              .. احتفظ بلحظاتك السعيدة، تذكر نعم الخالق
             </p>
-            
-            <Button
-              onClick={handleCreateNew}
-              className={`px-5 py-3 bg-[#d94550] hover:bg-[#d94550]/90 text-white shadow-lg rounded-lg mx-auto transition-all duration-300 ${
-                btnAnimation ? 'scale-95 shadow-inner' : 'hover:scale-105'
-              }`}
-            >
-              <Plus className={`w-5 h-5 mr-2 transition-transform duration-300 ${btnAnimation ? 'rotate-180' : ''}`} />
-              إضافة امتنان جديد
-            </Button>
+
+            <div className="relative inline-block">
+              <Button
+                onClick={handleCreateNew}
+                className={`relative px-5 py-3 bg-[#d94550] hover:bg-[#d94550]/90 text-white shadow-lg rounded-lg mx-auto transition-all duration-300 overflow-hidden ${
+                  btnAnimation ? "scale-95 shadow-inner" : "hover:scale-105"
+                }`}
+              >
+                <span className="relative z-10 flex items-center">
+                  <Plus
+                    className={`w-5 h-5 mr-2 transition-transform duration-300 ${
+                      btnAnimation ? "rotate-180" : ""
+                    }`}
+                  />
+                  إضافة امتنان جديد
+                </span>
+                {/* طبقة النبض الداخلي */}
+                <span
+                  className="absolute inset-0 rounded-lg bg-[#b73842]/50 animate-inner-pulse"
+                  style={{ transformOrigin: "center" }}
+                ></span>
+              </Button>
+            </div>
           </div>
 
           {/* هنا نمرّر دالة الإغلاق إلى PhotoGrid */}
           <PhotoGrid closeSidebar={() => setSidebarOpen(false)} />
 
-          <CreateNewDialog 
-            open={dialogOpen} 
+          <CreateNewDialog
+            open={dialogOpen}
             onOpenChange={setDialogOpen}
             onPhotoAdded={() => {
               // استدعاء إعادة تحميل الصور عندما تضاف صورة جديدة
               const photoGridElement = document.querySelector("[data-testid='photo-grid']");
               if (photoGridElement) {
                 // تحديث PhotoGrid إذا كان موجودًا
-                window.dispatchEvent(new CustomEvent('photo-added'));
+                window.dispatchEvent(new CustomEvent("photo-added"));
               }
             }}
           />
