@@ -11,7 +11,6 @@ interface AuthContextType {
   signIn: (email: string, password: string) => Promise<{ error: any }>;
   signOut: () => Promise<void>;
   loading: boolean;
-  isEmailVerified: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -28,7 +27,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
-  const [isEmailVerified, setIsEmailVerified] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -45,37 +43,24 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           setSession(newSession);
           setUser(newSession?.user ?? null);
           
-          // Check if email is verified via user metadata
-          const isVerified = newSession?.user?.user_metadata?.email_verified === true;
-          setIsEmailVerified(isVerified);
-          
-          // Redirect based on verification status
+          // Redirect to the home page if on auth page
           if (newSession && location.pathname === '/auth') {
-            if (isVerified) {
-              navigate('/');
-            } else {
-              console.log("Redirecting to verification page - user not verified");
-              navigate('/verify-email');
-            }
+            navigate('/');
           }
         } else if (event === 'SIGNED_OUT') {
           console.log("User signed out");
           setSession(null);
           setUser(null);
-          setIsEmailVerified(false);
           navigate('/auth');
         } else if (event === 'USER_UPDATED') {
           console.log("User updated");
           setSession(newSession);
           setUser(newSession?.user ?? null);
-          
-          // Re-check verification status after user update
-          const isVerified = newSession?.user?.user_metadata?.email_verified === true;
-          setIsEmailVerified(isVerified);
-          
-          if (isVerified && location.pathname === '/verify-email') {
-            navigate('/');
-          }
+        } else if (event === 'PASSWORD_RECOVERY') {
+          console.log("Password recovery event detected");
+          // The recovery token is already in the URL in hash parameters
+          // ResetPasswordPage will handle this token
+          navigate('/reset-password');
         }
         
         setLoading(false);
@@ -98,20 +83,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         setSession(session);
         setUser(session?.user ?? null);
         
-        // Check if email is verified
-        if (session?.user) {
-          const isVerified = session.user.user_metadata?.email_verified === true;
-          setIsEmailVerified(isVerified);
-          
-          // Redirect if needed
-          if (location.pathname === '/auth' && session) {
-            if (isVerified) {
-              navigate('/');
-            } else {
-              console.log("Redirecting to verification page - user not verified");
-              navigate('/verify-email');
-            }
-          }
+        // Redirect if needed
+        if (location.pathname === '/auth' && session) {
+          navigate('/');
         }
       } catch (error) {
         console.error('Error getting session:', error);
@@ -128,25 +102,15 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const signUp = async (email: string, password: string) => {
     try {
       console.log("Attempting to sign up:", email);
-      const { data, error } = await supabase.auth.signUp({ 
-        email, 
-        password,
-        options: {
-          data: {
-            email_verified: false // Mark as unverified initially
-          }
-        } 
-      });
+      const { data, error } = await supabase.auth.signUp({ email, password });
       
       console.log("Sign up result:", error ? `Error: ${error.message}` : "Success", data);
       
-      // After successful signup, explicitly redirect to verification page
+      // Redirect to home page after successful signup
       if (!error && data.user) {
         setUser(data.user);
-        setIsEmailVerified(false);
         setSession(data.session);
-        console.log("Redirecting to /verify-email after sign up");
-        navigate('/verify-email');
+        navigate('/');
       }
       
       return { error };
@@ -163,16 +127,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       console.log("Sign in result:", error ? `Error: ${error.message}` : "Success", data);
       
       if (!error && data.user) {
-        // Get updated user data to check verification status
-        const isVerified = data.user.user_metadata?.email_verified === true;
-        setIsEmailVerified(isVerified);
-        
-        if (isVerified) {
-          navigate('/');
-        } else {
-          console.log("Redirecting to verification page - user not verified");
-          navigate('/verify-email');
-        }
+        navigate('/');
       }
       return { error };
     } catch (error: any) {
@@ -197,8 +152,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     signUp,
     signIn,
     signOut,
-    loading,
-    isEmailVerified
+    loading
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

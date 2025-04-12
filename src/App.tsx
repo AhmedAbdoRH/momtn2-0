@@ -7,7 +7,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import AuthPage from "./pages/AuthPage";
-import EmailVerificationPage from "./pages/EmailVerificationPage";
+import ResetPasswordPage from "./pages/ResetPasswordPage";
 import { AuthProvider } from "./components/AuthProvider";
 import ProtectedRoute from "./components/ProtectedRoute";
 
@@ -31,7 +31,7 @@ function App() {
           <AuthProvider>
             <Routes>
               <Route path="/auth" element={<AuthPage />} />
-              <Route path="/verify-email" element={<EmailVerificationPage />} />
+              <Route path="/reset-password" element={<ResetPasswordPage />} />
               <Route path="/" element={
                 <ProtectedRoute>
                   <Index />

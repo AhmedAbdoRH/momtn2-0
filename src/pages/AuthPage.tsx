@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { useAuth } from '@/components/AuthProvider';
 import { Button } from '@/components/ui/button';
@@ -7,7 +8,7 @@ import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 
 const AuthPage = () => {
-  const [mode, setMode] = useState<'signIn' | 'signUp'>('signIn');
+  const [mode, setMode] = useState<'signIn' | 'signUp' | 'resetPassword'>('signIn');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -22,11 +23,56 @@ const AuthPage = () => {
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!email || !password) {
+    if (!email) {
       uiToast({
         variant: "destructive",
         title: "حقول مطلوبة",
-        description: "يرجى إدخال البريد الإلكتروني وكلمة المرور",
+        description: "يرجى إدخال البريد الإلكتروني",
+      });
+      return;
+    }
+    
+    if (mode === 'resetPassword') {
+      setLoading(true);
+      try {
+        const { error } = await supabase.auth.resetPasswordForEmail(email, {
+          redirectTo: `${window.location.origin}/reset-password`,
+        });
+        
+        if (error) {
+          uiToast({
+            variant: "destructive",
+            title: "حدث خطأ",
+            description: `خطأ في إعادة تعيين كلمة المرور: ${error.message}`,
+          });
+          toast.error(`خطأ في إعادة تعيين كلمة المرور: ${error.message}`);
+        } else {
+          uiToast({
+            title: "تم إرسال رابط إعادة تعيين كلمة المرور",
+            description: "تفقد بريدك الإلكتروني للحصول على تعليمات إعادة تعيين كلمة المرور",
+          });
+          toast.success("تم إرسال رابط إعادة تعيين كلمة المرور، تفقد بريدك الإلكتروني");
+        }
+      } catch (error) {
+        console.error("Error in reset password:", error);
+        uiToast({
+          variant: "destructive",
+          title: "حدث خطأ غير متوقع",
+          description: "فشل في إرسال رابط إعادة تعيين كلمة المرور، يرجى المحاولة مرة أخرى",
+        });
+        toast.error("حدث خطأ غير متوقع، يرجى المحاولة مرة أخرى");
+      } finally {
+        setLoading(false);
+        setMode('signIn'); // Return to sign in form after reset password request
+      }
+      return;
+    }
+    
+    if (!password && mode !== 'resetPassword') {
+      uiToast({
+        variant: "destructive",
+        title: "حقول مطلوبة",
+        description: "يرجى إدخال كلمة المرور",
       });
       return;
     }
@@ -81,15 +127,6 @@ const AuthPage = () => {
           });
           
           toast.error(errorMessage);
-        } else {
-          uiToast({
-            title: "تم إنشاء الحساب بنجاح",
-            description: "سيتم توجيهك إلى صفحة التحقق من البريد الإلكتروني",
-          });
-          
-          toast.success("تم إنشاء الحساب بنجاح، سيتم توجيهك إلى صفحة التحقق");
-          
-          // Redirect to verification page is handled in AuthProvider
         }
       }
     } catch (error) {
@@ -155,6 +192,71 @@ const AuthPage = () => {
     }
   };
   
+  const renderFormContent = () => {
+    if (mode === 'resetPassword') {
+      return (
+        <div className="space-y-4 rounded-md shadow-sm">
+          <div>
+            <label htmlFor="email-address" className="sr-only">
+              البريد الإلكتروني
+            </label>
+            <input
+              id="email-address"
+              name="email"
+              type="email"
+              autoComplete="email"
+              required
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className="appearance-none bg-gray-800/50 backdrop-blur-sm relative block w-full px-3 py-3 border border-gray-700 placeholder-gray-500 text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+              placeholder="البريد الإلكتروني"
+              dir="rtl"
+            />
+          </div>
+        </div>
+      );
+    }
+
+    return (
+      <div className="space-y-4 rounded-md shadow-sm">
+        <div>
+          <label htmlFor="email-address" className="sr-only">
+            البريد الإلكتروني
+          </label>
+          <input
+            id="email-address"
+            name="email"
+            type="email"
+            autoComplete="email"
+            required
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            className="appearance-none bg-gray-800/50 backdrop-blur-sm relative block w-full px-3 py-3 border border-gray-700 placeholder-gray-500 text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+            placeholder="البريد الإلكتروني"
+            dir="rtl"
+          />
+        </div>
+        <div>
+          <label htmlFor="password" className="sr-only">
+            كلمة المرور
+          </label>
+          <input
+            id="password"
+            name="password"
+            type="password"
+            autoComplete={mode === 'signIn' ? 'current-password' : 'new-password'}
+            required
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            className="appearance-none bg-gray-800/50 backdrop-blur-sm relative block w-full px-3 py-3 border border-gray-700 placeholder-gray-500 text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+            placeholder="كلمة المرور"
+            dir="rtl"
+          />
+        </div>
+      </div>
+    );
+  };
+  
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#2D1F3D] via-[#1A1F2C] to-[#3D1F2C] flex items-center justify-center p-4">
       <div className="max-w-md w-full space-y-8 bg-gray-900/60 backdrop-blur-xl p-8 rounded-2xl shadow-xl">
@@ -167,50 +269,23 @@ const AuthPage = () => {
             />
           </div>
           <h2 className="text-2xl font-bold text-white">
-            {mode === 'signIn' ? 'تسجيل الدخول' : 'إنشاء حساب جديد'}
+            {mode === 'signIn' 
+              ? 'تسجيل الدخول' 
+              : mode === 'signUp' 
+                ? 'إنشاء حساب جديد' 
+                : 'استعادة كلمة المرور'}
           </h2>
           <p className="mt-2 text-gray-400">
-            {mode === 'signIn' ? 'قم بتسجيل الدخول للوصول إلى حسابك' : 'أنشئ حسابًا جديدًا للبدء'}
+            {mode === 'signIn' 
+              ? 'قم بتسجيل الدخول للوصول إلى حسابك' 
+              : mode === 'signUp' 
+                ? 'أنشئ حسابًا جديدًا للبدء' 
+                : 'أدخل بريدك الإلكتروني لاستعادة كلمة المرور'}
           </p>
         </div>
         <form className="mt-8 space-y-6" onSubmit={handleAuth}>
-          <div className="space-y-4 rounded-md shadow-sm">
-            <div>
-              <label htmlFor="email-address" className="sr-only">
-                البريد الإلكتروني
-              </label>
-              <input
-                id="email-address"
-                name="email"
-                type="email"
-                autoComplete="email"
-                required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="appearance-none bg-gray-800/50 backdrop-blur-sm relative block w-full px-3 py-3 border border-gray-700 placeholder-gray-500 text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                placeholder="البريد الإلكتروني"
-                dir="rtl"
-              />
-            </div>
-            <div>
-              <label htmlFor="password" className="sr-only">
-                كلمة المرور
-              </label>
-              <input
-                id="password"
-                name="password"
-                type="password"
-                autoComplete={mode === 'signIn' ? 'current-password' : 'new-password'}
-                required
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="appearance-none bg-gray-800/50 backdrop-blur-sm relative block w-full px-3 py-3 border border-gray-700 placeholder-gray-500 text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                placeholder="كلمة المرور"
-                dir="rtl"
-              />
-            </div>
-          </div>
-  
+          {renderFormContent()}
+
           <div>
             <Button
               type="submit"
@@ -226,10 +301,26 @@ const AuthPage = () => {
                   جاري التحميل...
                 </span>
               ) : (
-                mode === 'signIn' ? 'تسجيل الدخول' : 'إنشاء حساب'
+                mode === 'signIn' 
+                  ? 'تسجيل الدخول' 
+                  : mode === 'signUp' 
+                    ? 'إنشاء حساب' 
+                    : 'إرسال رابط استعادة كلمة المرور'
               )}
             </Button>
           </div>
+
+          {mode === 'signIn' && (
+            <div className="text-center">
+              <button
+                type="button"
+                onClick={() => setMode('resetPassword')}
+                className="font-medium text-indigo-300 hover:text-indigo-200"
+              >
+                نسيت كلمة المرور؟
+              </button>
+            </div>
+          )}
 
           <div className="relative">
             <div className="absolute inset-0 flex items-center">
@@ -267,7 +358,9 @@ const AuthPage = () => {
             >
               {mode === 'signIn'
                 ? 'ليس لديك حساب؟ سجل الآن'
-                : 'لديك حساب بالفعل؟ تسجيل الدخول'}
+                : mode === 'signUp'
+                  ? 'لديك حساب بالفعل؟ تسجيل الدخول'
+                  : 'العودة إلى تسجيل الدخول'}
             </button>
           </div>
         </form>
