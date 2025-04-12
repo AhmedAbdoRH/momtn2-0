@@ -1,11 +1,13 @@
 
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { useState, useEffect } from "react";
-import { ImagePlus } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
+import { ImagePlus, Hash } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "./AuthProvider";
+import { Command, CommandInput, CommandEmpty, CommandGroup, CommandItem } from "@/components/ui/command";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
 interface CreateNewDialogProps {
   open: boolean;
@@ -18,9 +20,10 @@ const CreateNewDialog = ({ open, onOpenChange }: CreateNewDialogProps) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [albumName, setAlbumName] = useState<string>("");
   const [suggestions, setSuggestions] = useState<string[]>([]);
-  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [popoverOpen, setPopoverOpen] = useState(false);
   const { toast } = useToast();
   const { user } = useAuth();
+  const inputRef = useRef<HTMLInputElement>(null);
   
   // تعديل لاستجابة النافذة للوحة المفاتيح
   useEffect(() => {
@@ -84,26 +87,38 @@ const CreateNewDialog = ({ open, onOpenChange }: CreateNewDialogProps) => {
     }
   };
 
-  const handleAlbumChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    let value = e.target.value;
+  const handleAlbumChange = (value: string) => {
+    let formattedValue = value;
     
-    // إذا كان المستخدم لم يضف # في البداية، فإننا نضيفه
-    if (value && !value.startsWith('#')) {
-      value = '#' + value;
+    // تأكد من وجود # في البداية
+    if (formattedValue && !formattedValue.startsWith('#')) {
+      formattedValue = '#' + formattedValue;
     }
     
-    setAlbumName(value);
-    setShowSuggestions(value.length > 1);
+    // استبدال المسافات بعلامة _
+    formattedValue = formattedValue.replace(/\s+/g, '_');
+    
+    setAlbumName(formattedValue);
   };
 
-  const handleSuggestionClick = (suggestion: string) => {
-    setAlbumName(suggestion);
-    setShowSuggestions(false);
+  const handleAlbumSelect = (album: string) => {
+    setAlbumName(album);
+    setPopoverOpen(false);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!image || isSubmitting || !user) return;
+
+    // التحقق من أن اسم الألبوم يبدأ بـ #
+    if (albumName && !albumName.startsWith('#')) {
+      toast({
+        title: "خطأ في اسم الألبوم",
+        description: "يجب أن يبدأ اسم الألبوم بعلامة #",
+        variant: "destructive",
+      });
+      return;
+    }
 
     setIsSubmitting(true);
 
@@ -236,39 +251,57 @@ const CreateNewDialog = ({ open, onOpenChange }: CreateNewDialogProps) => {
               )}
             </div>
             
-            {/* حقل اسم الألبوم مع الاقتراحات */}
-            <div className="w-full relative">
+            {/* حقل اسم الألبوم مع القائمة المنسدلة */}
+            <div className="w-full">
               <label htmlFor="albumName" className="block text-sm text-gray-300 mb-1 text-right">
-                اسم الألبوم (اختياري)
+                اسم الألبوم (#اسم_الألبوم)
               </label>
-              <input
-                id="albumName"
-                type="text"
-                value={albumName}
-                onChange={handleAlbumChange}
-                onFocus={() => setShowSuggestions(albumName.length > 1)}
-                onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
-                placeholder="أدخل اسم الألبوم (مثال: #رمضان)"
-                className="w-full px-3 py-2 bg-gray-800/50 border border-gray-600 rounded-md text-right placeholder:text-gray-500 text-sm"
-              />
               
-              {/* قائمة الاقتراحات */}
-              {showSuggestions && suggestions.length > 0 && (
-                <div className="suggestions-list">
-                  {suggestions
-                    .filter(suggestion => suggestion.includes(albumName.replace('#', '')) || albumName === '')
-                    .map((suggestion, index) => (
-                      <div 
-                        key={index}
-                        className="suggestion-item"
-                        onClick={() => handleSuggestionClick(suggestion)}
-                      >
-                        {suggestion}
-                      </div>
-                    ))
-                  }
-                </div>
-              )}
+              <Popover open={popoverOpen} onOpenChange={setPopoverOpen}>
+                <PopoverTrigger asChild>
+                  <div className="flex items-center relative w-full">
+                    <Hash className="absolute right-3 text-gray-500 pointer-events-none" size={16} />
+                    <input
+                      ref={inputRef}
+                      type="text"
+                      value={albumName}
+                      onChange={(e) => handleAlbumChange(e.target.value)}
+                      onFocus={() => setPopoverOpen(true)}
+                      placeholder="أدخل اسم الألبوم"
+                      className="w-full px-3 py-2 pr-9 bg-gray-800/50 border border-gray-600 rounded-md text-right placeholder:text-gray-500 text-sm"
+                    />
+                  </div>
+                </PopoverTrigger>
+                <PopoverContent 
+                  className="w-full p-0 bg-gray-800 border border-gray-700 max-h-72 overflow-y-auto text-right"
+                  align="end"
+                >
+                  <Command className="bg-transparent">
+                    <CommandInput 
+                      placeholder="البحث عن الألبومات..." 
+                      className="text-right bg-transparent border-b border-gray-700 text-white"
+                    />
+                    <CommandEmpty className="text-gray-400 text-right py-2 px-2">
+                      لا توجد ألبومات مطابقة
+                    </CommandEmpty>
+                    <CommandGroup>
+                      {suggestions.map((album, index) => (
+                        <CommandItem 
+                          key={index}
+                          value={album}
+                          onSelect={() => handleAlbumSelect(album)}
+                          className="text-right cursor-pointer px-2 py-2 hover:bg-gray-700"
+                        >
+                          {album}
+                        </CommandItem>
+                      ))}
+                    </CommandGroup>
+                  </Command>
+                </PopoverContent>
+              </Popover>
+              <p className="mt-1 text-xs text-gray-400 text-right">
+                يجب أن يبدأ بـ # وبدون مسافات (استخدم _ بدلاً من المسافة)
+              </p>
             </div>
           </div>
           <div className="flex justify-end gap-3">
