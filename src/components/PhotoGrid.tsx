@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
@@ -18,6 +17,11 @@ interface Photo {
   user_id?: string;
 }
 
+// prop جديدة لإغلاق الشريط الجانبي في المكون الأبّ
+interface PhotoGridProps {
+  closeSidebar: () => void;
+}
+
 // إعلان عالمي لوظيفة addPhoto
 declare global {
   interface Window {
@@ -25,12 +29,11 @@ declare global {
   }
 }
 
-const PhotoGrid = () => {
+const PhotoGrid: React.FC<PhotoGridProps> = ({ closeSidebar }) => {
   const [photos, setPhotos] = useState<Photo[]>([]);
   const { toast } = useToast();
   const [selectedHashtag, setSelectedHashtag] = useState<string | null>(null);
   const [allHashtags, setAllHashtags] = useState<Set<string>>(new Set());
-  const [sidebarVisible, setSidebarVisible] = useState(true);
   const { user } = useAuth();
 
   useEffect(() => {
@@ -62,7 +65,7 @@ const PhotoGrid = () => {
         <button
           onClick={() => {
             setSelectedHashtag(null);
-            setSidebarVisible(false);
+            closeSidebar();
           }}
           className="block w-full text-right px-3 py-2 mb-4 rounded-lg transition-colors bg-white/10 text-white hover:bg-white/20"
         >
@@ -74,7 +77,7 @@ const PhotoGrid = () => {
               key={tag}
               onClick={() => {
                 setSelectedHashtag(prevTag => tag === prevTag ? null : tag);
-                setSidebarVisible(false);
+                closeSidebar();
               }}
               className={`px-3 py-2 rounded-lg transition-colors w-full text-right ${
                 tag === selectedHashtag
@@ -93,9 +96,7 @@ const PhotoGrid = () => {
 
   const fetchPhotos = async () => {
     if (!user) return;
-    
     try {
-      // ترتيب الصور حسب الترتيب ثم تاريخ الإنشاء
       const { data, error } = await supabase
         .from('photos')
         .select('*')
@@ -107,8 +108,6 @@ const PhotoGrid = () => {
         console.error('Error fetching photos:', error);
         return;
       }
-
-      console.log('Successfully fetched photos:', data);
       setPhotos(data || []);
     } catch (err) {
       console.error('Exception fetching photos:', err);
@@ -117,29 +116,23 @@ const PhotoGrid = () => {
 
   const handleDragEnd = async (result: any) => {
     if (!result.destination) return;
-
     const items = Array.from(photos);
     const [reorderedItem] = items.splice(result.source.index, 1);
     items.splice(result.destination.index, 0, reorderedItem);
 
-    // تحديث الترتيب المحلي
     const updatedItems = items.map((photo, index) => ({
       ...photo,
       order: index
     }));
-    
     setPhotos(updatedItems);
 
     try {
-      // تحديث الصور بترتيبها الجديد في قاعدة البيانات
       for (let i = 0; i < updatedItems.length; i++) {
         const { error } = await supabase
           .from('photos')
-          .update({ "order": i })
+          .update({ order: i })
           .eq('id', updatedItems[i].id);
-        
         if (error) {
-          console.error(`Error updating order for photo ${updatedItems[i].id}:`, error);
           toast({
             title: "خطأ في تحديث الترتيب",
             description: `لم نتمكن من تحديث ترتيب الصورة: ${error.message}`,
@@ -147,14 +140,8 @@ const PhotoGrid = () => {
           });
         }
       }
-      
-      toast({
-        title: "تم الترتيب",
-        description: "تم حفظ ترتيب الصور بنجاح",
-      });
-      
-    } catch (err) {
-      console.error('Exception updating photo order:', err);
+      toast({ title: "تم الترتيب", description: "تم حفظ ترتيب الصور بنجاح" });
+    } catch {
       toast({
         title: "خطأ في الترتيب",
         description: "حدث خطأ أثناء حفظ الترتيب الجديد",
@@ -163,21 +150,12 @@ const PhotoGrid = () => {
     }
   };
 
-  // تعريف وظيفة إضافة صورة جديدة
   const addPhoto = async (params: { imageUrl: string }): Promise<boolean> => {
+    if (!user) {
+      toast({ title: "لم تسجل الدخول", description: "يجب تسجيل الدخول لإضافة صور", variant: "destructive" });
+      return false;
+    }
     try {
-      if (!user) {
-        toast({
-          title: "لم تسجل الدخول",
-          description: "يجب تسجيل الدخول لإضافة صور",
-          variant: "destructive",
-        });
-        return false;
-      }
-      
-      console.log('Adding photo to database:', params.imageUrl);
-      
-      // إضافة الصورة إلى الجدول
       const { data, error } = await supabase
         .from('photos')
         .insert({
@@ -186,50 +164,28 @@ const PhotoGrid = () => {
           caption: null,
           hashtags: [],
           user_id: user.id,
-          "order": 0
+          order: 0
         })
         .select();
-
       if (error) {
-        console.error('Error adding photo to database:', error);
-        toast({
-          title: "خطأ في الإضافة",
-          description: "لم نتمكن من إضافة الصورة إلى قاعدة البيانات",
-          variant: "destructive",
-        });
+        toast({ title: "خطأ في الإضافة", description: "لم نتمكن من إضافة الصورة", variant: "destructive" });
         return false;
       }
-
-      console.log('Photo added successfully:', data);
-      
-      // تحديث واجهة المستخدم بالصورة الجديدة
       if (data && data.length > 0) {
-        setPhotos(prevPhotos => [data[0], ...prevPhotos]);
-        
-        toast({
-          title: "تمت الإضافة بنجاح",
-          description: "تمت إضافة الصورة الجديدة إلى المعرض",
-        });
+        setPhotos(prev => [data[0], ...prev]);
+        toast({ title: "تمت الإضافة بنجاح", description: "تمت إضافة الصورة الجديدة" });
       }
-      
       return true;
-    } catch (error) {
-      console.error('Exception when adding photo:', error);
-      toast({
-        title: "خطأ غير متوقع",
-        description: "حدث خطأ غير متوقع أثناء إضافة الصورة",
-        variant: "destructive",
-      });
+    } catch {
+      toast({ title: "خطأ غير متوقع", description: "حدث خطأ أثناء إضافة الصورة", variant: "destructive" });
       return false;
     }
   };
 
-  // تسجيل وظيفة addPhoto في كائن النافذة
   useEffect(() => {
     window.addPhoto = addPhoto;
-    
     return () => {
-      // @ts-ignore - تنظيف عند تفكيك المكون
+      // @ts-ignore
       delete window.addPhoto;
     };
   }, [user]);
@@ -241,77 +197,46 @@ const PhotoGrid = () => {
         .delete()
         .eq('id', id)
         .eq('user_id', user?.id);
-
       if (error) {
-        console.error('Error deleting photo:', error);
-        toast({
-          title: "خطأ في الحذف",
-          description: "حدث خطأ أثناء حذف الصورة",
-          variant: "destructive",
-        });
+        toast({ title: "خطأ في الحذف", description: "لم نتمكن من حذف الصورة", variant: "destructive" });
         return;
       }
-
       const fileName = imageUrl.split('/').pop();
       if (fileName) {
-        const { error: storageError } = await supabase.storage
-          .from('photos')
-          .remove([fileName]);
-
-        if (storageError) {
-          console.error('Error deleting file from storage:', storageError);
-        }
+        await supabase.storage.from('photos').remove([fileName]);
       }
-
-      setPhotos(prevPhotos => prevPhotos.filter(photo => photo.id !== id));
-      toast({
-        title: "تم الحذف بنجاح",
-        description: "تم حذف الصورة بنجاح",
-      });
-    } catch (err) {
-      console.error('Exception deleting photo:', err);
+      setPhotos(prev => prev.filter(photo => photo.id !== id));
+      toast({ title: "تم الحذف بنجاح", description: "تم حذف الصورة" });
+    } catch {
+      console.error('Exception deleting photo');
     }
   };
 
   const handleUpdateCaption = async (id: string, caption: string, hashtags: string[]) => {
     try {
-      const cleanedHashtags = hashtags.map(tag => tag.trim()).filter(tag => tag);
-
+      const cleaned = hashtags.map(t => t.trim()).filter(t => t);
       const { error } = await supabase
         .from('photos')
-        .update({ caption, hashtags: cleanedHashtags })
+        .update({ caption, hashtags: cleaned })
         .eq('id', id)
         .eq('user_id', user?.id);
-
       if (error) {
-        console.error('Error updating caption:', error);
-        toast({
-          title: "خطأ في التحديث",
-          description: "حدث خطأ أثناء تحديث التعليق",
-          variant: "destructive",
-        });
+        toast({ title: "خطأ في التحديث", description: "لم نتمكن من تحديث التعليق", variant: "destructive" });
         return;
       }
-
-      setPhotos(prevPhotos => 
-        prevPhotos.map(photo => 
-          photo.id === id ? { ...photo, caption, hashtags: cleanedHashtags } : photo
-        )
+      setPhotos(prev =>
+        prev.map(photo => photo.id === id ? { ...photo, caption, hashtags: cleaned } : photo)
       );
-
-      toast({
-        title: "تم التحديث بنجاح",
-        description: "تم تحديث التعليق والهاشتاجات بنجاح",
-      });
-    } catch (err) {
-      console.error('Exception updating caption:', err);
+      toast({ title: "تم التحديث بنجاح", description: "تم تحديث التعليق والهاشتاجات" });
+    } catch {
+      console.error('Exception updating caption');
     }
   };
 
   const filteredPhotos = selectedHashtag
-    ? photos.filter(photo => photo.hashtags?.some(tag => 
-        tag.trim() === selectedHashtag.trim()
-      ))
+    ? photos.filter(photo =>
+        photo.hashtags?.some(tag => tag.trim() === selectedHashtag.trim())
+      )
     : photos;
 
   return (
@@ -327,7 +252,7 @@ const PhotoGrid = () => {
       <DragDropContext onDragEnd={handleDragEnd}>
         <Droppable droppableId="photos">
           {(provided) => (
-            <div 
+            <div
               {...provided.droppableProps}
               ref={provided.innerRef}
               className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6"
@@ -341,14 +266,14 @@ const PhotoGrid = () => {
                       className="transform transition-all duration-300 hover:scale-[0.98]"
                     >
                       <div className="rounded-xl overflow-hidden shadow-lg scale-95">
-                        <PhotoCard 
+                        <PhotoCard
                           imageUrl={photo.image_url}
                           likes={photo.likes || 0}
-                          caption={photo.caption || ''}
+                          caption={photo.caption || ""}
                           hashtags={photo.hashtags || []}
                           dragHandleProps={provided.dragHandleProps}
                           onDelete={() => handleDelete(photo.id, photo.image_url)}
-                          onUpdateCaption={(caption, hashtags) => 
+                          onUpdateCaption={(caption, hashtags) =>
                             handleUpdateCaption(photo.id, caption, hashtags)
                           }
                         />
