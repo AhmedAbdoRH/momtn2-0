@@ -194,7 +194,8 @@ const AuthPage = () => {
   const renderFormContent = () => {
     if (mode === 'resetPassword') {
       return (
-        <div className="space-y-4 rounded-md shadow-sm">
+        // قللت المسافة هنا من space-y-4 إلى space-y-3
+        <div className="space-y-3 rounded-md shadow-sm"> 
           <div>
             <label htmlFor="email-address" className="sr-only">
               البريد الإلكتروني
@@ -217,7 +218,8 @@ const AuthPage = () => {
     }
 
     return (
-      <div className="space-y-4 rounded-md shadow-sm">
+      // قللت المسافة هنا من space-y-4 إلى space-y-3
+      <div className="space-y-3 rounded-md shadow-sm"> 
         <div>
           <label htmlFor="email-address" className="sr-only">
             البريد الإلكتروني
@@ -252,7 +254,8 @@ const AuthPage = () => {
             dir="rtl"
           />
           {mode === 'signIn' && (
-            <div className="mt-1 text-right">
+            // حافظت على mt-1 هنا لأنها مسافة صغيرة بالفعل
+            <div className="mt-1 text-right"> 
               <span
                 className="text-sm text-indigo-300 hover:text-indigo-200 cursor-pointer"
                 onClick={() => setMode('resetPassword')}
@@ -268,31 +271,39 @@ const AuthPage = () => {
   
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#2D1F3D] via-[#1A1F2C] to-[#3D1F2C] flex items-center justify-center p-4">
-      <div className="max-w-md w-full space-y-8 bg-gray-900/60 backdrop-blur-xl p-8 rounded-2xl shadow-xl">
+      {/* قللت المسافة بين عناصر الكونتينر الرئيسي من space-y-8 إلى space-y-6 */}
+      {/* قللت الـ padding من p-8 إلى p-6 */}
+      <div className="max-w-md w-full space-y-6 bg-gray-900/60 backdrop-blur-xl p-6 rounded-2xl shadow-xl"> 
         <div className="text-center">
-          <div className="inline-block mb-6 w-32 h-32">
+          {/* قللت الهامش السفلي للشعار من mb-6 إلى mb-4 */}
+          <div className="inline-block mb-4 w-28 h-28"> {/* يمكن تصغير حجم الشعار قليلاً إن أردت w-28 h-28 */}
             <img
               src="/lovable-uploads/f39108e3-15cc-458c-bb92-7e6b18e100cc.png"
               alt="Logo"
               className="w-full h-full object-contain"
             />
           </div>
-          <h2 className="text-2xl font-bold text-white">
+          {/* صغرت حجم الخط الرئيسي من text-2xl إلى text-xl */}
+          <h2 className="text-xl font-bold text-white"> 
             {mode === 'signIn' 
               ? 'تسجيل الدخول' 
               : mode === 'signUp' 
                 ? 'إنشاء حساب جديد' 
                 : 'استعادة كلمة المرور'}
           </h2>
-          <p className="mt-2 text-gray-400">
+          {/* ---- تم حذف الجملة الفرعية هنا ---- */}
+          {/* <p className="mt-2 text-gray-400">
             {mode === 'signIn' 
-              ? '' // Removed the sentence here
+              ? '' 
               : mode === 'signUp' 
                 ? 'أنشئ حسابًا جديدًا للبدء' 
                 : 'أدخل بريدك الإلكتروني لاستعادة كلمة المرور'}
-          </p>
+          </p> 
+          */}
         </div>
-        <form className="mt-8 space-y-6" onSubmit={handleAuth}>
+        {/* قللت الهامش العلوي للفورم من mt-8 إلى mt-6 */}
+        {/* قللت المسافة بين عناصر الفورم من space-y-6 إلى space-y-5 */}
+        <form className="mt-6 space-y-5" onSubmit={handleAuth}> 
           {renderFormContent()}
 
           <div>
