@@ -99,7 +99,7 @@ const Index = () => {
               />
             </div>
             <p className="text-lg text-white-300 max-w-2xl mx-auto mb-6">
-            شارك لحظاتك السعيدة ، اذكر نعم الله عليك ..
+          .. شارك لحظاتك السعيدة، والأشياء الرائعة في حياتك
             </p>
             
             <Button
