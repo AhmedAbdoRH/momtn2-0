@@ -1,3 +1,4 @@
+
 import { Plus, Menu, LogOut, User } from "lucide-react";
 import PhotoGrid from "@/components/PhotoGrid";
 import { Button } from "@/components/ui/button";
@@ -93,7 +94,7 @@ const Index = () => {
             </Button>
           </div>
 
-          <PhotoGrid />
+          <PhotoGrid closeSidebar={() => setSidebarOpen(false)} />
           <CreateNewDialog open={dialogOpen} onOpenChange={setDialogOpen} />
 
           <Button

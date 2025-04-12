@@ -67,7 +67,7 @@ const AuthPage = () => {
       return;
     }
     
-    if (!password && mode !== 'resetPassword') {
+    if (!password) {
       uiToast({
         variant: "destructive",
         title: "حقول مطلوبة",
@@ -194,7 +194,6 @@ const AuthPage = () => {
   const renderFormContent = () => {
     if (mode === 'resetPassword') {
       return (
-        // قللت المسافة هنا من space-y-4 إلى space-y-3
         <div className="space-y-3 rounded-md shadow-sm"> 
           <div>
             <label htmlFor="email-address" className="sr-only">
@@ -218,7 +217,6 @@ const AuthPage = () => {
     }
 
     return (
-      // قللت المسافة هنا من space-y-4 إلى space-y-3
       <div className="space-y-3 rounded-md shadow-sm"> 
         <div>
           <label htmlFor="email-address" className="sr-only">
@@ -254,7 +252,6 @@ const AuthPage = () => {
             dir="rtl"
           />
           {mode === 'signIn' && (
-            // حافظت على mt-1 هنا لأنها مسافة صغيرة بالفعل
             <div className="mt-1 text-right"> 
               <span
                 className="text-sm text-indigo-300 hover:text-indigo-200 cursor-pointer"
@@ -271,19 +268,15 @@ const AuthPage = () => {
   
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#2D1F3D] via-[#1A1F2C] to-[#3D1F2C] flex items-center justify-center p-4">
-      {/* قللت المسافة بين عناصر الكونتينر الرئيسي من space-y-8 إلى space-y-6 */}
-      {/* قللت الـ padding من p-8 إلى p-6 */}
       <div className="max-w-md w-full space-y-6 bg-gray-900/60 backdrop-blur-xl p-6 rounded-2xl shadow-xl"> 
         <div className="text-center">
-          {/* قللت الهامش السفلي للشعار من mb-6 إلى mb-4 */}
-          <div className="inline-block mb-4 w-28 h-28"> {/* يمكن تصغير حجم الشعار قليلاً إن أردت w-28 h-28 */}
+          <div className="inline-block mb-4 w-28 h-28">
             <img
               src="/lovable-uploads/f39108e3-15cc-458c-bb92-7e6b18e100cc.png"
               alt="Logo"
               className="w-full h-full object-contain"
             />
           </div>
-          {/* صغرت حجم الخط الرئيسي من text-2xl إلى text-xl */}
           <h2 className="text-xl font-bold text-white"> 
             {mode === 'signIn' 
               ? 'تسجيل الدخول' 
@@ -291,18 +284,7 @@ const AuthPage = () => {
                 ? 'إنشاء حساب جديد' 
                 : 'استعادة كلمة المرور'}
           </h2>
-          {/* ---- تم حذف الجملة الفرعية هنا ---- */}
-          {/* <p className="mt-2 text-gray-400">
-            {mode === 'signIn' 
-              ? '' 
-              : mode === 'signUp' 
-                ? 'أنشئ حسابًا جديدًا للبدء' 
-                : 'أدخل بريدك الإلكتروني لاستعادة كلمة المرور'}
-          </p> 
-          */}
         </div>
-        {/* قللت الهامش العلوي للفورم من mt-8 إلى mt-6 */}
-        {/* قللت المسافة بين عناصر الفورم من space-y-6 إلى space-y-5 */}
         <form className="mt-6 space-y-5" onSubmit={handleAuth}> 
           {renderFormContent()}
 
