@@ -286,7 +286,7 @@ const AuthPage = () => {
           </h2>
           <p className="mt-2 text-gray-400">
             {mode === 'signIn' 
-              ? 'قم بتسجيل الدخول للوصول إلى حسابك' 
+              ? '' // Removed the sentence here
               : mode === 'signUp' 
                 ? 'أنشئ حسابًا جديدًا للبدء' 
                 : 'أدخل بريدك الإلكتروني لاستعادة كلمة المرور'}
