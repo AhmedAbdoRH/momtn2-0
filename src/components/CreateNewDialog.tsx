@@ -1,44 +1,61 @@
 
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { useState, useEffect, useRef } from "react";
-import { ImagePlus, Hash } from "lucide-react";
+import { useState, useEffect } from "react";
+import { ImagePlus } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "./AuthProvider";
-import { Command, CommandInput, CommandEmpty, CommandGroup, CommandItem } from "@/components/ui/command";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
 interface CreateNewDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onPhotoAdded: () => void;
 }
 
-const CreateNewDialog = ({ open, onOpenChange, onPhotoAdded }: CreateNewDialogProps) => {
+const CreateNewDialog = ({ open, onOpenChange }: CreateNewDialogProps) => {
   const [image, setImage] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string>("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [albumName, setAlbumName] = useState<string>("");
   const [suggestions, setSuggestions] = useState<string[]>([]);
-  const [popoverOpen, setPopoverOpen] = useState(false);
+  const [showSuggestions, setShowSuggestions] = useState(false);
   const { toast } = useToast();
   const { user } = useAuth();
-  const inputRef = useRef<HTMLInputElement>(null);
+  
+  // تعديل لاستجابة النافذة للوحة المفاتيح
+  useEffect(() => {
+    const adjustDialogPosition = () => {
+      const dialogElement = document.querySelector('[data-dialog-content]');
+      if (dialogElement && window.visualViewport) {
+        const currentVisualViewport = window.visualViewport.height;
+        const windowHeight = window.innerHeight;
+        
+        if (currentVisualViewport < windowHeight) {
+          // لوحة المفاتيح مفتوحة
+          const keyboardHeight = windowHeight - currentVisualViewport;
+          const newTop = `calc(45% - ${keyboardHeight / 2}px)`;
+          (dialogElement as HTMLElement).style.top = newTop;
+        } else {
+          // لوحة المفاتيح مغلقة
+          (dialogElement as HTMLElement).style.top = '45%';
+        }
+      }
+    };
 
+    // إضافة مستمع للتغيير في حجم الشاشة
+    window.visualViewport?.addEventListener('resize', adjustDialogPosition);
+    
+    return () => {
+      window.visualViewport?.removeEventListener('resize', adjustDialogPosition);
+    };
+  }, [open]);
+
+  // جلب اقتراحات الألبومات من قاعدة البيانات
   useEffect(() => {
     if (open) {
       fetchAlbumSuggestions();
     }
   }, [open]);
-
-  useEffect(() => {
-    return () => {
-      if (previewUrl) {
-        URL.revokeObjectURL(previewUrl);
-      }
-    };
-  }, [previewUrl]);
 
   const fetchAlbumSuggestions = async () => {
     try {
@@ -46,159 +63,133 @@ const CreateNewDialog = ({ open, onOpenChange, onPhotoAdded }: CreateNewDialogPr
         .from('photos')
         .select('hashtags')
         .not('hashtags', 'is', null);
-
-      if (error) throw error;
-
-      const allHashtags: string[] = [];
-      if (data && Array.isArray(data)) {
-        data.forEach(item => {
-          if (item.hashtags && Array.isArray(item.hashtags)) {
-            item.hashtags.forEach(tag => {
-              if (tag && typeof tag === 'string' && tag.trim()) {
-                allHashtags.push(tag.trim());
-              }
-            });
-          }
-        });
-      }
       
+      if (error) throw error;
+      
+      // استخراج جميع الهاشتاجات الفريدة من النتائج
+      const allHashtags = data.flatMap(item => item.hashtags || []);
       const uniqueHashtags = [...new Set(allHashtags)];
       setSuggestions(uniqueHashtags);
     } catch (error) {
       console.error('Error fetching album suggestions:', error);
-      setSuggestions([]); // Set to empty array on error
     }
-  };
-
-  const resetFormState = () => {
-    setImage(null);
-    setPreviewUrl("");
-    setAlbumName("");
-    setIsSubmitting(false);
-    setPopoverOpen(false);
   };
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (previewUrl) {
-      URL.revokeObjectURL(previewUrl);
-    }
     if (file) {
       setImage(file);
-      const newUrl = URL.createObjectURL(file);
-      setPreviewUrl(newUrl);
-    } else {
-      setImage(null);
-      setPreviewUrl("");
+      const url = URL.createObjectURL(file);
+      setPreviewUrl(url);
     }
   };
 
-  const handleAlbumChange = (value: string) => {
-    let formattedValue = value;
-    if (formattedValue && !formattedValue.startsWith('#')) {
-      formattedValue = '#' + formattedValue;
+  const handleAlbumChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    let value = e.target.value;
+    
+    // إذا كان المستخدم لم يضف # في البداية، فإننا نضيفه
+    if (value && !value.startsWith('#')) {
+      value = '#' + value;
     }
-    formattedValue = formattedValue.replace(/\s+/g, '_');
-    setAlbumName(formattedValue);
+    
+    setAlbumName(value);
+    setShowSuggestions(value.length > 1);
   };
 
-  const handleAlbumSelect = (album: string) => {
-    setAlbumName(album);
-    setPopoverOpen(false);
+  const handleSuggestionClick = (suggestion: string) => {
+    setAlbumName(suggestion);
+    setShowSuggestions(false);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!image || isSubmitting || !user) {
-      console.warn("Submit prevented:", { hasImage: !!image, isSubmitting, hasUser: !!user });
-      return;
-    }
-
-    if (albumName && !albumName.startsWith('#')) {
-      toast({
-        title: "خطأ في اسم الألبوم",
-        description: "يجب أن يبدأ اسم الألبوم بعلامة #",
-        variant: "destructive",
-      });
-      return;
-    }
+    if (!image || isSubmitting || !user) return;
 
     setIsSubmitting(true);
 
     try {
-      const fileExt = image.name.split('.').pop()?.toLowerCase() || 'jpg';
-      const fileName = `${user.id}/photo_${Date.now()}.${fileExt}`;
+      // تسجيل معلومات عن الملف للتصحيح
+      console.log('File info:', {
+        name: image.name,
+        type: image.type,
+        size: image.size
+      });
 
+      // التأكد من امتداد الملف
+      const fileExt = image.name.split('.').pop()?.toLowerCase() || 'jpg';
+      const fileName = `photo_${Date.now()}.${fileExt}`;
+      
       console.log('Uploading file:', fileName);
+      
+      // تحميل الملف
+      console.log('Starting file upload...');
       const { error: uploadError, data: uploadData } = await supabase.storage
         .from('photos')
         .upload(fileName, image, {
           cacheControl: '3600',
-          upsert: false
+          upsert: true
         });
 
       if (uploadError) {
-        console.error('Supabase upload error:', uploadError);
-        let userMessage = "لم نتمكن من رفع الصورة. يرجى المحاولة مرة أخرى.";
-        if (uploadError.message.includes("exceeds the maximum allowed size")) {
-          userMessage = "حجم الملف كبير جدًا. يرجى اختيار ملف أصغر.";
-        } else if (uploadError.message.includes("mime type")) {
-          userMessage = "نوع الملف غير مدعوم. يرجى اختيار صورة.";
-        }
-        toast({ title: "خطأ في الرفع", description: userMessage, variant: "destructive" });
-        setIsSubmitting(false);
-        return;
+        console.error('Upload error:', uploadError);
+        throw uploadError;
       }
 
-      console.log('Upload completed:', uploadData?.path);
+      console.log('Upload completed:', uploadData);
+
+      // الحصول على رابط عام للصورة
       const { data: { publicUrl } } = supabase.storage
         .from('photos')
-        .getPublicUrl(uploadData!.path);
+        .getPublicUrl(fileName);
 
       console.log('Public URL:', publicUrl);
-      if (!publicUrl) {
-        throw new Error("Failed to get public URL for the uploaded image.");
-      }
 
-      const hashtags = albumName ? [albumName.trim()] : [];
+      // تحضير الهاشتاجات (الألبومات)
+      const hashtags = albumName ? [albumName] : [];
+      console.log('Albums:', hashtags);
 
-      console.log('Adding photo to database with user_id:', user.id, 'and hashtags:', hashtags);
-
-      const { data: insertData, error: insertError } = await supabase
+      // إضافة الصورة إلى قاعدة البيانات
+      console.log('Adding photo to database with albums:', hashtags);
+      
+      const { data, error } = await supabase
         .from('photos')
         .insert({
           image_url: publicUrl,
           likes: 0,
           caption: null,
-          hashtags: hashtags.length > 0 ? hashtags : null,
+          hashtags: hashtags,
           user_id: user.id,
-          order: 0
+          "order": 0
         })
-        .select()
-        .single();
+        .select();
 
-      if (insertError) {
-        console.error('Error adding photo to database:', insertError);
-        throw insertError;
+      if (error) {
+        console.error('Error adding photo to database:', error);
+        throw error;
       }
 
-      console.log('Photo added successfully to DB:', insertData);
+      console.log('Photo added successfully:', data);
 
-      toast({
-        title: "تمت الإضافة بنجاح",
-        description: "تمت إضافة صورتك الجديدة.",
-      });
-
-      resetFormState();
+      // إعادة تعيين النموذج
+      setImage(null);
+      setPreviewUrl("");
+      setAlbumName("");
       onOpenChange(false);
 
-      onPhotoAdded();
+      // إظهار رسالة نجاح
+      toast({
+        title: "تمت الإضافة بنجاح",
+        description: "تمت إضافة الصورة الجديدة إلى المعرض",
+      });
 
-    } catch (error: any) {
+      // إعادة تحميل الصفحة لإظهار الصورة الجديدة
+      window.location.reload();
+
+    } catch (error) {
       console.error('Error submitting photo:', error);
       toast({
         title: "حدث خطأ",
-        description: error.message || "لم نتمكن من إضافة الصورة. يرجى المحاولة مرة أخرى.",
+        description: "لم نتمكن من إضافة الصورة. يرجى المحاولة مرة أخرى.",
         variant: "destructive",
       });
     } finally {
@@ -207,14 +198,10 @@ const CreateNewDialog = ({ open, onOpenChange, onPhotoAdded }: CreateNewDialogPr
   };
 
   return (
-    <Dialog open={open} onOpenChange={(isOpen) => {
-        if (!isOpen) {
-            resetFormState();
-        }
-        onOpenChange(isOpen);
-    }}>
-      <DialogContent
-        className="top-[45%] sm:max-w-[350px] max-h-[80vh] bg-gray-900/70 backdrop-blur-xl text-white border-0 shadow-xl overflow-y-auto"
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent 
+        className="top-[45%] sm:max-w-[350px] max-h-[80vh] bg-gray-900/70 backdrop-blur-xl text-white border-0 shadow-xl"
+        data-dialog-content
       >
         <DialogHeader>
           <DialogTitle>إضافة صورة جديدة</DialogTitle>
@@ -222,119 +209,88 @@ const CreateNewDialog = ({ open, onOpenChange, onPhotoAdded }: CreateNewDialogPr
             قم بتحميل صورة لإضافتها إلى المعرض.
           </DialogDescription>
         </DialogHeader>
-        <form onSubmit={handleSubmit} className="space-y-4 pt-2">
-          <div className="flex flex-col items-center gap-4">
+        <form onSubmit={handleSubmit} className="space-y-3">
+          <div className="flex flex-col items-center gap-3">
             <input
               id="image"
               type="file"
-              accept="image/*,.heic,.heif"
+              accept="image/*"
               onChange={handleImageChange}
               className="hidden"
             />
-            <label
-              htmlFor="image"
-              className="w-full h-40 border-2 border-dashed border-gray-600 rounded-lg flex flex-col items-center justify-center cursor-pointer hover:border-gray-500 transition-colors focus-within:border-gray-400 focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-offset-gray-900 focus-within:ring-indigo-500"
+            <div 
+              className="w-full h-32 border-2 border-dashed border-gray-600 rounded-lg flex flex-col items-center justify-center cursor-pointer hover:border-gray-500 transition-colors"
+              onClick={() => document.getElementById('image')?.click()}
             >
               {previewUrl ? (
-                <img
-                  src={previewUrl}
-                  alt="Preview"
+                <img 
+                  src={previewUrl} 
+                  alt="Preview" 
                   className="w-full h-full object-contain rounded-lg"
                 />
               ) : (
-                <div className="text-center">
-                  <ImagePlus className="w-10 h-10 text-gray-400 mx-auto" />
+                <>
+                  <ImagePlus className="w-8 h-8 text-gray-400" />
                   <p className="mt-2 text-sm text-gray-400">اضغط لاختيار صورة</p>
-                </div>
+                </>
               )}
-            </label>
-
-            <div className="w-full">
-              <label htmlFor="albumNameInput" className="block text-sm font-medium text-gray-300 mb-1 text-right">
+            </div>
+            
+            {/* حقل اسم الألبوم مع الاقتراحات */}
+            <div className="w-full relative">
+              <label htmlFor="albumName" className="block text-sm text-gray-300 mb-1 text-right">
                 اسم الألبوم (اختياري)
               </label>
-
-              <Popover open={popoverOpen} onOpenChange={setPopoverOpen}>
-                <PopoverTrigger asChild>
-                  <div className="flex items-center relative w-full">
-                    <Hash className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 pointer-events-none" size={16} />
-                    <input
-                      id="albumNameInput"
-                      ref={inputRef}
-                      type="text"
-                      value={albumName}
-                      onChange={(e) => handleAlbumChange(e.target.value)}
-                      onFocus={() => {
-                        if (suggestions && suggestions.length > 0) setPopoverOpen(true);
-                      }}
-                      placeholder="مثال: #رحلات_2025"
-                      className="w-full px-3 py-2 pr-9 bg-gray-800/60 border border-gray-600 rounded-md text-right placeholder:text-gray-500 text-sm focus:border-indigo-500 focus:ring-indigo-500"
-                      aria-autocomplete="list"
-                      aria-controls="album-suggestions"
-                    />
-                  </div>
-                </PopoverTrigger>
-                <PopoverContent
-                  id="album-suggestions"
-                  className="w-[calc(100%-2rem)] sm:w-[300px] p-0 bg-gray-800 border border-gray-700 max-h-60 overflow-y-auto text-right shadow-lg"
-                  align="end"
-                  style={{ zIndex: 51 }}
-                >
-                  <Command className="bg-transparent">
-                    <CommandInput
-                      placeholder="ابحث أو أنشئ ألبومًا..."
-                      className="text-right bg-gray-800 border-b border-gray-700 text-white h-10 px-3 placeholder:text-gray-500 focus:outline-none"
-                    />
-                    <CommandEmpty className="text-gray-400 text-center py-4 px-2">
-                      لا توجد نتائج. يمكنك إنشاء ألبوم جديد.
-                    </CommandEmpty>
-                    {suggestions && suggestions.length > 0 ? (
-                      <CommandGroup heading="الألبومات المقترحة">
-                        {suggestions.map((album, index) => (
-                          <CommandItem
-                            key={index}
-                            value={album || ""}
-                            onSelect={() => handleAlbumSelect(album)}
-                            className="text-right cursor-pointer px-3 py-2 hover:bg-gray-700 data-[selected=true]:bg-indigo-600 data-[selected=true]:text-white"
-                          >
-                            {album}
-                          </CommandItem>
-                        ))}
-                      </CommandGroup>
-                    ) : null}
-                  </Command>
-                </PopoverContent>
-              </Popover>
-              <p className="mt-1 text-xs text-gray-400 text-right">
-                يبدأ بـ #، استخدم _ بدل المسافة.
-              </p>
+              <input
+                id="albumName"
+                type="text"
+                value={albumName}
+                onChange={handleAlbumChange}
+                onFocus={() => setShowSuggestions(albumName.length > 1)}
+                onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
+                placeholder="أدخل اسم الألبوم (مثال: #رمضان)"
+                className="w-full px-3 py-2 bg-gray-800/50 border border-gray-600 rounded-md text-right placeholder:text-gray-500 text-sm"
+              />
+              
+              {/* قائمة الاقتراحات */}
+              {showSuggestions && suggestions.length > 0 && (
+                <div className="suggestions-list">
+                  {suggestions
+                    .filter(suggestion => suggestion.includes(albumName.replace('#', '')) || albumName === '')
+                    .map((suggestion, index) => (
+                      <div 
+                        key={index}
+                        className="suggestion-item"
+                        onClick={() => handleSuggestionClick(suggestion)}
+                      >
+                        {suggestion}
+                      </div>
+                    ))
+                  }
+                </div>
+              )}
             </div>
           </div>
-          <div className="flex justify-end gap-3 pt-3">
-            <Button
-              type="button"
-              variant="outline"
+          <div className="flex justify-end gap-3">
+            <Button 
+              type="button" 
+              variant="outline" 
               onClick={() => {
-                  onOpenChange(false);
+                onOpenChange(false);
+                setPreviewUrl("");
+                setImage(null);
+                setAlbumName("");
               }}
-              className="bg-transparent border-gray-600 text-gray-300 hover:bg-gray-700/50 focus:ring-gray-500"
+              className="bg-transparent border-gray-600 text-gray-300 hover:bg-gray-800"
             >
               إلغاء
             </Button>
-            <Button
-              type="submit"
+            <Button 
+              type="submit" 
               disabled={!image || isSubmitting}
-              className="bg-[#ea384c] hover:bg-[#d93042] text-white disabled:opacity-50 disabled:cursor-not-allowed focus:ring-[#ea384c]"
+              className="bg-[#ea384c] hover:bg-[#ea384c]/90 text-white"
             >
-              {isSubmitting ? (
-                 <div className="flex items-center gap-2">
-                    <svg className="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                       <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                       <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                     </svg>
-                     <span>جاري الحفظ...</span>
-                 </div>
-              ) : "حفظ الصورة"}
+              {isSubmitting ? "جاري الحفظ..." : "حفظ"}
             </Button>
           </div>
         </form>
