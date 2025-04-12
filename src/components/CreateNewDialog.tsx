@@ -21,19 +21,17 @@ const CreateNewDialog = ({ open, onOpenChange, onPhotoAdded }: CreateNewDialogPr
   const [showSuggestions, setShowSuggestions] = useState(false);
   const { toast } = useToast();
   const { user } = useAuth();
-  // مرجع لحقل رفع الصور
-  const imageInputRef = useRef<HTMLInputElement>(null);
+  // مرجع لعنصر label الخاص برفع الصور
+  const imageLabelRef = useRef<HTMLLabelElement>(null);
 
   // إعادة تعيين الحالة وتنشيط التركيز عند فتح الـ Dialog
   useEffect(() => {
     if (open) {
       resetFormState();
       fetchAlbumSuggestions();
-      // تنشيط التركيز على حقل رفع الصور
-      if (imageInputRef.current) {
-        imageInputRef.current.focus();
-        // محاكاة النقر لفتح نافذة اختيار الملفات (اختياري)
-        imageInputRef.current.click();
+      // تنشيط التركيز على label رفع الصور
+      if (imageLabelRef.current) {
+        imageLabelRef.current.focus();
       }
     }
   }, [open]);
@@ -187,7 +185,9 @@ const CreateNewDialog = ({ open, onOpenChange, onPhotoAdded }: CreateNewDialogPr
           <div className="flex flex-col items-center gap-4">
             <label
               htmlFor="imageUpload"
-              className="w-full h-40 border-2 border-dashed border-gray-600 rounded-lg flex flex-col items-center justify-center cursor-pointer hover:border-gray-500 focus-within:border-indigo-500 transition-colors"
+              ref={imageLabelRef} // إضافة المرجع
+              tabIndex={0} // جعل label قابلة للتركيز
+              className="w-full h-40 border-2 border-dashed border-gray-600 rounded-lg flex flex-col items-center justify-center cursor-pointer hover:border-gray-500 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-colors outline-none"
             >
               {previewUrl ? (
                 <img src={previewUrl} alt="Preview" className="w-full h-full object-contain rounded-lg p-1" />
@@ -203,7 +203,6 @@ const CreateNewDialog = ({ open, onOpenChange, onPhotoAdded }: CreateNewDialogPr
               type="file"
               accept="image/*,.heic,.heif"
               onChange={handleImageChange}
-              ref={imageInputRef} // إضافة المرجع
               className="hidden"
             />
 
