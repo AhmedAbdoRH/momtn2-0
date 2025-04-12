@@ -1,6 +1,6 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { useState, useEffect, useRef } from "react"; // أضفنا useRef
+import { useState, useEffect, useRef } from "react";
 import { ImagePlus } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -21,17 +21,19 @@ const CreateNewDialog = ({ open, onOpenChange, onPhotoAdded }: CreateNewDialogPr
   const [showSuggestions, setShowSuggestions] = useState(false);
   const { toast } = useToast();
   const { user } = useAuth();
-  // إضافة مرجع لحقل الألبوم
-  const albumInputRef = useRef<HTMLInputElement>(null);
+  // مرجع لحقل رفع الصور
+  const imageInputRef = useRef<HTMLInputElement>(null);
 
-  // إعادة تعيين الحالة عند فتح الـ Dialog
+  // إعادة تعيين الحالة وتنشيط التركيز عند فتح الـ Dialog
   useEffect(() => {
     if (open) {
-      resetFormState(); // إعادة تعيين الحالة عند الفتح
+      resetFormState();
       fetchAlbumSuggestions();
-      // إزالة التركيز من حقل الألبوم إذا كان محددًا
-      if (albumInputRef.current) {
-        albumInputRef.current.blur();
+      // تنشيط التركيز على حقل رفع الصور
+      if (imageInputRef.current) {
+        imageInputRef.current.focus();
+        // محاكاة النقر لفتح نافذة اختيار الملفات (اختياري)
+        imageInputRef.current.click();
       }
     }
   }, [open]);
@@ -48,17 +50,17 @@ const CreateNewDialog = ({ open, onOpenChange, onPhotoAdded }: CreateNewDialogPr
     if (!user) return;
     try {
       const { data, error } = await supabase
-        .from('photos')
-        .select('hashtags')
-        .not('hashtags', 'is', null);
+        .from("photos")
+        .select("hashtags")
+        .not("hashtags", "is", null);
 
       if (error) throw error;
 
-      const allAlbumNames = data.flatMap(item => item.hashtags || []).filter(Boolean);
+      const allAlbumNames = data.flatMap((item) => item.hashtags || []).filter(Boolean);
       const uniqueAlbumNames = [...new Set(allAlbumNames)].sort();
       setSuggestions(uniqueAlbumNames);
     } catch (error) {
-      console.error('Error fetching album suggestions:', error);
+      console.error("Error fetching album suggestions:", error);
     }
   };
 
@@ -100,15 +102,19 @@ const CreateNewDialog = ({ open, onOpenChange, onPhotoAdded }: CreateNewDialogPr
     setIsSubmitting(true);
 
     try {
-      const fileExt = image.name.split('.').pop()?.toLowerCase() || 'jpg';
+      const fileExt = image.name.split(".").pop()?.toLowerCase() || "jpg";
       const fileName = `${user.id}/photo_${Date.now()}.${fileExt}`;
 
       const { error: uploadError, data: uploadData } = await supabase.storage
-        .from('photos')
-        .upload(fileName, image, { cacheControl: '3600', upsert: false });
+        .from("photos")
+        .upload(fileName, image, { cacheControl: "3600", upsert: false });
 
       if (uploadError) {
-        toast({ title: "خطأ في الرفع", description: `فشل رفع الملف: ${uploadError.message}`, variant: "destructive" });
+        toast({
+          title: "خطأ في الرفع",
+          description: `فشل رفع الملف: ${uploadError.message}`,
+          variant: "destructive",
+        });
         setIsSubmitting(false);
         return;
       }
@@ -116,10 +122,10 @@ const CreateNewDialog = ({ open, onOpenChange, onPhotoAdded }: CreateNewDialogPr
       const filePath = uploadData?.path;
       if (!filePath) throw new Error("File path not returned after upload.");
 
-      const { data: urlData } = supabase.storage.from('photos').getPublicUrl(filePath);
+      const { data: urlData } = supabase.storage.from("photos").getPublicUrl(filePath);
       const publicUrl = urlData?.publicUrl;
       if (!publicUrl) {
-        await supabase.storage.from('photos').remove([filePath]);
+        await supabase.storage.from("photos").remove([filePath]);
         throw new Error("لم يتم العثور على الرابط العام للصورة بعد الرفع.");
       }
 
@@ -127,42 +133,49 @@ const CreateNewDialog = ({ open, onOpenChange, onPhotoAdded }: CreateNewDialogPr
       const albumDataForDB = finalAlbumName ? [finalAlbumName] : null;
 
       const { data: insertData, error: insertError } = await supabase
-        .from('photos')
+        .from("photos")
         .insert({
           image_url: publicUrl,
           hashtags: albumDataForDB,
           user_id: user.id,
         })
-        .select().single();
+        .select()
+        .single();
 
       if (insertError) {
-        await supabase.storage.from('photos').remove([filePath]);
+        await supabase.storage.from("photos").remove([filePath]);
         throw insertError;
       }
 
       toast({ title: "تمت الإضافة بنجاح", description: "تمت إضافة صورتك الجديدة." });
       onPhotoAdded();
       onOpenChange(false);
-
     } catch (error: any) {
-      toast({ title: "حدث خطأ", description: error.message || "لم نتمكن من إضافة الصورة.", variant: "destructive" });
+      toast({
+        title: "حدث خطأ",
+        description: error.message || "لم نتمكن من إضافة الصورة.",
+        variant: "destructive",
+      });
     } finally {
       setIsSubmitting(false);
     }
   };
 
   const filteredSuggestions = albumName
-    ? suggestions.filter(suggestion =>
-        typeof suggestion === 'string' &&
+    ? suggestions.filter((suggestion) =>
+        typeof suggestion === "string" &&
         suggestion.toLowerCase().includes(albumName.toLowerCase())
       )
     : suggestions;
 
   return (
-    <Dialog open={open} onOpenChange={(isOpen) => {
-      if (!isOpen) resetFormState();
-      onOpenChange(isOpen);
-    }}>
+    <Dialog
+      open={open}
+      onOpenChange={(isOpen) => {
+        if (!isOpen) resetFormState();
+        onOpenChange(isOpen);
+      }}
+    >
       <DialogContent className="top-[45%] sm:max-w-[350px] max-h-[85vh] overflow-y-auto bg-gray-900/80 backdrop-blur-lg text-white border border-gray-700 shadow-xl rounded-lg">
         <DialogHeader>
           <DialogTitle className="text-right text-white">إضافة صورة جديدة</DialogTitle>
@@ -172,7 +185,10 @@ const CreateNewDialog = ({ open, onOpenChange, onPhotoAdded }: CreateNewDialogPr
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4 pt-2">
           <div className="flex flex-col items-center gap-4">
-            <label htmlFor="imageUpload" className="w-full h-40 border-2 border-dashed border-gray-600 rounded-lg flex flex-col items-center justify-center cursor-pointer hover:border-gray-500 focus-within:border-indigo-500 transition-colors">
+            <label
+              htmlFor="imageUpload"
+              className="w-full h-40 border-2 border-dashed border-gray-600 rounded-lg flex flex-col items-center justify-center cursor-pointer hover:border-gray-500 focus-within:border-indigo-500 transition-colors"
+            >
               {previewUrl ? (
                 <img src={previewUrl} alt="Preview" className="w-full h-full object-contain rounded-lg p-1" />
               ) : (
@@ -182,7 +198,14 @@ const CreateNewDialog = ({ open, onOpenChange, onPhotoAdded }: CreateNewDialogPr
                 </div>
               )}
             </label>
-            <input id="imageUpload" type="file" accept="image/*,.heic,.heif" onChange={handleImageChange} className="hidden" />
+            <input
+              id="imageUpload"
+              type="file"
+              accept="image/*,.heic,.heif"
+              onChange={handleImageChange}
+              ref={imageInputRef} // إضافة المرجع
+              className="hidden"
+            />
 
             <div className="w-full relative">
               <label htmlFor="albumName" className="block text-sm font-medium text-gray-300 mb-1 text-right">
@@ -196,7 +219,6 @@ const CreateNewDialog = ({ open, onOpenChange, onPhotoAdded }: CreateNewDialogPr
                 onFocus={() => setShowSuggestions(suggestions.length > 0)}
                 onBlur={() => setTimeout(() => setShowSuggestions(false), 150)}
                 placeholder="مثال: رحلات الصيف"
-                ref={albumInputRef} // إضافة المرجع
                 className="w-full px-3 py-2 bg-gray-800/60 border border-gray-600 rounded-md text-right placeholder:text-gray-500 text-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none"
                 autoComplete="off"
                 aria-haspopup="listbox"
@@ -228,13 +250,33 @@ const CreateNewDialog = ({ open, onOpenChange, onPhotoAdded }: CreateNewDialogPr
             </div>
           </div>
           <div className="flex justify-end gap-3 pt-4">
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)} className="bg-transparent border-gray-600 text-gray-300 hover:bg-gray-700/50 focus:ring-gray-500">إلغاء</Button>
-            <Button type="submit" disabled={!image || isSubmitting} className="bg-[#ea384c] hover:bg-[#d93042] text-white disabled:opacity-50 disabled:cursor-not-allowed focus:ring-[#ea384c]">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => onOpenChange(false)}
+              className="bg-transparent border-gray-600 text-gray-300 hover:bg-gray-700/50 focus:ring-gray-500"
+            >
+              إلغاء
+            </Button>
+            <Button
+              type="submit"
+              disabled={!image || isSubmitting}
+              className="bg-[#ea384c] hover:bg-[#d93042] text-white disabled:opacity-50 disabled:cursor-not-allowed focus:ring-[#ea384c]"
+            >
               {isSubmitting ? (
                 <div className="flex items-center gap-2">
-                  <svg className="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <svg
+                    className="animate-spin h-4 w-4 text-white"
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                  >
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    <path
+                      className="opacity-75"
+                      fill="currentColor"
+                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                    ></path>
                   </svg>
                   <span>جاري الحفظ...</span>
                 </div>
