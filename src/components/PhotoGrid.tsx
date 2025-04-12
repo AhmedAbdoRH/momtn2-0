@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
@@ -45,9 +46,9 @@ const PhotoGrid: React.FC<PhotoGridProps> = ({ closeSidebar }) => {
   useEffect(() => {
     const tags = new Set<string>();
     photos.forEach(photo => {
-      if (photo.hashtags) {
+      if (photo.hashtags && Array.isArray(photo.hashtags)) { // Make sure hashtags exists and is an array
         photo.hashtags.forEach(tag => {
-          if (tag.trim()) {
+          if (tag && tag.trim()) { // Make sure tag is not null/undefined and not empty
             tags.add(tag.trim());
           }
         });
