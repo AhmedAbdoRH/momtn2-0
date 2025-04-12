@@ -95,7 +95,14 @@ const Index = () => {
           </div>
 
           <PhotoGrid closeSidebar={() => setSidebarOpen(false)} />
-          <CreateNewDialog open={dialogOpen} onOpenChange={setDialogOpen} />
+          <CreateNewDialog 
+            open={dialogOpen} 
+            onOpenChange={setDialogOpen}
+            onPhotoAdded={() => {
+              // إعادة تحميل البيانات عند إضافة صورة جديدة
+              window.dispatchEvent(new CustomEvent('photo-added'));
+            }}
+          />
 
           <Button
             onClick={handleCreateNew}

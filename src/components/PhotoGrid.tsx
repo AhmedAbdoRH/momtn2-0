@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
@@ -18,12 +17,10 @@ interface Photo {
   user_id?: string;
 }
 
-// prop جديدة لإغلاق الشريط الجانبي في المكون الأبّ
 interface PhotoGridProps {
   closeSidebar: () => void;
 }
 
-// إعلان عالمي لوظيفة addPhoto
 declare global {
   interface Window {
     addPhoto: (params: { imageUrl: string }) => Promise<boolean>;
@@ -44,11 +41,21 @@ const PhotoGrid: React.FC<PhotoGridProps> = ({ closeSidebar }) => {
   }, [user]);
 
   useEffect(() => {
+    const handlePhotoAdded = () => {
+      fetchPhotos();
+    };
+    window.addEventListener('photo-added', handlePhotoAdded);
+    return () => {
+      window.removeEventListener('photo-added', handlePhotoAdded);
+    };
+  }, []);
+
+  useEffect(() => {
     const tags = new Set<string>();
     photos.forEach(photo => {
-      if (photo.hashtags && Array.isArray(photo.hashtags)) { // Make sure hashtags exists and is an array
+      if (photo.hashtags && Array.isArray(photo.hashtags)) {
         photo.hashtags.forEach(tag => {
-          if (tag && tag.trim()) { // Make sure tag is not null/undefined and not empty
+          if (tag && tag.trim()) {
             tags.add(tag.trim());
           }
         });
@@ -241,7 +248,7 @@ const PhotoGrid: React.FC<PhotoGridProps> = ({ closeSidebar }) => {
     : photos;
 
   return (
-    <div className="w-full">
+    <div className="w-full" data-testid="photo-grid">
       {selectedHashtag && (
         <h2 className="text-2xl font-semibold text-white/90 text-center mb-8 bg-white/5 backdrop-blur-sm py-3 rounded-lg">
           {selectedHashtag}

@@ -116,7 +116,18 @@ const Index = () => {
           {/* هنا نمرّر دالة الإغلاق إلى PhotoGrid */}
           <PhotoGrid closeSidebar={() => setSidebarOpen(false)} />
 
-          <CreateNewDialog open={dialogOpen} onOpenChange={setDialogOpen} />
+          <CreateNewDialog 
+            open={dialogOpen} 
+            onOpenChange={setDialogOpen}
+            onPhotoAdded={() => {
+              // استدعاء إعادة تحميل الصور عندما تضاف صورة جديدة
+              const photoGridElement = document.querySelector("[data-testid='photo-grid']");
+              if (photoGridElement) {
+                // تحديث PhotoGrid إذا كان موجودًا
+                window.dispatchEvent(new CustomEvent('photo-added'));
+              }
+            }}
+          />
 
           {/* زر الإضافة الدائري مع تأثير النبض */}
           <div className="fixed bottom-6 left-6">
