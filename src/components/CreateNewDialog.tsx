@@ -1,3 +1,4 @@
+
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { useState, useEffect, useRef } from "react";
@@ -65,6 +66,7 @@ const CreateNewDialog = ({ open, onOpenChange, onPhotoAdded }: CreateNewDialogPr
       setSuggestions(uniqueHashtags);
     } catch (error) {
       console.error('Error fetching album suggestions:', error);
+      setSuggestions([]); // Set to empty array on error
     }
   };
 
@@ -166,8 +168,11 @@ const CreateNewDialog = ({ open, onOpenChange, onPhotoAdded }: CreateNewDialogPr
         .from('photos')
         .insert({
           image_url: publicUrl,
+          likes: 0,
+          caption: null,
           hashtags: hashtags.length > 0 ? hashtags : null,
-          user_id: user.id
+          user_id: user.id,
+          order: 0
         })
         .select()
         .single();
@@ -260,7 +265,7 @@ const CreateNewDialog = ({ open, onOpenChange, onPhotoAdded }: CreateNewDialogPr
                       value={albumName}
                       onChange={(e) => handleAlbumChange(e.target.value)}
                       onFocus={() => {
-                        if (suggestions.length > 0) setPopoverOpen(true);
+                        if (suggestions && suggestions.length > 0) setPopoverOpen(true);
                       }}
                       placeholder="مثال: #رحلات_2025"
                       className="w-full px-3 py-2 pr-9 bg-gray-800/60 border border-gray-600 rounded-md text-right placeholder:text-gray-500 text-sm focus:border-indigo-500 focus:ring-indigo-500"
@@ -283,18 +288,20 @@ const CreateNewDialog = ({ open, onOpenChange, onPhotoAdded }: CreateNewDialogPr
                     <CommandEmpty className="text-gray-400 text-center py-4 px-2">
                       لا توجد نتائج. يمكنك إنشاء ألبوم جديد.
                     </CommandEmpty>
-                    <CommandGroup heading={suggestions && suggestions.length > 0 ? "الألبومات المقترحة" : ""}>
-                      {(suggestions || []).map((album, index) => (
-                        <CommandItem
-                          key={index}
-                          value={album || ""}
-                          onSelect={() => handleAlbumSelect(album)}
-                          className="text-right cursor-pointer px-3 py-2 hover:bg-gray-700 data-[selected=true]:bg-indigo-600 data-[selected=true]:text-white"
-                        >
-                          {album}
-                        </CommandItem>
-                      ))}
-                    </CommandGroup>
+                    {suggestions && suggestions.length > 0 ? (
+                      <CommandGroup heading="الألبومات المقترحة">
+                        {suggestions.map((album, index) => (
+                          <CommandItem
+                            key={index}
+                            value={album || ""}
+                            onSelect={() => handleAlbumSelect(album)}
+                            className="text-right cursor-pointer px-3 py-2 hover:bg-gray-700 data-[selected=true]:bg-indigo-600 data-[selected=true]:text-white"
+                          >
+                            {album}
+                          </CommandItem>
+                        ))}
+                      </CommandGroup>
+                    ) : null}
                   </Command>
                 </PopoverContent>
               </Popover>

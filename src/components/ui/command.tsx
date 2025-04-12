@@ -85,8 +85,8 @@ const CommandGroup = React.forwardRef<
   React.ElementRef<typeof CommandPrimitive.Group>,
   React.ComponentPropsWithoutRef<typeof CommandPrimitive.Group>
 >(({ className, heading = "", ...props }, ref) => {
-  // Add safety check for heading to ensure it's always a string
-  const safeHeading = heading !== null && heading !== undefined ? heading : "";
+  // Ensure heading is always a string
+  const safeHeading = heading !== null && heading !== undefined ? String(heading) : "";
   
   return (
     <CommandPrimitive.Group
@@ -117,9 +117,11 @@ CommandSeparator.displayName = CommandPrimitive.Separator.displayName
 
 const CommandItem = React.forwardRef<
   React.ElementRef<typeof CommandPrimitive.Item>,
-  React.ComponentPropsWithoutRef<typeof CommandPrimitive.Item>
+  React.ComponentPropsWithoutRef<typeof CommandPrimitive.Item> & {
+    value?: string;
+  }
 >(({ className, value = "", ...props }, ref) => {
-  // Add safety check for value to ensure it's always a string
+  // Ensure value is always a string
   const safeValue = value !== null && value !== undefined ? String(value) : "";
   
   return (
