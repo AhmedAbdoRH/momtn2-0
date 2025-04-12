@@ -12,6 +12,19 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { HeartSoundProvider } from "@/components/HeartSound";
 
+// --- Placeholder Components (as before) ---
+// const PhotoGrid = () => <div>Photo Grid Placeholder</div>;
+// const CreateNewDialog = ({ open, onOpenChange }) => open ? <div>Dialog Open</div> : null;
+// const Button = ({ children, ...props }) => <button {...props}>{children}</button>;
+// const DropdownMenu = ({ children }) => <div>{children}</div>;
+// const DropdownMenuTrigger = ({ children, asChild }) => asChild ? children : <div>{children}</div>;
+// const DropdownMenuContent = ({ children, ...props }) => <div>{children}</div>;
+// const DropdownMenuItem = ({ children, ...props }) => <div {...props}>{children}</div>;
+// const useAuth = () => ({ signOut: () => console.log("Signed out"), user: { email: "user@example.com" } });
+// const HeartSoundProvider = ({ children }) => <div>{children}</div>;
+// ----------------------------------------------------
+
+
 const Index = () => {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -24,15 +37,19 @@ const Index = () => {
     setDialogOpen(true);
   };
 
-  const handleAlbumClick = () => {
-    // إغلاق القائمة الجانبية عند الضغط على ألبوم
-    setSidebarOpen(false);
-  };
+  // --- تم إزالة الدالة handleAlbumClick ---
+
+  // --- مثال: بيانات وهمية للألبومات ---
+  const albums = [
+    { id: 1, name: "ذكريات الصيف" },
+    { id: 2, name: "رحلة الجبال" },
+    { id: 3, name: "مناسبات عائلية" },
+  ];
 
   return (
     <HeartSoundProvider>
       <div className="min-h-screen bg-background text-foreground">
-        {/* زر فتح/إغلاق الشريط الجانبي */}
+        {/* زر فتح/إغلاق القائمة الجانبية */}
         <Button
           variant="ghost"
           size="icon"
@@ -42,7 +59,7 @@ const Index = () => {
           <Menu className="h-5 w-5" />
         </Button>
 
-        {/* قائمة المستخدم */}
+        {/* قائمة المستخدم وتسجيل الخروج */}
         <div className="fixed top-4 left-4 z-50">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -65,48 +82,45 @@ const Index = () => {
           </DropdownMenu>
         </div>
 
-        {/* الشريط الجانبي */}
+        {/* القائمة الجانبية */}
         <div
-          className={`fixed top-0 right-0 h-full bg-black/30 backdrop-blur-md border-l border-gray-800 w-72 transform transition-transform duration-300 ease-in-out z-40 flex flex-col ${
-            sidebarOpen ? 'translate-x-0' : 'translate-x-full'
-          }`}
+          className={`fixed top-0 right-0 h-full bg-black/30 backdrop-blur-md border-l border-gray-800 w-72 transform transition-transform duration-300 ease-in-out z-40 flex flex-col
+            ${sidebarOpen ? 'translate-x-0' : 'translate-x-full'}`}
         >
           <div className="flex-1 p-6 pt-20">
             <h3 className="text-gray-300 font-semibold mb-4 text-right">الألبومات</h3>
+            {/* --- حاوية الألبومات: تم إزالة onClick منها --- */}
             <div
               className="flex flex-col space-y-3 items-end"
               id="hashtags-container"
-              onClickCapture={handleAlbumClick}
+              // لا يوجد onClick هنا الآن
             >
-              {/* هنا يتم عرض عناصر الألبومات */}
-              {/* مثال على عنصر ألبوم: */}
-              {/* 
-              {albums.map(album => (
-                <button
+              {/* --- هنا يتم عرض عناصر الألبومات --- */}
+              {albums.map((album) => (
+                <Button
                   key={album.id}
+                  variant="link"
+                  className="text-gray-300 hover:text-white text-right justify-end w-full"
+                  // --- *** التغيير الرئيسي هنا *** ---
+                  // نضيف onClick مباشرة لكل زر ألبوم ليقوم بإغلاق القائمة
                   onClick={() => {
-                    selectAlbum(album.id);
-                    handleAlbumClick();
+                    console.log(`Album "${album.name}" clicked, closing sidebar.`); // اختياري للتأكد
+                    setSidebarOpen(false); // <-- هذا سيغلق القائمة مباشرة
+                    // إذا كنت تريد تنفيذ إجراء آخر عند النقر (مثل الانتقال للألبوم)، يمكنك إضافته هنا
+                    // مثال: navigateToAlbum(album.id);
                   }}
-                  className="text-right hover:bg-gray-700 px-2 py-1 rounded"
                 >
                   {album.name}
-                </button>
-              ))} 
-              */}
+                </Button>
+              ))}
+              {albums.length === 0 && (
+                 <p className="text-gray-500 text-sm text-right">لا توجد ألبومات لعرضها.</p>
+              )}
             </div>
           </div>
         </div>
 
-        {/* طبقة التعتيم عند فتح الشريط الجانبي */}
-        {sidebarOpen && (
-          <div
-            className="fixed inset-0 bg-black/10 backdrop-blur-sm z-30"
-            onClick={() => setSidebarOpen(false)}
-          />
-        )}
-
-        {/* المحتوى الرئيسي */}
+        {/* المحتوى الرئيسي للصفحة */}
         <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
           <div className="text-center mb-8">
             <div className="inline-block mb-6 w-40 h-40 sm:w-48 sm:h-48">
@@ -119,6 +133,7 @@ const Index = () => {
             <p className="text-lg text-gray-300 max-w-2xl mx-auto mb-6">
               ﴾ يَا أَيُّهَا النَّاسُ اذْكُرُوا نِعْمَتَ اللَّهِ عَلَيْكُمْ ﴿
             </p>
+
             <Button
               onClick={handleCreateNew}
               className={`px-5 py-3 bg-[#ff535f] hover:bg-[#ff535f]/90 text-white shadow-lg rounded-lg mx-auto transition-all duration-300 ${
@@ -133,19 +148,27 @@ const Index = () => {
           <PhotoGrid />
           <CreateNewDialog open={dialogOpen} onOpenChange={setDialogOpen} />
 
-          {/* زر الإضافة الدائري مع تأثير النبض */}
+          {/* زر الإضافة الدائري */}
           <div className="fixed bottom-6 left-6">
             <div className="absolute inset-0 rounded-full bg-pink-500/10 animate-pulse-slow"></div>
             <Button
               onClick={handleCreateNew}
               variant="glass"
               size="circle"
-              className="w-14 h-14 shadow-lg relative"
+              className="w-14 h-14 shadow-lg relative rounded-full flex items-center justify-center bg-pink-500 hover:bg-pink-600" // Adjusted style
             >
               <Plus className="w-7 h-7 text-white/70" />
             </Button>
           </div>
         </main>
+
+        {/* طبقة الخلفية عند فتح القائمة الجانبية */}
+        {sidebarOpen && (
+          <div
+            className="fixed inset-0 bg-black/10 backdrop-blur-sm z-30"
+            onClick={() => setSidebarOpen(false)}
+          />
+        )}
       </div>
     </HeartSoundProvider>
   );
