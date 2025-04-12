@@ -93,7 +93,7 @@ const Index = () => {
               />
             </div>
             <p className="text-lg text-white-300 max-w-2xl mx-auto mb-6">
-              .. احتفظ بلحظاتك السعيدة، تذكر نعم الخالق
+              .. لحظاتك السعيدة، والنعم الجميلة في حياتك
             </p>
 
             <div className="relative inline-block">
