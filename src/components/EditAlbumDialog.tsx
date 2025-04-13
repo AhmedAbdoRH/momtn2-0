@@ -1,7 +1,7 @@
 
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -18,16 +18,16 @@ const EditAlbumDialog = ({
   currentAlbumName,
   onAlbumUpdated,
 }: EditAlbumDialogProps) => {
-  const [newAlbumName, setNewAlbumName] = useState<string>(currentAlbumName || "");
+  const [newAlbumName, setNewAlbumName] = useState<string>("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
 
   // إعادة تعيين اسم الألبوم الجديد عند فتح النافذة
-  useState(() => {
-    if (open) {
-      setNewAlbumName(currentAlbumName || "");
+  useEffect(() => {
+    if (open && currentAlbumName) {
+      setNewAlbumName(currentAlbumName);
     }
-  });
+  }, [open, currentAlbumName]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
