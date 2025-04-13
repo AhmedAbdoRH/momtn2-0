@@ -1,4 +1,4 @@
-import { Plus, Menu, LogOut, User } from "lucide-react";
+Import { Plus, Menu, LogOut, User } from "lucide-react";
 import PhotoGrid from "@/components/PhotoGrid";
 import { Button } from "@/components/ui/button";
 import CreateNewDialog from "@/components/CreateNewDialog";
@@ -11,6 +11,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { HeartSoundProvider } from "@/components/HeartSound";
+import Logo from "@/components/ui/logo"; // استيراد مكون اللوجو
 
 const Index = () => {
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -86,11 +87,7 @@ const Index = () => {
         <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
           <div className="text-center mb-8">
             <div className="inline-block mb-6 w-40 h-40 sm:w-48 sm:h-48">
-              <img
-                src="/lovable-Uploads/f39108e3-15cc-458c-bb92-7e6b18e100cc.png"
-                alt="Logo"
-                className="w-full h-full object-contain animate-float"
-              />
+              <Logo className="w-full h-full object-contain animate-float" /> {/* استخدام مكون اللوجو */}
             </div>
             <p className="text-lg text-white-300 max-w-2xl mx-auto mb-6">
               .. لحظاتك السعيدة، والنعم الجميلة في حياتك
