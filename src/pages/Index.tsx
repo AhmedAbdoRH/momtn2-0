@@ -1,155 +1,36 @@
 import * as React from 'react'; // Import React
-import ReactDOM from 'react-dom'; // Import ReactDOM for createPortal
+import ReactDOM from 'react-dom'; // Import ReactDOM for createPortal if PhotoGrid uses it
 import { Plus, Menu, LogOut, User } from "lucide-react";
-import PhotoGrid from "@/components/PhotoGrid"; // افترض وجود هذا المكون
-import { Button } from "@/components/ui/button"; // افترض وجود هذا المكون
-import CreateNewDialog from "@/components/CreateNewDialog"; // افترض وجود هذا المكون
+import PhotoGrid from "@/components/PhotoGrid"; // Using original component import
+import { Button } from "@/components/ui/button"; // Using original component import
+import CreateNewDialog from "@/components/CreateNewDialog"; // Using original component import
 import { useState } from "react";
-import { useAuth } from "@/components/AuthProvider"; // افترض وجود هذا المزود
+import { useAuth } from "@/components/AuthProvider"; // Using original hook import
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"; // افترض وجود هذا المكون
-import { HeartSoundProvider } from "@/components/HeartSound"; // افترض وجود هذا المزود
-
-// --- مكونات وهمية للاعتمادات المفترضة ---
-// قم بإزالة هذه إذا كانت لديك المكونات الفعلية
-
-// Mock Button component if not imported
-const MockButton = React.forwardRef<HTMLButtonElement, React.ButtonHTMLAttributes<HTMLButtonElement> & { variant?: string; size?: string }>(
-    ({ className, variant, size, children, ...props }, ref) => (
-      <button
-        ref={ref}
-        className={`inline-flex items-center justify-center rounded-md px-4 py-2 text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 ${
-          variant === 'outline' ? 'border border-input bg-background hover:bg-accent hover:text-accent-foreground' : 'bg-primary text-primary-foreground hover:bg-primary/90'
-        } ${className || ''}`}
-        {...props}
-      >
-        {children}
-      </button>
-    )
-  );
-MockButton.displayName = "MockButton";
-// **** تعديل: استخدام المكون الوهمي دائمًا لتصحيح أخطاء البناء ****
-const ActualButton = MockButton; // Use mock directly
-
-const MockPhotoGrid = ({ closeSidebar }: { closeSidebar: () => void }) => {
-    // Ensure this runs only on the client-side where document is available
-    const [container, setContainer] = React.useState<HTMLElement | null>(null);
-    React.useEffect(() => {
-        // Ensure document is defined (runs only on client)
-        if (typeof document !== 'undefined') {
-            setContainer(document.getElementById('hashtags-container'));
-        }
-    }, []);
-
-
-    return (
-      <div data-testid="photo-grid" className="bg-gray-200 p-4 rounded min-h-[300px] text-gray-700">
-        <p>Photo Grid Placeholder</p>
-        <p>الألبومات/الهاشتاجات ستظهر هنا.</p>
-        <p>سيتم حقن أزرار الألبومات في الشريط الجانبي.</p>
-        {/* محاكاة زر في الشريط الجانبي */}
-        {container && (
-            <React.Fragment>
-                {ReactDOM.createPortal(
-                    <button onClick={closeSidebar} className="text-right w-full p-2 rounded hover:bg-gray-700 text-gray-300 transition-colors duration-150 ease-in-out">#الكل</button>,
-                    container
-                )}
-                {ReactDOM.createPortal(
-                    <button onClick={closeSidebar} className="text-right w-full p-2 rounded hover:bg-gray-700 text-gray-300 transition-colors duration-150 ease-in-out">#ذكريات</button>,
-                    container
-                )}
-                {ReactDOM.createPortal(
-                    <button onClick={closeSidebar} className="text-right w-full p-2 rounded hover:bg-gray-700 text-gray-300 transition-colors duration-150 ease-in-out">#نعم_الله</button>,
-                    container
-                )}
-                 {/* إضافة المزيد لمحاكاة التمرير */}
-                 {[...Array(15)].map((_, i) => ReactDOM.createPortal(
-                    <button key={i} onClick={closeSidebar} className="text-right w-full p-2 rounded hover:bg-gray-700 text-gray-300 transition-colors duration-150 ease-in-out">#ألبوم_{i + 1}</button>,
-                    container
-                ))}
-            </React.Fragment>
-        )}
-      </div>
-    );
-};
-
-
-const MockCreateNewDialog = ({ open, onOpenChange, onPhotoAdded }: { open: boolean; onOpenChange: (open: boolean) => void; onPhotoAdded: () => void }) => {
-  if (!open) return null;
-  return (
-    <div className="fixed inset-0 bg-black/50 z-[60] flex items-center justify-center p-4" onClick={() => onOpenChange(false)}>
-      <div className="bg-white p-6 rounded-lg shadow-xl w-full max-w-md text-gray-800" onClick={(e) => e.stopPropagation()}>
-        <h2 className="text-xl font-semibold mb-4 text-gray-900">إضافة امتنان جديد (وهمي)</h2>
-        <p className="mb-6 text-gray-600">هذا مربع حوار وهمي لتمثيل وظيفة الإضافة.</p>
-        <div className="flex justify-end gap-3">
-          <ActualButton variant="outline" onClick={() => onOpenChange(false)}>إلغاء</ActualButton>
-          <ActualButton onClick={() => { onPhotoAdded(); onOpenChange(false); }}>إضافة صورة (وهمي)</ActualButton>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-// Mock AuthProvider if not available globally
-const AuthContext = React.createContext<{ signOut: () => void; user: { email: string } | null } | null>(null);
-const MockAuthProvider = ({ children }: { children: React.ReactNode }) => {
-    const mockSignOut = () => alert("تم تسجيل الخروج (وهمي)");
-    const mockUser = { email: "user@example.com" };
-    // Ensure context provides a default value or check before use
-    return <AuthContext.Provider value={{ signOut: mockSignOut, user: mockUser }}>{children}</AuthContext.Provider>;
-};
-// Custom hook for auth context
-const useAuthContext = () => {
-    const context = React.useContext(AuthContext);
-    // Provide a default mock implementation if context is null
-    if (!context) {
-        console.warn("AuthProvider context not found, using mock auth.");
-        return { signOut: () => alert("تم تسجيل الخروج (وهمي)"), user: { email: "mock@example.com" } };
-    }
-    return context;
-};
-// **** تعديل: استخدام المزود الوهمي دائمًا لتصحيح أخطاء البناء ****
-// Use the hook provided by the actual AuthProvider if available, otherwise use the local mock hook
-// Make sure useAuth is imported or defined before this line
-const ActualUseAuth = useAuthContext; // Use mock hook directly
-
-
-const MockHeartSoundProvider = ({ children }: { children: React.ReactNode }) => <>{children}</>; // مزود وهمي بسيط
-
-// --- نهاية المكونات الوهمية ---
-
+} from "@/components/ui/dropdown-menu"; // Using original component import
+import { HeartSoundProvider } from "@/components/HeartSound"; // Using original provider import
 
 const Index = () => {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [btnAnimation, setBtnAnimation] = useState(false);
-  const { signOut, user } = ActualUseAuth(); // استخدام المزود الوهمي أو الحقيقي
-
-  // **** تعديل: استخدام المكونات الوهمية دائمًا لتصحيح أخطاء البناء ****
-  const ActualPhotoGrid = MockPhotoGrid;
-  const ActualCreateNewDialog = MockCreateNewDialog;
-  const ActualHeartSoundProvider = MockHeartSoundProvider;
-  // Using Fragment as dropdowns are complex mocks and might cause issues if original components are missing
-  const ActualDropdownMenu = React.Fragment;
-  const ActualDropdownMenuTrigger = React.Fragment;
-  const ActualDropdownMenuContent = React.Fragment;
-  const ActualDropdownMenuItem = React.Fragment;
-
+  // Using original useAuth hook
+  const { signOut, user } = useAuth();
 
   const handleCreateNew = () => {
     setBtnAnimation(true);
-    setTimeout(() => setBtnAnimation(false), 300); // مدة قصيرة للأنيميشن
+    setTimeout(() => setBtnAnimation(false), 300);
     setDialogOpen(true);
   };
 
   const toggleSidebar = () => setSidebarOpen((prev) => !prev);
 
-  // تأثير لإغلاق الشريط الجانبي عند الضغط على مفتاح الهروب (Esc)
-  React.useEffect(() => {
+   // Effect to close sidebar on Escape key press
+   React.useEffect(() => {
     const handleEscape = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
         setSidebarOpen(false);
@@ -167,67 +48,64 @@ const Index = () => {
     };
   }, [sidebarOpen]);
 
-
   return (
-    // استخدام مزود وهمي أو حقيقي
-    <ActualHeartSoundProvider>
-      {/* تأكد من وجود AuthProvider في مكان أعلى (مثل App.tsx) أو استخدم الوهمي هنا */}
-      {/* <MockAuthProvider> */}
-      <div className="min-h-screen bg-gray-50 text-gray-800"> {/* Updated background and text color */}
+    // Using original HeartSoundProvider
+    <HeartSoundProvider>
+      <div className="min-h-screen bg-background text-foreground"> {/* Ensure bg-background and text-foreground are defined in your Tailwind config */}
         {/* زر فتح/إغلاق الشريط الجانبي */}
-        <ActualButton
+        <Button // Using original Button component
           variant="ghost"
           size="icon"
           onClick={toggleSidebar}
-          aria-label="Toggle Sidebar" // Accessibility
-          // استخدام glass-effect يتطلب تعريف CSS مخصص
-          className="fixed top-4 right-4 z-50 text-gray-600 bg-white/50 backdrop-blur-md border border-gray-200/50 rounded-full hover:bg-white/70 focus:ring-2 focus:ring-offset-2 focus:ring-pink-500 transition-all"
+          aria-label="Toggle Sidebar"
+          // Ensure glass-effect is defined in your CSS
+          className="fixed top-4 right-4 z-50 glass-effect text-gray-700"
         >
           <Menu className="h-5 w-5" />
-        </ActualButton>
+        </Button>
 
         {/* قائمة المستخدم */}
         <div className="fixed top-4 left-4 z-50">
-          {/* Using React.Fragment for Dropdown as mocks */}
-          <ActualDropdownMenu>
-            <ActualDropdownMenuTrigger>
-              <ActualButton variant="ghost" size="icon" aria-label="User Menu" className="text-gray-600 bg-white/50 backdrop-blur-md border border-gray-200/50 rounded-full hover:bg-white/70 focus:ring-2 focus:ring-offset-2 focus:ring-pink-500 transition-all">
+          {/* Using original DropdownMenu components */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="icon" aria-label="User Menu" className="glass-effect text-gray-700">
                 <User className="h-5 w-5" />
-              </ActualButton>
-            </ActualDropdownMenuTrigger>
-            <ActualDropdownMenuContent>
-              {/* Simplified content as DropdownMenuContent is Fragment */}
-              <div className="w-56 bg-white/90 backdrop-blur-lg text-gray-700 border border-gray-200/60 rounded-lg shadow-lg mt-1 p-2">
-                  <div className="px-3 py-2 text-sm font-medium text-gray-700 border-b border-gray-200/60 truncate">{user?.email ?? 'Loading...'}</div>
-                  <button
-                    onClick={() => signOut?.()}
-                    className="w-full text-left text-red-600 focus:text-red-700 cursor-pointer focus:bg-red-500/10 m-1 rounded hover:bg-red-500/5 focus:outline-none focus:ring-1 focus:ring-red-500 p-2 flex items-center text-sm" // تعديل الألوان والتركيز
-                  >
-                    <LogOut className="ml-2 h-4 w-4" /> {/* تبديل mr إلى ml للعربية */}
-                    <span>تسجيل الخروج</span>
-                  </button>
-              </div>
-            </ActualDropdownMenuContent>
-          </ActualDropdownMenu>
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start" className="w-56 glass-effect text-gray-700 border border-border"> {/* Ensure border-border is defined */}
+              <div className="px-2 py-1.5 text-sm font-medium text-gray-600 truncate">{user?.email}</div>
+              <DropdownMenuItem
+                onClick={() => signOut?.()} // Check if signOut is defined before calling
+                className="text-red-500 focus:text-red-500 cursor-pointer focus:bg-gray-100"
+              >
+                <LogOut className="mr-2 h-4 w-4" /> {/* Use ml-2 for Arabic */}
+                <span>تسجيل الخروج</span>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
 
-        {/* الشريط الجانبي المخصص */}
-        <aside // Use aside for semantic sidebar
-          // تحسين الأنماط والتأثيرات
-          className={`fixed top-0 right-0 h-full bg-gray-800/90 backdrop-blur-lg border-l border-gray-700/50 w-72 transform transition-transform duration-300 ease-in-out z-40 flex flex-col shadow-2xl ${
+        {/* الشريط الجانبي */}
+        <aside // Using aside for semantic sidebar
+          className={`fixed top-0 right-0 h-full bg-black/30 backdrop-blur-md border-l border-gray-800 w-72 transform transition-transform duration-300 ease-in-out z-40 flex flex-col ${
             sidebarOpen ? "translate-x-0" : "translate-x-full"
           }`}
-          aria-hidden={!sidebarOpen} // لإمكانية الوصول
-          role="complementary" // Accessibility role
+           aria-hidden={!sidebarOpen}
+           role="complementary"
         >
-          {/* **** التعديل هنا: إضافة overflow-y-auto للسماح بالتمرير **** */}
-          {/* Content Area of the Sidebar */}
-          <div className="flex-1 pt-20 overflow-y-auto"> {/* Removed p-6, added padding to inner elements */}
-            <h3 className="text-gray-200 font-semibold mb-4 text-right text-lg border-b border-gray-700 pb-2 px-6">الألبومات</h3>
-            {/* حاوية الألبومات/الهاشتاجات */}
-            {/* Added padding here */}
-            <div id="hashtags-container" className="flex flex-col space-y-1 items-end mt-4 px-4 pb-6">
-              {/* هنا سيقوم PhotoGrid بإدخال الأزرار عبر createPortal */}
+          {/* **** التعديل الوحيد هنا: إضافة overflow-y-auto **** */}
+          <div className="flex-1 p-6 pt-20 overflow-y-auto">
+            <h3 className="text-gray-300 font-semibold mb-4 text-right">الألبومات</h3>
+            {/* Container for albums/hashtags */}
+            <div id="hashtags-container" className="flex flex-col space-y-3 items-end">
+              {/* PhotoGrid will inject buttons here via createPortal */}
+              {/* Example placeholder if needed for testing */}
+              {/* <button className="text-right w-full p-2 rounded hover:bg-gray-700/50 text-gray-300">#Placeholder 1</button>
+              <button className="text-right w-full p-2 rounded hover:bg-gray-700/50 text-gray-300">#Placeholder 2</button>
+              {[...Array(20)].map((_, i) => (
+                 <button key={i} className="text-right w-full p-2 rounded hover:bg-gray-700/50 text-gray-300">#ألبوم_وهمي_{i + 1}</button>
+              ))} */}
             </div>
           </div>
         </aside>
@@ -235,91 +113,97 @@ const Index = () => {
         {/* طبقة التعتيم عند فتح الشريط الجانبي */}
         {sidebarOpen && (
           <div
-            className="fixed inset-0 bg-black/40 backdrop-blur-sm z-30 transition-opacity duration-300 ease-in-out" // Slightly darker overlay
+            className="fixed inset-0 bg-black/10 backdrop-blur-sm z-30"
             onClick={() => setSidebarOpen(false)}
-            aria-hidden="true" // لإمكانية الوصول
+            aria-hidden="true"
           />
         )}
 
         {/* المحتوى الرئيسي */}
-        {/* تأكد من أن المحتوى لا يتداخل مع الشريط الجانبي الثابت */}
-        <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 pt-24"> {/* زيادة الـ padding العلوي أكثر */}
-          <div className="text-center mb-16"> {/* زيادة الهامش السفلي */}
-            <div className="inline-block mb-8 w-40 h-40 sm:w-48 sm:h-48"> {/* Increased margin */}
+        <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 pt-20"> {/* Added top padding */}
+          <div className="text-center mb-8">
+            <div className="inline-block mb-6 w-40 h-40 sm:w-48 sm:h-48">
               <img
                 src="/lovable-Uploads/f39108e3-15cc-458c-bb92-7e6b18e100cc.png"
                 alt="Logo"
-                className="w-full h-full object-contain animate-float" // تأكد من تعريف انيميشن float
-                // إضافة fallback بسيط في حالة عدم تحميل الصورة
-                onError={(e) => {
-                    // Check if currentTarget is an HTMLImageElement before setting src
+                className="w-full h-full object-contain animate-float" // Ensure animate-float is defined in CSS
+                 // Simple fallback
+                 onError={(e) => {
                     if (e.currentTarget instanceof HTMLImageElement) {
-                        e.currentTarget.src = 'https://placehold.co/192x192/f1f5f9/94a3b8?text=Logo'; // Updated placeholder colors
+                        e.currentTarget.src = 'https://placehold.co/192x192/f1f5f9/94a3b8?text=Logo';
                     }
                 }}
               />
             </div>
-            <p className="text-xl text-gray-700 max-w-2xl mx-auto mb-10"> {/* تعديل لون النص والهامش والحجم */}
+            {/* Ensure text-white-300 is a valid class or adjust */}
+            <p className="text-lg text-gray-600 max-w-2xl mx-auto mb-6"> {/* Changed text color */}
               .. لحظاتك السعيدة، والنعم الجميلة في حياتك ..
             </p>
 
             <div className="relative inline-block">
-              <ActualButton
+              <Button // Using original Button
                 onClick={handleCreateNew}
-                // تحسين أنماط الزر
-                className={`relative px-8 py-3 bg-gradient-to-r from-[#e84a5f] to-[#d94550] hover:from-[#d94550] hover:to-[#c13c46] text-white text-base font-semibold shadow-lg rounded-full mx-auto transition-all duration-200 ease-in-out overflow-hidden transform active:scale-95 ${ // Rounded-full and gradient
-                  btnAnimation ? "scale-95 shadow-inner brightness-90" : "hover:scale-105 hover:shadow-xl"
+                // Ensure color #d94550 is defined, e.g., in tailwind.config.js or use a Tailwind color class
+                className={`relative px-5 py-3 bg-[#d94550] hover:bg-[#d94550]/90 text-white shadow-lg rounded-lg mx-auto transition-all duration-300 overflow-hidden ${
+                  btnAnimation ? "scale-95 shadow-inner" : "hover:scale-105"
                 }`}
               >
                 <span className="relative z-10 flex items-center">
                   <Plus
-                    className={`w-5 h-5 ml-2 transition-transform duration-300 ${ // تبديل mr إلى ml للعربية
-                      btnAnimation ? "rotate-90 scale-110" : "" // Changed animation
+                    className={`w-5 h-5 mr-2 transition-transform duration-300 ${ // Use ml-2 for Arabic
+                      btnAnimation ? "rotate-180" : ""
                     }`}
                   />
                   إضافة امتنان جديد
                 </span>
-              </ActualButton>
+                {/* طبقة النبض الداخلي */}
+                {/* Ensure color #b73842 and animate-inner-pulse are defined */}
+                <span
+                  className="absolute inset-0 rounded-lg bg-[#b73842]/50 animate-inner-pulse z-0"
+                  style={{ transformOrigin: "center" }}
+                ></span>
+              </Button>
             </div>
           </div>
 
-          {/* استخدام المكون الحقيقي أو الوهمي */}
-          <ActualPhotoGrid closeSidebar={() => setSidebarOpen(false)} />
+          {/* Using original PhotoGrid component */}
+          {/* Pass closeSidebar function to PhotoGrid */}
+          <PhotoGrid closeSidebar={() => setSidebarOpen(false)} />
 
-          {/* استخدام المكون الحقيقي أو الوهمي */}
-          <ActualCreateNewDialog
+          {/* Using original CreateNewDialog component */}
+          <CreateNewDialog
             open={dialogOpen}
             onOpenChange={setDialogOpen}
             onPhotoAdded={() => {
-              // طريقة أفضل لتحديث PhotoGrid قد تكون عبر رفع الحالة أو استخدام مكتبة إدارة حالة
-              console.log("Photo added, triggering update...");
-              // Consider using a state management library or context for robust updates
-              // Ensure window is defined (client-side)
+              // استدعاء إعادة تحميل الصور عندما تضاف صورة جديدة
+              // Ensure this update mechanism works for PhotoGrid
+              console.log("Attempting to trigger photo update...");
               if (typeof window !== 'undefined') {
-                  window.dispatchEvent(new CustomEvent("photo-added"));
+                 window.dispatchEvent(new CustomEvent("photo-added"));
               }
             }}
           />
 
-          {/* زر الإضافة الدائري (Floating Action Button) */}
-          <div className="fixed bottom-8 left-8 z-20 group"> {/* تعديل الموضع */}
-            {/* تأثير النبض الخارجي */}
-            <div className="absolute inset-[-6px] rounded-full bg-pink-500/20 animate-pulse-slow group-hover:scale-110 transition-transform duration-300"></div>
-            <ActualButton
+          {/* زر الإضافة الدائري مع تأثير النبض */}
+          {/* Ensure animate-pulse-slow and variant="glass" / size="circle" are defined */}
+          <div className="fixed bottom-6 left-6 z-20"> {/* Adjusted position */}
+            <div className="absolute inset-[-4px] rounded-full bg-pink-500/10 animate-pulse-slow"></div> {/* Adjusted pulse style */}
+            <Button // Using original Button
               onClick={handleCreateNew}
-              aria-label="إضافة امتنان جديد" // Accessibility
-              // استخدام variant مخصص أو تعديل الأنماط مباشرة
-              size="icon" // استخدام حجم icon
-              className="w-16 h-16 rounded-full bg-gradient-to-br from-pink-500 to-red-500 hover:from-pink-600 hover:to-red-600 text-white shadow-xl relative transition-transform duration-200 transform hover:scale-110 active:scale-100 focus:outline-none focus:ring-4 focus:ring-pink-500/50"
+              variant="glass" // Needs custom variant definition
+              size="circle"   // Needs custom size definition
+              aria-label="إضافة امتنان جديد"
+              className="w-14 h-14 shadow-lg relative rounded-full" // Added rounded-full
             >
-              <Plus className="w-8 h-8" />
-            </ActualButton>
+              <Plus className="w-7 h-7 text-white/70" />
+            </Button>
           </div>
         </main>
       </div>
-      {/* </MockAuthProvider> */}
-    </ActualHeartSoundProvider>
+    </HeartSoundProvider>
   );
 };
 
 export default Index;
+```
+
