@@ -5,7 +5,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Navigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
-import Logo from '@/components/ui/logo'; // Assuming you have a Logo component
+import Logo from '@/components/ui/logo.jsx'; // Corrected import statement
 
 const AuthPage = () => {
   const [mode, setMode] = useState<'signIn' | 'signUp' | 'resetPassword'>('signIn');
