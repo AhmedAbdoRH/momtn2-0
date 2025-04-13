@@ -1,4 +1,4 @@
-Import { Plus, Menu, LogOut, User } from "lucide-react";
+import { Plus, Menu, LogOut, User } from "lucide-react";
 import PhotoGrid from "@/components/PhotoGrid";
 import { Button } from "@/components/ui/button";
 import CreateNewDialog from "@/components/CreateNewDialog";
@@ -18,6 +18,8 @@ const Index = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [btnAnimation, setBtnAnimation] = useState(false);
   const { signOut, user } = useAuth();
+  // -->> إضافة حالة جديدة لتحديث PhotoGrid
+  const [photoGridKey, setPhotoGridKey] = useState(0);
 
   const handleCreateNew = () => {
     setBtnAnimation(true);
@@ -27,6 +29,11 @@ const Index = () => {
 
   const toggleSidebar = () => setSidebarOpen((prev) => !prev);
 
+  // -->> دالة يتم استدعاؤها عند إضافة صورة بنجاح
+  const handlePhotoAdded = () => {
+    setPhotoGridKey(prevKey => prevKey + 1); // تغيير الـ key لتحديث PhotoGrid
+  };
+
   return (
     <HeartSoundProvider>
       <div className="min-h-screen bg-background text-foreground">
@@ -35,7 +42,7 @@ const Index = () => {
           variant="ghost"
           size="icon"
           onClick={toggleSidebar}
-          className="fixed top-4 right-4 z-50 glass-effect text-gray-700"
+          className="fixed top-4 right-4 z-50 glass-effect text-gray-700" // تحقق من glass-effect و text-gray-700
         >
           <Menu className="h-5 w-5" />
         </Button>
@@ -44,11 +51,11 @@ const Index = () => {
         <div className="fixed top-4 left-4 z-50">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon" className="glass-effect text-gray-700">
+              <Button variant="ghost" size="icon" className="glass-effect text-gray-700"> {/* تحقق من glass-effect */}
                 <User className="h-5 w-5" />
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="start" className="w-56 glass-effect text-gray-700 border border-border">
+            <DropdownMenuContent align="start" className="w-56 glass-effect text-gray-700 border border-border"> {/* تحقق من glass-effect */}
               <div className="px-2 py-1.5 text-sm font-medium text-gray-600 truncate">{user?.email}</div>
               <DropdownMenuItem
                 onClick={signOut}
@@ -69,6 +76,7 @@ const Index = () => {
         >
           <div className="flex-1 p-6 pt-20">
             <h3 className="text-gray-300 font-semibold mb-4 text-right">الألبومات</h3>
+             {/* تأكد من أن PhotoGrid يتعامل مع هذا بشكل صحيح */}
             <div id="hashtags-container" className="flex flex-col space-y-3 items-end">
               {/* هنا سيقوم PhotoGrid بإدخال الأزرار عبر createPortal */}
             </div>
@@ -87,9 +95,10 @@ const Index = () => {
         <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
           <div className="text-center mb-8">
             <div className="inline-block mb-6 w-40 h-40 sm:w-48 sm:h-48">
-              <Logo className="w-full h-full object-contain animate-float" /> {/* استخدام مكون اللوجو */}
+              <Logo className="w-full h-full object-contain animate-float" /> {/* استخدام مكون اللوجو - تأكد من animate-float */}
             </div>
-            <p className="text-lg text-white-300 max-w-2xl mx-auto mb-6">
+            {/* -->> تحقق من text-white-300 */}
+            <p className="text-lg text-gray-300 max-w-2xl mx-auto mb-6"> {/* تم التغيير إلى gray-300 كافتراض، عدّله إذا كان white-300 صحيحاً */}
               .. لحظاتك السعيدة، والنعم الجميلة في حياتك
             </p>
 
@@ -110,35 +119,30 @@ const Index = () => {
                 </span>
                 {/* طبقة النبض الداخلي */}
                 <span
-                  className="absolute inset-0 rounded-lg bg-[#b73842]/50 animate-inner-pulse z-0"
+                  className="absolute inset-0 rounded-lg bg-[#b73842]/50 animate-inner-pulse z-0" /* تأكد من animate-inner-pulse */
                   style={{ transformOrigin: "center" }}
                 ></span>
               </Button>
             </div>
           </div>
 
-          {/* هنا نمرّر دالة الإغلاق إلى PhotoGrid */}
-          <PhotoGrid closeSidebar={() => setSidebarOpen(false)} />
+          {/* -->> تمرير الـ key ودالة الإغلاق */}
+          <PhotoGrid key={photoGridKey} closeSidebar={() => setSidebarOpen(false)} />
 
           <CreateNewDialog
             open={dialogOpen}
             onOpenChange={setDialogOpen}
-            onPhotoAdded={() => {
-              // استدعاء إعادة تحميل الصور عندما تضاف صورة جديدة
-              const photoGridElement = document.querySelector("[data-testid='photo-grid']");
-              if (photoGridElement) {
-                // تحديث PhotoGrid إذا كان موجودًا
-                window.dispatchEvent(new CustomEvent("photo-added"));
-              }
-            }}
+            // -->> استدعاء الدالة الجديدة عند إضافة صورة
+            onPhotoAdded={handlePhotoAdded}
           />
 
           {/* زر الإضافة الدائري مع تأثير النبض */}
           <div className="fixed bottom-6 left-6">
+            {/* -->> تأكد من animate-pulse-slow */}
             <div className="absolute inset-0 rounded-full bg-pink-500/10 animate-pulse-slow"></div>
             <Button
               onClick={handleCreateNew}
-              variant="glass"
+              variant="glass" /* تأكد من variant="glass" */
               size="circle"
               className="w-14 h-14 shadow-lg relative"
             >
