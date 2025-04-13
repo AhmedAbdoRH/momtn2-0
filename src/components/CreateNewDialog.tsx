@@ -1,3 +1,4 @@
+
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { useState, useEffect, useRef } from "react";
@@ -23,6 +24,7 @@ const CreateNewDialog = ({ open, onOpenChange, onPhotoAdded }: CreateNewDialogPr
   const { user } = useAuth();
   // مرجع لعنصر label الخاص برفع الصور
   const imageLabelRef = useRef<HTMLLabelElement>(null);
+  const dialogRef = useRef<HTMLDivElement>(null);
 
   // إعادة تعيين الحالة وتنشيط التركيز عند فتح الـ Dialog
   useEffect(() => {
@@ -33,6 +35,31 @@ const CreateNewDialog = ({ open, onOpenChange, onPhotoAdded }: CreateNewDialogPr
       if (imageLabelRef.current) {
         imageLabelRef.current.focus();
       }
+      
+      // إضافة المستمع للتعامل مع لوحة المفاتيح
+      const handleResize = () => {
+        const visualViewport = window.visualViewport;
+        if (visualViewport && dialogRef.current) {
+          const currentHeight = visualViewport.height;
+          const windowHeight = window.innerHeight;
+          
+          if (currentHeight < windowHeight) {
+            // لوحة المفاتيح مفتوحة - نقوم بتعديل موضع الحوار
+            const keyboardHeight = windowHeight - currentHeight;
+            dialogRef.current.style.transform = 
+              `translate(-50%, calc(-50% - ${keyboardHeight / 3}px))`;
+          } else {
+            // لوحة المفاتيح مغلقة - إعادة الوضع الافتراضي
+            dialogRef.current.style.transform = 'translate(-50%, -50%)';
+          }
+        }
+      };
+      
+      window.visualViewport?.addEventListener('resize', handleResize);
+      
+      return () => {
+        window.visualViewport?.removeEventListener('resize', handleResize);
+      };
     }
   }, [open]);
 
@@ -56,9 +83,10 @@ const CreateNewDialog = ({ open, onOpenChange, onPhotoAdded }: CreateNewDialogPr
 
       const allAlbumNames = data.flatMap((item) => item.hashtags || []).filter(Boolean);
       const uniqueAlbumNames = [...new Set(allAlbumNames)].sort();
-      setSuggestions(uniqueAlbumNames);
+      setSuggestions(uniqueAlbumNames || []);
     } catch (error) {
       console.error("Error fetching album suggestions:", error);
+      setSuggestions([]);
     }
   };
 
@@ -85,7 +113,7 @@ const CreateNewDialog = ({ open, onOpenChange, onPhotoAdded }: CreateNewDialogPr
   const handleAlbumChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
     setAlbumName(value);
-    setShowSuggestions(suggestions.length > 0);
+    setShowSuggestions(suggestions?.length > 0);
   };
 
   const handleSuggestionClick = (suggestion: string) => {
@@ -159,12 +187,12 @@ const CreateNewDialog = ({ open, onOpenChange, onPhotoAdded }: CreateNewDialogPr
     }
   };
 
-  const filteredSuggestions = albumName
+  const filteredSuggestions = albumName && suggestions
     ? suggestions.filter((suggestion) =>
         typeof suggestion === "string" &&
         suggestion.toLowerCase().includes(albumName.toLowerCase())
       )
-    : suggestions;
+    : suggestions || [];
 
   return (
     <Dialog
@@ -175,7 +203,9 @@ const CreateNewDialog = ({ open, onOpenChange, onPhotoAdded }: CreateNewDialogPr
       }}
     >
       <DialogContent
+        ref={dialogRef}
         className="top-[45%] sm:max-w-[350px] max-h-[85vh] overflow-y-auto bg-gray-900/80 backdrop-blur-lg text-white border border-gray-700 shadow-xl rounded-lg no-close-button"
+        style={{transition: 'transform 0.15s ease-out'}}
       >
         <DialogHeader>
           <DialogTitle className="text-right text-white">إضافة صورة جديدة</DialogTitle>
@@ -217,7 +247,7 @@ const CreateNewDialog = ({ open, onOpenChange, onPhotoAdded }: CreateNewDialogPr
                 type="text"
                 value={albumName}
                 onChange={handleAlbumChange}
-                onFocus={() => setShowSuggestions(suggestions.length > 0)}
+                onFocus={() => setShowSuggestions(suggestions && suggestions.length > 0)}
                 onBlur={() => setTimeout(() => setShowSuggestions(false), 150)}
                 placeholder="مثال: رحلات الصيف"
                 className="w-full px-3 py-2 bg-gray-800/60 border border-gray-600 rounded-md text-right placeholder:text-gray-500 text-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none"

@@ -1,3 +1,4 @@
+
 import { Plus, Menu, LogOut, User } from "lucide-react";
 import PhotoGrid from "@/components/PhotoGrid";
 import { Button } from "@/components/ui/button";
@@ -111,9 +112,9 @@ const Index = () => {
                   />
                   إضافة امتنان جديد
                 </span>
-                {/* طبقة النبض الداخلي */}
+                {/* طبقة النبض الداخلي - تم تعديلها لتكون باللون الأحمر الداكن ومستمرة */}
                 <span
-                  className="absolute inset-0 rounded-lg bg-[#b73842]/50 animate-inner-pulse z-0"
+                  className="absolute inset-0 rounded-lg bg-[#8B0000]/30 animate-pulse-slow z-0"
                   style={{ transformOrigin: "center" }}
                 ></span>
               </Button>
@@ -138,7 +139,7 @@ const Index = () => {
 
           {/* زر الإضافة الدائري مع تأثير النبض */}
           <div className="fixed bottom-6 left-6">
-            <div className="absolute inset-0 rounded-full bg-pink-500/10 animate-pulse-slow"></div>
+            <div className="absolute inset-0 rounded-full bg-[#8B0000]/20 animate-pulse-slow"></div>
             <Button
               onClick={handleCreateNew}
               variant="glass"
