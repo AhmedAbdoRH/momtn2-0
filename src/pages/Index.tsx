@@ -32,10 +32,16 @@ const MockButton = React.forwardRef<HTMLButtonElement, React.ButtonHTMLAttribute
     )
   );
 MockButton.displayName = "MockButton";
-const ActualButton = Button || MockButton; // Use real Button if available, else mock
+// Use real Button if available, else mock. Ensure Button is imported or defined.
+const ActualButton = typeof Button !== 'undefined' ? Button : MockButton;
 
 const MockPhotoGrid = ({ closeSidebar }: { closeSidebar: () => void }) => {
-    const container = typeof document !== 'undefined' ? document.getElementById('hashtags-container') : null;
+    // Ensure this runs only on the client-side where document is available
+    const [container, setContainer] = React.useState<HTMLElement | null>(null);
+    React.useEffect(() => {
+        setContainer(document.getElementById('hashtags-container'));
+    }, []);
+
 
     return (
       <div data-testid="photo-grid" className="bg-gray-200 p-4 rounded min-h-[300px] text-gray-700">
@@ -104,7 +110,8 @@ const useAuthContext = () => {
     return context;
 };
 // Use the hook provided by the actual AuthProvider if available, otherwise use the local mock hook
-const ActualUseAuth = useAuth || useAuthContext;
+// Make sure useAuth is imported or defined before this line
+const ActualUseAuth = typeof useAuth !== 'undefined' ? useAuth : useAuthContext;
 
 
 const MockHeartSoundProvider = ({ children }: { children: React.ReactNode }) => <>{children}</>; // مزود وهمي بسيط
@@ -119,13 +126,14 @@ const Index = () => {
   const { signOut, user } = ActualUseAuth(); // استخدام المزود الوهمي أو الحقيقي
 
   // استبدال المكونات الحقيقية بالوهمية إذا لزم الأمر
-  const ActualPhotoGrid = PhotoGrid || MockPhotoGrid;
-  const ActualCreateNewDialog = CreateNewDialog || MockCreateNewDialog;
-  const ActualHeartSoundProvider = HeartSoundProvider || MockHeartSoundProvider;
-  const ActualDropdownMenu = DropdownMenu || React.Fragment; // Use Fragment if not available
-  const ActualDropdownMenuTrigger = DropdownMenuTrigger || React.Fragment;
-  const ActualDropdownMenuContent = DropdownMenuContent || React.Fragment;
-  const ActualDropdownMenuItem = DropdownMenuItem || React.Fragment;
+  const ActualPhotoGrid = typeof PhotoGrid !== 'undefined' ? PhotoGrid : MockPhotoGrid;
+  const ActualCreateNewDialog = typeof CreateNewDialog !== 'undefined' ? CreateNewDialog : MockCreateNewDialog;
+  const ActualHeartSoundProvider = typeof HeartSoundProvider !== 'undefined' ? HeartSoundProvider : MockHeartSoundProvider;
+  // Ensure Dropdown components are defined or use Fragment as fallback
+  const ActualDropdownMenu = typeof DropdownMenu !== 'undefined' ? DropdownMenu : React.Fragment;
+  const ActualDropdownMenuTrigger = typeof DropdownMenuTrigger !== 'undefined' ? DropdownMenuTrigger : React.Fragment;
+  const ActualDropdownMenuContent = typeof DropdownMenuContent !== 'undefined' ? DropdownMenuContent : React.Fragment;
+  const ActualDropdownMenuItem = typeof DropdownMenuItem !== 'undefined' ? DropdownMenuItem : React.Fragment;
 
 
   const handleCreateNew = () => {
@@ -143,9 +151,11 @@ const Index = () => {
         setSidebarOpen(false);
       }
     };
+    // Ensure document is defined (client-side)
     if (sidebarOpen && typeof document !== 'undefined') {
       document.addEventListener('keydown', handleEscape);
     }
+    // Cleanup function
     return () => {
       if (typeof document !== 'undefined') {
         document.removeEventListener('keydown', handleEscape);
@@ -187,7 +197,8 @@ const Index = () => {
             >
               <div className="px-3 py-2 text-sm font-medium text-gray-700 border-b border-gray-200/60 truncate">{user?.email ?? 'Loading...'}</div>
               <ActualDropdownMenuItem
-                onClick={signOut}
+                // Ensure onClick exists before calling
+                onClick={() => signOut?.()}
                 className="text-red-600 focus:text-red-700 cursor-pointer focus:bg-red-500/10 m-1 rounded hover:bg-red-500/5 focus:outline-none focus:ring-1 focus:ring-red-500" // تعديل الألوان والتركيز
               >
                 <LogOut className="ml-2 h-4 w-4" /> {/* تبديل mr إلى ml للعربية */}
@@ -214,10 +225,6 @@ const Index = () => {
             {/* Added padding here */}
             <div id="hashtags-container" className="flex flex-col space-y-1 items-end mt-4 px-4 pb-6">
               {/* هنا سيقوم PhotoGrid بإدخال الأزرار عبر createPortal */}
-              {/* مثال لعناصر إذا لم يتم استخدام createPortal */}
-              {/* <button className="text-right w-full p-2 rounded hover:bg-gray-700 text-gray-300">#الكل</button> */}
-              {/* <button className="text-right w-full p-2 rounded hover:bg-gray-700 text-gray-300">#ذكريات</button> */}
-              {/* <button className="text-right w-full p-2 rounded hover:bg-gray-700 text-gray-300">#نعم_الله</button> */}
             </div>
           </div>
         </aside>
@@ -241,7 +248,12 @@ const Index = () => {
                 alt="Logo"
                 className="w-full h-full object-contain animate-float" // تأكد من تعريف انيميشن float
                 // إضافة fallback بسيط في حالة عدم تحميل الصورة
-                onError={(e) => (e.currentTarget.src = 'https://placehold.co/192x192/f1f5f9/94a3b8?text=Logo')} // Updated placeholder colors
+                onError={(e) => {
+                    // Check if currentTarget is an HTMLImageElement before setting src
+                    if (e.currentTarget instanceof HTMLImageElement) {
+                        e.currentTarget.src = 'https://placehold.co/192x192/f1f5f9/94a3b8?text=Logo'; // Updated placeholder colors
+                    }
+                }}
               />
             </div>
             <p className="text-xl text-gray-700 max-w-2xl mx-auto mb-10"> {/* تعديل لون النص والهامش والحجم */}
@@ -264,11 +276,6 @@ const Index = () => {
                   />
                   إضافة امتنان جديد
                 </span>
-                {/* طبقة النبض الداخلي (اختياري) */}
-                {/* <span
-                  className="absolute inset-0 rounded-full bg-white/20 animate-ping z-0" // Changed pulse effect
-                  style={{ animationDuration: '1.5s' }}
-                ></span> */}
               </ActualButton>
             </div>
           </div>
@@ -284,7 +291,10 @@ const Index = () => {
               // طريقة أفضل لتحديث PhotoGrid قد تكون عبر رفع الحالة أو استخدام مكتبة إدارة حالة
               console.log("Photo added, triggering update...");
               // Consider using a state management library or context for robust updates
-              window.dispatchEvent(new CustomEvent("photo-added"));
+              // Ensure window is defined (client-side)
+              if (typeof window !== 'undefined') {
+                  window.dispatchEvent(new CustomEvent("photo-added"));
+              }
             }}
           />
 
@@ -310,56 +320,3 @@ const Index = () => {
 };
 
 export default Index;
-
-/* أضف هذا الـ CSS إلى ملف CSS العام الخاص بك إذا لم يكن موجودًا */
-/*
-@keyframes float {
-  0% { transform: translateY(0px); }
-  50% { transform: translateY(-10px); } /* Increased float height */
-/* 100% { transform: translateY(0px); }
-}
-.animate-float {
-  animation: float 4s ease-in-out infinite; /* Slower animation */
-/*}
-
-@keyframes pulse-slow {
-  0% { transform: scale(1); opacity: 0.5; }
-  50% { transform: scale(1.15); opacity: 0.2; } /* Adjusted scale and opacity */
-/* 100% { transform: scale(1); opacity: 0.5; }
-}
-.animate-pulse-slow {
-  animation: pulse-slow 3s cubic-bezier(0.4, 0, 0.6, 1) infinite; /* Slower pulse */
-/*}
-
-/* Ensure Tailwind base styles are included for CSS variables like --background, --foreground etc. */
-/* Add this if you don't have a global CSS setup */
-/*
-body {
-  background-color: var(--background, #f9fafb); /* Default background */
-/* color: var(--foreground, #1f2937); /* Default text color */
-/*}
-
-/* Define CSS variables if not using Tailwind config */
-/*
-:root {
-    --background: #f9fafb; /* gray-50 */
-/* --foreground: #1f2937; /* gray-800 */
-/* --border: #e5e7eb; /* gray-200 */
-/* --input: #d1d5db; /* gray-300 */
-/* --ring: #fb7185; /* pink-500 */
-/* --primary: #f43f5e; /* rose-500 */
-/* --primary-foreground: #ffffff;
-    --secondary: #e5e7eb; /* gray-200 */
-/* --secondary-foreground: #111827; /* gray-900 */
-/* --accent: #fce7f3; /* pink-100 */
-/* --accent-foreground: #be185d; /* pink-700 */
-/* --muted: #f3f4f6; /* gray-100 */
-/* --muted-foreground: #6b7280; /* gray-500 */
-/* --popover: #ffffff;
-    --popover-foreground: #1f2937; /* gray-800 */
-/*}
-
-*/
-```
-
-هذا هو الكود الكامل للملف كما هو موجود في المستند الحالي، بما في ذلك التعديل اللازم لتمكين التمرير في الشريط الجانبي المخصص لد
