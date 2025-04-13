@@ -74,7 +74,7 @@ const Index = () => {
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="start" className="w-56 glass-effect text-gray-700 border border-border"> {/* Ensure border-border is defined */}
-              <div className="px-2 py-1.5 text-sm font-medium text-gray-600 truncate">{user?.email}</div>
+              <div className="px-2 py-1.5 text-sm font-medium text-white-300 truncate">{user?.email}</div>
               <DropdownMenuItem
                 onClick={() => signOut?.()} // Check if signOut is defined before calling
                 className="text-red-500 focus:text-red-500 cursor-pointer focus:bg-gray-100"
@@ -88,7 +88,7 @@ const Index = () => {
 
         {/* الشريط الجانبي */}
         <aside // Using aside for semantic sidebar
-          className={`fixed top-0 right-0 h-full bg-black/30 backdrop-blur-md border-l border-gray-800 w-72 transform transition-transform duration-300 ease-in-out z-40 flex flex-col ${
+          className={`fixed top-0 right-0 h-full bg-black/40 backdrop-blur-md border-l border-gray-800 w-72 transform transition-transform duration-300 ease-in-out z-40 flex flex-col ${
             sidebarOpen ? "translate-x-0" : "translate-x-full"
           }`}
            aria-hidden={!sidebarOpen}
@@ -113,7 +113,7 @@ const Index = () => {
         {/* طبقة التعتيم عند فتح الشريط الجانبي */}
         {sidebarOpen && (
           <div
-            className="fixed inset-0 bg-black/10 backdrop-blur-sm z-30"
+            className="fixed inset-0 bg-black/20 backdrop-blur-sm z-30"
             onClick={() => setSidebarOpen(false)}
             aria-hidden="true"
           />
@@ -136,7 +136,7 @@ const Index = () => {
               />
             </div>
             {/* Ensure text-white-300 is a valid class or adjust */}
-            <p className="text-lg text-gray-600 max-w-2xl mx-auto mb-6"> {/* Changed text color */}
+            <p className="text-lg text-white-300 max-w-2xl mx-auto mb-6"> {/* Changed text color */}
               .. لحظاتك السعيدة، والنعم الجميلة في حياتك ..
             </p>
 
