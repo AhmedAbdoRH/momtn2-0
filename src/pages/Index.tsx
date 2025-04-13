@@ -1,3 +1,5 @@
+// --->>> استخدم هذا الكود المحدث لملف المكون الرئيسي (Index.jsx) <<<---
+
 import { Plus, Menu, LogOut, User } from "lucide-react";
 import PhotoGrid from "@/components/PhotoGrid";
 import { Button } from "@/components/ui/button";
@@ -11,7 +13,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { HeartSoundProvider } from "@/components/HeartSound";
-// تم إزالة استيراد مكون Logo: import Logo from "@/components/ui/logo";
+import Logo from "@/components/ui/logo"; // ---<<< تم إعادة استيراد مكون اللوجو
 
 const Index = () => {
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -32,9 +34,6 @@ const Index = () => {
     setPhotoGridKey(prevKey => prevKey + 1);
   };
 
-  // المسار المحلي للوجو (من مجلد public)
-  const logoPath = "/lovable-uploads/f39108e3-15cc-458c-bb92-7e6b18e100cc.png";
-
   return (
     <HeartSoundProvider>
       <div className="min-h-screen bg-background text-foreground">
@@ -43,7 +42,7 @@ const Index = () => {
           variant="ghost"
           size="icon"
           onClick={toggleSidebar}
-          className="fixed top-4 right-4 z-50 glass-effect text-gray-700" // تأكد من تعريف glass-effect في CSS
+          className="fixed top-4 right-4 z-50 glass-effect text-gray-700" // [تحتاج مراجعة CSS ⚠️] تأكد من تعريف glass-effect
         >
           <Menu className="h-5 w-5" />
         </Button>
@@ -52,11 +51,11 @@ const Index = () => {
         <div className="fixed top-4 left-4 z-50">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon" className="glass-effect text-gray-700"> {/* تأكد من تعريف glass-effect */}
+              <Button variant="ghost" size="icon" className="glass-effect text-gray-700"> {/* [تحتاج مراجعة CSS ⚠️] تأكد من تعريف glass-effect */}
                 <User className="h-5 w-5" />
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="start" className="w-56 glass-effect text-gray-700 border border-border"> {/* تأكد من تعريف glass-effect */}
+            <DropdownMenuContent align="start" className="w-56 glass-effect text-gray-700 border border-border"> {/* [تحتاج مراجعة CSS ⚠️] تأكد من تعريف glass-effect */}
               <div className="px-2 py-1.5 text-sm font-medium text-gray-600 truncate">{user?.email}</div>
               <DropdownMenuItem
                 onClick={signOut}
@@ -78,7 +77,7 @@ const Index = () => {
           <div className="flex-1 p-6 pt-20">
             <h3 className="text-gray-300 font-semibold mb-4 text-right">الألبومات</h3>
             <div id="hashtags-container" className="flex flex-col space-y-3 items-end">
-              {/* PhotoGrid يجب أن يستخدم createPortal لوضع الأزرار هنا */}
+              {/* [يتطلب مراجعة PhotoGrid 🔎] PhotoGrid يجب أن يستخدم createPortal هنا */}
             </div>
           </div>
         </div>
@@ -94,14 +93,9 @@ const Index = () => {
         {/* المحتوى الرئيسي */}
         <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
           <div className="text-center mb-8">
-             {/* تم استبدال <Logo> بـ <img> مباشرة */}
+             {/* ---<<< تم العودة لاستخدام مكون Logo المستورد */}
             <div className="inline-block mb-6 w-40 h-40 sm:w-48 sm:h-48">
-              <img
-                src={logoPath} // استخدام المسار المحلي
-                alt="Momtn Logo" // إضافة وصف بديل
-                className="w-full h-full object-contain animate-float" // تأكد من تعريف animate-float في CSS
-                loading="lazy" // للتحميل الكسول (تحسين الأداء)
-              />
+              <Logo className="w-full h-full object-contain animate-float" /> {/* [تحتاج مراجعة CSS ⚠️] تأكد من تعريف animate-float */}
             </div>
             <p className="text-lg text-gray-300 max-w-2xl mx-auto mb-6">
               .. لحظاتك السعيدة، والنعم الجميلة في حياتك
@@ -123,7 +117,7 @@ const Index = () => {
                   إضافة امتنان جديد
                 </span>
                 <span
-                  className="absolute inset-0 rounded-lg bg-[#b73842]/50 animate-inner-pulse z-0" // تأكد من تعريف animate-inner-pulse في CSS
+                  className="absolute inset-0 rounded-lg bg-[#b73842]/50 animate-inner-pulse z-0" // [تحتاج مراجعة CSS ⚠️] تأكد من تعريف animate-inner-pulse
                   style={{ transformOrigin: "center" }}
                 ></span>
               </Button>
@@ -140,11 +134,11 @@ const Index = () => {
 
           {/* زر الإضافة الدائري مع تأثير النبض */}
           <div className="fixed bottom-6 left-6">
-            <div className="absolute inset-0 rounded-full bg-pink-500/10 animate-pulse-slow"></div> {/* تأكد من تعريف animate-pulse-slow */}
+            <div className="absolute inset-0 rounded-full bg-pink-500/10 animate-pulse-slow"></div> {/* [تحتاج مراجعة CSS ⚠️] تأكد من تعريف animate-pulse-slow */}
             <Button
               onClick={handleCreateNew}
-              variant="glass" // تأكد من تعريف variant="glass" في مكون Button
-              size="circle" // تأكد من تعريف size="circle" في مكون Button
+              variant="glass" // [تحتاج مراجعة Button ⚠️] تأكد من تعريف variant="glass"
+              size="circle" // [تحتاج مراجعة Button ⚠️] تأكد من تعريف size="circle"
               className="w-14 h-14 shadow-lg relative"
             >
               <Plus className="w-7 h-7 text-white/70" />
@@ -157,3 +151,4 @@ const Index = () => {
 };
 
 export default Index;
+
