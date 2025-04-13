@@ -43,10 +43,10 @@ const EditAlbumDialog = ({
 
     try {
       // تحديث جميع الصور التي تستخدم هذا الألبوم
-      const { error } = await supabase.rpc<null>('update_album_name', {
+      const { error } = await supabase.rpc<null, UpdateAlbumNameParams>('update_album_name', {
         old_name: currentAlbumName,
         new_name: newAlbumName.trim()
-      } as UpdateAlbumNameParams);
+      });
 
       if (error) throw error;
 
