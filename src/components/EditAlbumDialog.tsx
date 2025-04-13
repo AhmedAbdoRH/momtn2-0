@@ -12,6 +12,12 @@ interface EditAlbumDialogProps {
   onAlbumUpdated: () => void;
 }
 
+// Define the type for the parameters we're passing to the RPC function
+interface UpdateAlbumNameParams {
+  old_name: string;
+  new_name: string;
+}
+
 const EditAlbumDialog = ({
   open,
   onOpenChange,
@@ -37,10 +43,10 @@ const EditAlbumDialog = ({
 
     try {
       // تحديث جميع الصور التي تستخدم هذا الألبوم
-      const { error } = await supabase.rpc('update_album_name', {
+      const { error } = await supabase.rpc<null>('update_album_name', {
         old_name: currentAlbumName,
         new_name: newAlbumName.trim()
-      } as any); // Type assertion to bypass TypeScript checking
+      } as UpdateAlbumNameParams);
 
       if (error) throw error;
 
