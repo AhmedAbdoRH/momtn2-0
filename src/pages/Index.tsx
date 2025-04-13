@@ -11,7 +11,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { HeartSoundProvider } from "@/components/HeartSound";
-import Logo from "@/components/ui/logo"; // استيراد مكون اللوجو
+import Logo from "@/components/ui/logo/Logo"; // تم تعديل مسار الاستيراد بناءً على المناقشة السابقة
 
 const Index = () => {
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -42,7 +42,7 @@ const Index = () => {
           variant="ghost"
           size="icon"
           onClick={toggleSidebar}
-          className="fixed top-4 right-4 z-50 glass-effect text-gray-700" // تحقق من glass-effect و text-gray-700
+          className="fixed top-4 right-4 z-50 glass-effect text-gray-700"
         >
           <Menu className="h-5 w-5" />
         </Button>
@@ -51,11 +51,11 @@ const Index = () => {
         <div className="fixed top-4 left-4 z-50">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon" className="glass-effect text-gray-700"> {/* تحقق من glass-effect */}
+              <Button variant="ghost" size="icon" className="glass-effect text-gray-700">
                 <User className="h-5 w-5" />
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="start" className="w-56 glass-effect text-gray-700 border border-border"> {/* تحقق من glass-effect */}
+            <DropdownMenuContent align="start" className="w-56 glass-effect text-gray-700 border border-border">
               <div className="px-2 py-1.5 text-sm font-medium text-gray-600 truncate">{user?.email}</div>
               <DropdownMenuItem
                 onClick={signOut}
@@ -95,10 +95,9 @@ const Index = () => {
         <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
           <div className="text-center mb-8">
             <div className="inline-block mb-6 w-40 h-40 sm:w-48 sm:h-48">
-              <Logo className="w-full h-full object-contain animate-float" /> {/* استخدام مكون اللوجو - تأكد من animate-float */}
+              <Logo className="w-full h-full object-contain animate-float" />
             </div>
-            {/* -->> تحقق من text-white-300 */}
-            <p className="text-lg text-gray-300 max-w-2xl mx-auto mb-6"> {/* تم التغيير إلى gray-300 كافتراض، عدّله إذا كان white-300 صحيحاً */}
+            <p className="text-lg text-gray-300 max-w-2xl mx-auto mb-6">
               .. لحظاتك السعيدة، والنعم الجميلة في حياتك
             </p>
 
@@ -119,7 +118,7 @@ const Index = () => {
                 </span>
                 {/* طبقة النبض الداخلي */}
                 <span
-                  className="absolute inset-0 rounded-lg bg-[#b73842]/50 animate-inner-pulse z-0" /* تأكد من animate-inner-pulse */
+                  className="absolute inset-0 rounded-lg bg-[#b73842]/50 animate-inner-pulse z-0"
                   style={{ transformOrigin: "center" }}
                 ></span>
               </Button>
@@ -142,7 +141,7 @@ const Index = () => {
             <div className="absolute inset-0 rounded-full bg-pink-500/10 animate-pulse-slow"></div>
             <Button
               onClick={handleCreateNew}
-              variant="glass" /* تأكد من variant="glass" */
+              variant="glass"
               size="circle"
               className="w-14 h-14 shadow-lg relative"
             >
