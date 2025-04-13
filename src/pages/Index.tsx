@@ -1,3 +1,4 @@
+
 import { Plus, Menu, LogOut, User } from "lucide-react";
 import PhotoGrid from "@/components/PhotoGrid";
 import { Button } from "@/components/ui/button";
@@ -11,6 +12,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { HeartSoundProvider } from "@/components/HeartSound";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 const Index = () => {
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -66,11 +68,13 @@ const Index = () => {
             sidebarOpen ? "translate-x-0" : "translate-x-full"
           }`}
         >
-          <div className="flex-1 p-6 pt-20">
+          <div className="flex-1 p-6 pt-20 overflow-hidden">
             <h3 className="text-gray-300 font-semibold mb-4 text-right">الألبومات</h3>
-            <div id="hashtags-container" className="flex flex-col space-y-3 items-end">
-              {/* هنا سيقوم PhotoGrid بإدخال الأزرار عبر createPortal */}
-            </div>
+            <ScrollArea className="h-[calc(100vh-120px)]">
+              <div id="hashtags-container" className="flex flex-col space-y-3 items-end">
+                {/* هنا سيقوم PhotoGrid بإدخال الأزرار عبر createPortal */}
+              </div>
+            </ScrollArea>
           </div>
         </div>
 
@@ -87,14 +91,11 @@ const Index = () => {
           <div className="text-center mb-8">
             <div className="inline-block mb-6 w-40 h-40 sm:w-48 sm:h-48">
               <img
-                src="/lovable-Uploads/f39108e3-15cc-458c-bb92-7e6b18e100cc.png"
+                src="/lovable-uploads/c3fd29c9-44c4-49bd-9542-ba243177f8e2.png"
                 alt="Logo"
                 className="w-full h-full object-contain animate-float"
               />
             </div>
-            <p className="text-lg text-white-300 max-w-2xl mx-auto mb-6">
-              .. لحظاتك السعيدة، والنعم الجميلة في حياتك
-            </p>
 
             <div className="relative inline-block">
               <Button

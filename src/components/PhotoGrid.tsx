@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
@@ -235,7 +236,7 @@ const PhotoGrid: React.FC<PhotoGridProps> = ({ closeSidebar }) => {
       setPhotos(prev =>
         prev.map(photo => photo.id === id ? { ...photo, caption, hashtags: cleaned } : photo)
       );
-      toast({ title: "تم التحديث بنجاح", description: "تم تحديث التعليق والهاشتاجات" });
+      toast({ title: "تم التحديث بنجاح", description: "تم تحديث التعليق والألبومات" });
     } catch {
       console.error('Exception updating caption');
     }
