@@ -1,7 +1,7 @@
 import * as React from "react"
 import { Slot } from "@radix-ui/react-slot"
 import { VariantProps, cva } from "class-variance-authority"
-import { PanelLeft } from "lucide-react"
+import { PanelLeft, HomeIcon as DefaultHomeIcon, SettingsIcon as DefaultSettingsIcon, UserIcon as DefaultUserIcon, PlusIcon as DefaultPlusIcon, ChevronDownIcon as DefaultChevronDownIcon } from "lucide-react" // Using lucide-react directly
 
 // Import hooks and utilities - Assuming these exist in your project structure
 // Replace with actual paths if different
@@ -24,6 +24,7 @@ const useIsMobile = () => {
   // Basic check, replace with your actual hook logic
   const [isMobile, setIsMobile] = React.useState(false);
   React.useEffect(() => {
+    if (typeof window === 'undefined') return; // Guard for SSR
     const checkMobile = () => setIsMobile(window.innerWidth < 768);
     checkMobile();
     window.addEventListener('resize', checkMobile);
@@ -36,37 +37,77 @@ const cn = (...classes: (string | undefined | null | false)[]) => classes.filter
 
 const Button = React.forwardRef<HTMLButtonElement, React.ButtonHTMLAttributes<HTMLButtonElement> & { variant?: string; size?: string }>(
   ({ className, variant, size, ...props }, ref) => (
-    <button ref={ref} className={cn("button-base", variant, size, className)} {...props} />
+    <button ref={ref} className={cn(
+        "inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:opacity-50 disabled:pointer-events-none ring-offset-background",
+        // Example variants - replace with your actual button styles
+        variant === 'ghost' ? 'hover:bg-accent hover:text-accent-foreground' : 'bg-primary text-primary-foreground hover:bg-primary/90',
+        size === 'icon' ? 'h-10 w-10' : 'h-10 py-2 px-4',
+        className
+        )} {...props} />
   )
 );
 Button.displayName = "Button";
 
 const Input = React.forwardRef<HTMLInputElement, React.InputHTMLAttributes<HTMLInputElement>>(
   ({ className, ...props }, ref) => (
-    <input ref={ref} className={cn("input-base", className)} {...props} />
+    <input ref={ref} className={cn("flex h-10 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50", className)} {...props} />
   )
 );
 Input.displayName = "Input";
 
-const Separator = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>(
-  ({ className, ...props }, ref) => (
-    <div ref={ref} className={cn("separator-base", className)} {...props} />
+const Separator = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement> & { orientation?: 'horizontal' | 'vertical' }>(
+  ({ className, orientation = 'horizontal', ...props }, ref) => (
+    <div ref={ref} className={cn("shrink-0 bg-border", orientation === 'horizontal' ? 'h-[1px] w-full' : 'h-full w-[1px]', className)} {...props} />
   )
 );
 Separator.displayName = "Separator";
 
-const Sheet = ({ children, open, onOpenChange }: { children: React.ReactNode; open?: boolean; onOpenChange?: (open: boolean) => void }) => (
-  <div data-state={open ? 'open' : 'closed'} className="sheet-base">
-    {/* Simplified Sheet logic */}
-    {open && children}
-  </div>
-);
+const Sheet = ({ children, open, onOpenChange }: { children: React.ReactNode; open?: boolean; onOpenChange?: (open: boolean) => void }) => {
+    // Basic Sheet implementation for example
+    React.useEffect(() => {
+        if (open) {
+            document.body.style.overflow = 'hidden';
+        } else {
+            document.body.style.overflow = '';
+        }
+        return () => { document.body.style.overflow = ''; };
+    }, [open]);
 
-const SheetContent = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement> & { side?: string }>(
-  ({ className, side, children, ...props }, ref) => (
-    <div ref={ref} className={cn("sheet-content-base", `side-${side}`, className)} {...props}>
+    return (
+        <div className={cn("fixed inset-0 z-50", open ? "block" : "hidden")}>
+            {/* Overlay */}
+            <div className="absolute inset-0 bg-black/30" onClick={() => onOpenChange?.(false)} />
+            {children}
+        </div>
+    );
+};
+
+
+const SheetContent = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement> & { side?: 'left' | 'right' | 'top' | 'bottom' }>(
+  ({ className, side = 'left', children, ...props }, ref) => (
+    <div
+        ref={ref}
+        className={cn(
+            "fixed z-50 gap-4 bg-background p-6 shadow-lg transition ease-in-out duration-300",
+            side === 'left' && 'inset-y-0 left-0 h-full w-3/4 border-r data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:slide-out-to-left data-[state=open]:slide-in-from-left sm:max-w-sm',
+            side === 'right' && 'inset-y-0 right-0 h-full w-3/4 border-l data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:slide-out-to-right data-[state=open]:slide-in-from-right sm:max-w-sm',
+            // Add top/bottom variants if needed
+            className
+        )}
+        // Add data-state attribute based on open prop passed to Sheet
+        data-state={(props as any).open ? 'open' : 'closed'}
+        {...props}
+        >
       {children}
-      <button onClick={() => (props as any).onOpenChange?.(false)} className="sheet-close-button">X</button>
+      {/* Simple close button for demo */}
+      <button
+        onClick={() => (props as any).onOpenChange?.(false)}
+        className="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none data-[state=open]:bg-secondary"
+        >
+         {/* Use a proper close icon */}
+         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M4.646 4.646a.5.5 0 0 1 .708 0L8 7.293l2.646-2.647a.5.5 0 0 1 .708.708L8.707 8l2.647 2.646a.5.5 0 0 1-.708.708L8 8.707l-2.646 2.647a.5.5 0 0 1-.708-.708L7.293 8 4.646 5.354a.5.5 0 0 1 0-.708"/></svg>
+        <span className="sr-only">Close</span>
+      </button>
     </div>
   )
 );
@@ -74,27 +115,34 @@ SheetContent.displayName = "SheetContent";
 
 const Skeleton = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>(
   ({ className, ...props }, ref) => (
-    <div ref={ref} className={cn("skeleton-base", className)} {...props} />
+    <div ref={ref} className={cn("animate-pulse rounded-md bg-muted", className)} {...props} />
   )
 );
 Skeleton.displayName = "Skeleton";
 
 const TooltipProvider = ({ children, delayDuration }: { children: React.ReactNode; delayDuration?: number }) => (
-  <div>{children}</div> // Simplified TooltipProvider
+  // In a real app, this would likely use Radix UI TooltipProvider
+  <>{children}</>
 );
 
 const Tooltip = ({ children }: { children: React.ReactNode }) => (
-  <div className="tooltip-base">{children}</div> // Simplified Tooltip
+  // In a real app, this would likely use Radix UI Tooltip
+  <>{children}</> // Simplified for example
 );
 
 const TooltipTrigger = ({ children, asChild }: { children: React.ReactNode; asChild?: boolean }) => {
-  if (asChild) return <>{children}</>;
-  return <button className="tooltip-trigger-base">{children}</button>; // Simplified TooltipTrigger
+   // In a real app, this would likely use Radix UI TooltipTrigger
+  if (asChild && React.isValidElement(children)) {
+    return React.cloneElement(children); // Pass props through
+  }
+  return <button type="button">{children}</button>; // Default trigger
 };
 
 const TooltipContent = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement> & { side?: string; align?: string; hidden?: boolean }>(
   ({ className, side, align, hidden, children, ...props }, ref) => (
-    <div ref={ref} className={cn("tooltip-content-base", hidden && "hidden", className)} {...props}>
+     // In a real app, this would likely use Radix UI TooltipContent
+     // This is a very basic visual representation
+    <div ref={ref} className={cn("z-50 overflow-hidden rounded-md border bg-popover px-3 py-1.5 text-sm text-popover-foreground shadow-md animate-in fade-in-0 zoom-in-95", hidden && "hidden", className)} {...props}>
       {children}
     </div>
   )
@@ -281,14 +329,14 @@ const Sidebar = React.forwardRef<
     ref
   ) => {
     // Get state and functions from the context.
-    const { isMobile, state, openMobile, setOpenMobile } = useSidebar()
+    const { isMobile, state, openMobile, setOpenMobile, setOpen: setDesktopOpen } = useSidebar() // Added setDesktopOpen for Sheet
 
     // If collapsing is disabled, render a simple fixed-width sidebar.
     if (collapsible === "none") {
       return (
         <div
           className={cn(
-            "flex h-full w-[--sidebar-width] flex-col bg-sidebar text-sidebar-foreground", // Basic styling
+            "flex h-full w-[var(--sidebar-width)] flex-col bg-sidebar text-sidebar-foreground", // Basic styling
             className
           )}
           ref={ref}
@@ -304,9 +352,11 @@ const Sidebar = React.forwardRef<
       return (
         <Sheet open={openMobile} onOpenChange={setOpenMobile} {...props}>
           <SheetContent
+            open={openMobile} // Pass open state to SheetContent for data-state
+            onOpenChange={setOpenMobile} // Pass callback
             data-sidebar="sidebar" // Data attribute for styling/selection
             data-mobile="true" // Indicate mobile version
-            className="w-[--sidebar-width] bg-sidebar p-0 text-sidebar-foreground [&>button]:hidden" // Styling for the sheet content
+            className="w-[var(--sidebar-width)] bg-sidebar p-0 text-sidebar-foreground [&>button]:hidden" // Styling for the sheet content
             style={
               {
                 "--sidebar-width": SIDEBAR_WIDTH_MOBILE, // Use mobile width
@@ -334,19 +384,19 @@ const Sidebar = React.forwardRef<
         {/* Placeholder div to create the gap/space for the fixed sidebar */}
         <div
           className={cn(
-            "duration-200 relative h-svh w-[--sidebar-width] bg-transparent transition-[width] ease-linear", // Base styles and transition
+            "duration-200 relative h-svh w-[var(--sidebar-width)] bg-transparent transition-[width] ease-linear", // Base styles and transition
             // Adjust width based on collapse type and variant
             "group-data-[collapsible=offcanvas]:w-0", // Offcanvas hides the gap
             "group-data-[side=right]:rotate-180", // Adjust for right side
             variant === "floating" || variant === "inset"
               ? "group-data-[collapsible=icon]:w-[calc(var(--sidebar-width-icon)_+_theme(spacing.4))]" // Icon collapse with padding for floating/inset
-              : "group-data-[collapsible=icon]:w-[--sidebar-width-icon]" // Icon collapse for standard sidebar
+              : "group-data-[collapsible=icon]:w-[var(--sidebar-width-icon)]" // Icon collapse for standard sidebar
           )}
         />
         {/* Actual fixed sidebar container */}
         <div
           className={cn(
-            "duration-200 fixed inset-y-0 z-10 hidden h-svh w-[--sidebar-width] transition-[left,right,width] ease-linear md:flex", // Base styles, fixed position, transition
+            "duration-200 fixed inset-y-0 z-10 hidden h-svh w-[var(--sidebar-width)] transition-[left,right,width] ease-linear md:flex", // Base styles, fixed position, transition
             // Position based on side and collapse type
             side === "left"
               ? "left-0 group-data-[collapsible=offcanvas]:left-[calc(var(--sidebar-width)*-1)]" // Slide off left for offcanvas
@@ -354,7 +404,7 @@ const Sidebar = React.forwardRef<
             // Adjust width and padding based on variant and collapse type
             variant === "floating" || variant === "inset"
               ? "p-2 group-data-[collapsible=icon]:w-[calc(var(--sidebar-width-icon)_+_theme(spacing.4)_+2px)]" // Icon collapse with padding for floating/inset
-              : "group-data-[collapsible=icon]:w-[--sidebar-width-icon] group-data-[side=left]:border-r group-data-[side=right]:border-l", // Icon collapse for standard, add border
+              : "group-data-[collapsible=icon]:w-[var(--sidebar-width-icon)] group-data-[side=left]:border-r group-data-[side=right]:border-l", // Icon collapse for standard, add border
             className // Allow custom classes
           )}
           {...props} // Pass down other props
@@ -397,7 +447,7 @@ const SidebarTrigger = React.forwardRef<
       }}
       {...props} // Pass down other props
     >
-      <PanelLeft /> {/* Icon for the trigger */}
+      <PanelLeft className="h-4 w-4" /> {/* Icon for the trigger */}
       <span className="sr-only">Toggle Sidebar</span> {/* Accessibility label */}
     </Button>
   )
@@ -448,7 +498,8 @@ const SidebarInset = React.forwardRef<
       className={cn(
         "relative flex min-h-svh flex-1 flex-col bg-background", // Base styles
         // Styles applied when the sidebar variant is "inset"
-        "peer-data-[variant=inset]:min-h-[calc(100svh-theme(spacing.4))] md:peer-data-[variant=inset]:m-2 md:peer-data-[state=collapsed]:peer-data-[variant=inset]:ml-2 md:peer-data-[variant=inset]:ml-0 md:peer-data-[variant=inset]:rounded-xl md:peer-data-[variant=inset]:shadow",
+        // Assuming 'theme(spacing.4)' is defined in your Tailwind config (e.g., 1rem)
+        "peer-data-[variant=inset]:min-h-[calc(100svh-theme(spacing.4,1rem))] md:peer-data-[variant=inset]:m-2 md:peer-data-[state=collapsed]:peer-data-[variant=inset]:ml-2 md:peer-data-[variant=inset]:ml-0 md:peer-data-[variant=inset]:rounded-xl md:peer-data-[variant=inset]:shadow",
         className // Allow custom classes
       )}
       {...props} // Pass down other props
@@ -486,7 +537,8 @@ const SidebarHeader = React.forwardRef<
     <div
       ref={ref}
       data-sidebar="header" // Data attribute
-      className={cn("flex flex-col gap-2 p-2", className)} // Padding and flex layout
+      // Removed gap-2 here, let children manage their gap if needed
+      className={cn("flex flex-col p-2", className)} // Padding and flex layout
       {...props} // Pass down other props
     />
   )
@@ -502,7 +554,8 @@ const SidebarFooter = React.forwardRef<
     <div
       ref={ref}
       data-sidebar="footer" // Data attribute
-      className={cn("flex flex-col gap-2 p-2", className)} // Padding and flex layout
+      // Removed gap-2 here
+      className={cn("flex flex-col p-2", className)} // Padding and flex layout
       {...props} // Pass down other props
     />
   )
@@ -518,7 +571,7 @@ const SidebarSeparator = React.forwardRef<
     <Separator
       ref={ref}
       data-sidebar="separator" // Data attribute
-      className={cn("mx-2 w-auto bg-sidebar-border", className)} // Sidebar-specific separator styling
+      className={cn("mx-2 my-1 w-auto bg-sidebar-border", className)} // Sidebar-specific separator styling, added margin-y
       {...props} // Pass down other props
     />
   )
@@ -526,22 +579,30 @@ const SidebarSeparator = React.forwardRef<
 SidebarSeparator.displayName = "SidebarSeparator"
 
 // Main content area within the sidebar, responsible for scrolling.
+// **** MODIFIED FOR SCROLLING ****
 const SidebarContent = React.forwardRef<
   HTMLDivElement,
   React.ComponentProps<"div">
->(({ className, ...props }, ref) => {
+>(({ className, children, ...props }, ref) => {
   return (
     <div
       ref={ref}
       data-sidebar="content" // Data attribute
       className={cn(
-        "flex min-h-0 flex-1 flex-col gap-2", // Base layout, flex-1 to take available space
-        "overflow-y-auto", // **** ADDED: Enable vertical scrolling when content overflows ****
-        "group-data-[collapsible=icon]:overflow-hidden", // Hide overflow when collapsed to icon mode
+        "relative flex-1 min-h-0", // Outer container: takes remaining space, allows shrinking, relative positioning
+        "group-data-[collapsible=icon]:overflow-hidden", // Hide everything when collapsed to icon
         className // Allow custom classes
       )}
       {...props} // Pass down other props
-    />
+    >
+      {/* Inner container: absolutely positioned to fill outer, enables scrolling */}
+      <div className="absolute inset-0 overflow-y-auto">
+        {/* Add padding or gap for the actual content inside the scrollable area */}
+        <div className="flex flex-col gap-2 p-2 pt-0"> {/* Added padding here, removed from outer */}
+            {children}
+        </div>
+      </div>
+    </div>
   )
 })
 SidebarContent.displayName = "SidebarContent"
@@ -555,7 +616,8 @@ const SidebarGroup = React.forwardRef<
     <div
       ref={ref}
       data-sidebar="group" // Data attribute
-      className={cn("relative flex w-full min-w-0 flex-col p-2", className)} // Padding and layout
+      // Removed padding here, handled by SidebarContent inner div
+      className={cn("relative flex w-full min-w-0 flex-col", className)}
       {...props} // Pass down other props
     />
   )
@@ -575,9 +637,9 @@ const SidebarGroupLabel = React.forwardRef<
       data-sidebar="group-label" // Data attribute
       className={cn(
         // Base styles: padding, text style, focus ring
-        "duration-200 flex h-8 shrink-0 items-center rounded-md px-2 text-xs font-medium text-sidebar-foreground/70 outline-none ring-sidebar-ring transition-[margin,opa] ease-linear focus-visible:ring-2 [&>svg]:size-4 [&>svg]:shrink-0",
+        "duration-200 flex h-8 shrink-0 items-center rounded-md px-2 text-xs font-medium text-sidebar-foreground/70 outline-none ring-sidebar-ring transition-[margin,opacity] ease-linear focus-visible:ring-2 [&>svg]:size-4 [&>svg]:shrink-0",
         // Hide label smoothly when collapsed to icon mode
-        "group-data-[collapsible=icon]:-mt-8 group-data-[collapsible=icon]:opacity-0",
+        "group-data-[collapsible=icon]:-mt-8 group-data-[collapsible=icon]:opacity-0 group-data-[collapsible=icon]:px-0", // Added px-0 when icon
         className // Allow custom classes
       )}
       {...props} // Pass down other props
@@ -599,7 +661,7 @@ const SidebarGroupAction = React.forwardRef<
       data-sidebar="group-action" // Data attribute
       className={cn(
         // Base styles: positioning, size, icon styling, focus ring, hover effect
-        "absolute right-3 top-3.5 flex aspect-square w-5 items-center justify-center rounded-md p-0 text-sidebar-foreground outline-none ring-sidebar-ring transition-transform hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:ring-2 [&>svg]:size-4 [&>svg]:shrink-0",
+        "absolute right-1 top-1 flex aspect-square w-5 items-center justify-center rounded-md p-0 text-sidebar-foreground outline-none ring-sidebar-ring transition-transform hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:ring-2 [&>svg]:size-4 [&>svg]:shrink-0", // Adjusted position slightly
         // Increase touch target size on mobile
         "after:absolute after:-inset-2 after:md:hidden",
         // Hide action when collapsed to icon mode
@@ -620,7 +682,7 @@ const SidebarGroupContent = React.forwardRef<
   <div
     ref={ref}
     data-sidebar="group-content" // Data attribute
-    className={cn("w-full text-sm", className)} // Basic styling
+    className={cn("w-full text-sm flex flex-col gap-1", className)} // Basic styling, added gap
     {...props} // Pass down other props
   />
 ))
@@ -657,7 +719,7 @@ SidebarMenuItem.displayName = "SidebarMenuItem"
 // Define variants for the menu button using class-variance-authority.
 const sidebarMenuButtonVariants = cva(
   // Base styles shared by all variants
-  "peer/menu-button flex w-full items-center gap-2 overflow-hidden rounded-md p-2 text-left text-sm outline-none ring-sidebar-ring transition-[width,height,padding] hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 group-has-[[data-sidebar=menu-action]]/menu-item:pr-8 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[active=true]:bg-sidebar-accent data-[active=true]:font-medium data-[active=true]:text-sidebar-accent-foreground data-[state=open]:hover:bg-sidebar-accent data-[state=open]:hover:text-sidebar-accent-foreground group-data-[collapsible=icon]:!size-8 group-data-[collapsible=icon]:!p-2 [&>span:last-child]:truncate [&>svg]:size-4 [&>svg]:shrink-0",
+  "peer/menu-button flex w-full items-center gap-2 overflow-hidden rounded-md p-2 text-left text-sm outline-none ring-sidebar-ring transition-all duration-150 ease-in-out hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 group-has-[[data-sidebar=menu-action]]/menu-item:pr-8 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[active=true]:bg-sidebar-accent data-[active=true]:font-medium data-[active=true]:text-sidebar-accent-foreground data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:!size-8 group-data-[collapsible=icon]:!p-0 [&>span:not(.sr-only)]:group-data-[collapsible=icon]:hidden [&>svg~svg]:group-data-[collapsible=icon]:hidden [&>svg]:size-4 [&>svg]:shrink-0", // Modified icon collapse behavior
   {
     variants: {
       // Visual style variants
@@ -697,6 +759,7 @@ const SidebarMenuButton = React.forwardRef<
       size = "default",
       tooltip,
       className,
+      children, // Accept children
       ...props
     },
     ref
@@ -713,7 +776,9 @@ const SidebarMenuButton = React.forwardRef<
         data-active={isActive} // Active state attribute
         className={cn(sidebarMenuButtonVariants({ variant, size }), className)} // Apply CVA variants and custom classes
         {...props} // Pass down other props
-      />
+      >
+          {children}
+      </Comp>
     )
 
     // If no tooltip is provided, just return the button.
@@ -724,8 +789,19 @@ const SidebarMenuButton = React.forwardRef<
     // Normalize tooltip prop to be an object if it's a string.
     if (typeof tooltip === "string") {
       tooltip = {
-        children: tooltip,
+        children: <span className="px-1">{tooltip}</span>, // Wrap string tooltip for basic styling
+        // Add default side/align for consistency if needed
+         side: "right",
+         align: "center",
+         sideOffset: 8, // Add some offset
       }
+    } else {
+        tooltip = {
+            side: "right",
+            align: "center",
+            sideOffset: 8,
+            ...tooltip // Merge provided props
+        }
     }
 
     // Wrap the button in a Tooltip component if a tooltip is provided.
@@ -733,8 +809,6 @@ const SidebarMenuButton = React.forwardRef<
       <Tooltip>
         <TooltipTrigger asChild>{button}</TooltipTrigger> {/* Trigger is the button itself */}
         <TooltipContent
-          side="right" // Show tooltip to the right
-          align="center" // Align center
           hidden={state !== "collapsed" || isMobile} // Only show tooltip when sidebar is collapsed on desktop
           {...tooltip} // Pass down tooltip content/props
         />
@@ -790,7 +864,7 @@ const SidebarMenuBadge = React.forwardRef<
     data-sidebar="menu-badge" // Data attribute
     className={cn(
       // Base styles: positioning, size, text style, non-interactive
-      "absolute right-1 flex h-5 min-w-5 items-center justify-center rounded-md px-1 text-xs font-medium tabular-nums text-sidebar-foreground select-none pointer-events-none",
+      "absolute right-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-primary px-1.5 text-[10px] font-medium text-primary-foreground select-none pointer-events-none", // Updated styles for badge
       // Adjust text color based on the main button's state
       "peer-hover/menu-button:text-sidebar-accent-foreground peer-data-[active=true]/menu-button:text-sidebar-accent-foreground",
       // Adjust vertical position based on the main button's size
@@ -812,7 +886,7 @@ const SidebarMenuSkeleton = React.forwardRef<
   React.ComponentProps<"div"> & {
     showIcon?: boolean // Show a placeholder for the icon?
   }
->(({ className, showIcon = false, ...props }, ref) => {
+>(({ className, showIcon = true, ...props }, ref) => { // Default showIcon to true
   // Generate a random width for the text skeleton for visual variation.
   const width = React.useMemo(() => {
     return `${Math.floor(Math.random() * 40) + 50}%` // Width between 50% and 90%
@@ -828,17 +902,17 @@ const SidebarMenuSkeleton = React.forwardRef<
       {/* Optional icon skeleton */}
       {showIcon && (
         <Skeleton
-          className="size-4 rounded-md"
+          className="size-4 rounded-sm shrink-0" // Changed to rounded-sm
           data-sidebar="menu-skeleton-icon"
         />
       )}
       {/* Text skeleton with random width */}
       <Skeleton
-        className="h-4 flex-1 max-w-[--skeleton-width]"
+        className="h-4 flex-1"
         data-sidebar="menu-skeleton-text"
         style={
           {
-            "--skeleton-width": width, // Apply random width via CSS variable
+             maxWidth: `var(--skeleton-width, ${width})`, // Apply random width via CSS variable, fallback
           } as React.CSSProperties
         }
       />
@@ -857,7 +931,7 @@ const SidebarMenuSub = React.forwardRef<
     data-sidebar="menu-sub" // Data attribute
     className={cn(
       // Indentation and border styling for sub-menu
-      "mx-3.5 flex min-w-0 translate-x-px flex-col gap-1 border-l border-sidebar-border px-2.5 py-0.5",
+      "ml-5 mt-1 flex min-w-0 flex-col gap-1 border-l border-border pl-3.5", // Updated styling
       // Hide sub-menu when collapsed to icon mode
       "group-data-[collapsible=icon]:hidden",
       className // Allow custom classes
@@ -882,7 +956,7 @@ const SidebarMenuSubButton = React.forwardRef<
     size?: "sm" | "md" // Size variant
     isActive?: boolean // Is this item currently active?
   }
->(({ asChild = false, size = "md", isActive, className, ...props }, ref) => {
+>(({ asChild = false, size = "md", isActive, className, children, ...props }, ref) => {
   const Comp = asChild ? Slot : "a" // Determine the component to render
 
   return (
@@ -893,9 +967,9 @@ const SidebarMenuSubButton = React.forwardRef<
       data-active={isActive} // Active state attribute
       className={cn(
         // Base styles: height, padding, text style, focus ring, hover/active states
-        "flex h-7 min-w-0 -translate-x-px items-center gap-2 overflow-hidden rounded-md px-2 text-sidebar-foreground outline-none ring-sidebar-ring hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 aria-disabled:pointer-events-none aria-disabled:opacity-50 [&>span:last-child]:truncate [&>svg]:size-4 [&>svg]:shrink-0 [&>svg]:text-sidebar-accent-foreground",
+        "flex h-7 w-full min-w-0 items-center gap-2 overflow-hidden rounded-md px-2 text-sidebar-foreground/80 outline-none ring-sidebar-ring hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:ring-2 active:bg-sidebar-accent active::opacity-50 aria-disabled:pointer-events-none aria-disabled:opacity-50 [&>span:last-child]:truncate [&>svg]:size-4 [&>svg]:shrink-0 [&>svg]:text-sidebar-accent-foreground", // Adjusted text color
         // Active state styling
-        "data-[active=true]:bg-sidebar-accent data-[active=true]:text-sidebar-accent-foreground",
+        "data-[active=true]:bg-sidebar-accent data-[active=true]:text-sidebar-accent-foreground data-[active=true]:font-medium", // Added font-medium on active
         // Text size based on variant
         size === "sm" && "text-xs",
         size === "md" && "text-sm",
@@ -904,7 +978,9 @@ const SidebarMenuSubButton = React.forwardRef<
         className // Allow custom classes
       )}
       {...props} // Pass down other props
-    />
+    >
+        {children}
+    </Comp>
   )
 })
 SidebarMenuSubButton.displayName = "SidebarMenuSubButton"
@@ -939,131 +1015,397 @@ export {
 
 // --- Example Usage (App Component) ---
 
-// Mock Icons (replace with actual imports e.g., from lucide-react)
-const HomeIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M8.354 1.146a.5.5 0 0 0-.708 0l-6 6A.5.5 0 0 0 1.5 7.5v7a.5.5 0 0 0 .5.5h4.5a.5.5 0 0 0 .5-.5v-4h2v4a.5.5 0 0 0 .5.5H14a.5.5 0 0 0 .5-.5v-7a.5.5 0 0 0-.146-.354L13 5.793V2.5a.5.5 0 0 0-.5-.5h-1a.5.5 0 0 0-.5.5v1.293zM2.5 14V7.707l5.5-5.5 5.5 5.5V14H10v-4a.5.5 0 0 0-.5-.5h-3a.5.5 0 0 0-.5.5v4z"/></svg>;
-const SettingsIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M8 4.754a3.246 3.246 0 1 0 0 6.492 3.246 3.246 0 0 0 0-6.492M5.754 8a2.246 2.246 0 1 1 4.492 0 2.246 2.246 0 0 1-4.492 0"/><path d="M9.796 1.343c-.527-1.79-3.065-1.79-3.592 0l-.094.319a.873.873 0 0 1-1.255.52l-.292-.16c-1.64-.892-3.433.902-2.54 2.541l.159.292a.873.873 0 0 1-.52 1.255l-.319.094c-1.79.527-1.79 3.065 0 3.592l.319.094a.873.873 0 0 1 .52 1.255l-.16.292c-.892 1.64.901 3.434 2.541 2.54l.292-.159a.873.873 0 0 1 1.255.52l.094.319c.527 1.79 3.065 1.79 3.592 0l.094-.319a.873.873 0 0 1 1.255-.52l.292.16c1.64.893 3.434-.902 2.54-2.541l-.159-.292a.873.873 0 0 1 .52-1.255l.319-.094c1.79-.527 1.79-3.065 0-3.592l-.319-.094a.873.873 0 0 1-.52-1.255l.16-.292c.893-1.64-.902-3.433-2.541-2.54l-.292.159a.873.873 0 0 1-1.255-.52zm-2.633.283c.246-.835 1.428-.835 1.674 0l.094.319a1.873 1.873 0 0 0 2.693 1.115l.291-.16c.764-.415 1.6.42 1.184 1.185l-.159.292a1.873 1.873 0 0 0 1.116 2.692l.318.094c.835.246.835 1.428 0 1.674l-.319.094a1.873 1.873 0 0 0-1.115 2.693l.16.291c.415.764-.42 1.6-1.185 1.184l-.291-.159a1.873 1.873 0 0 0-2.693 1.116l-.094.318c-.246.835-1.428.835-1.674 0l-.094-.319a1.873 1.873 0 0 0-2.692-1.115l-.292.16c-.764.415-1.6-.42-1.184-1.185l.159-.291A1.873 1.873 0 0 0 1.945 8.93l-.319-.094c-.835-.246-.835-1.428 0-1.674l.319-.094A1.873 1.873 0 0 0 3.06 4.377l-.16-.292c-.415-.764.42-1.6 1.185-1.184l.292.159a1.873 1.873 0 0 0 2.692-1.115z"/></svg>;
-const UserIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M8 8a3 3 0 1 0 0-6 3 3 0 0 0 0 6m2-3a2 2 0 1 1-4 0 2 2 0 0 1 4 0m4 8c0 1-1 1-1 1H3s-1 0-1-1 1-4 6-4 6 3 6 4m-1-.004c-.001-.246-.154-.986-.832-1.664C11.516 10.68 10.289 10 8 10s-3.516.68-4.168 1.332c-.678.678-.83 1.418-.832 1.664z"/></svg>;
-const PlusIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M8 4a.5.5 0 0 1 .5.5v3h3a.5.5 0 0 1 0 1h-3v3a.5.5 0 0 1-1 0v-3h-3a.5.5 0 0 1 0-1h3v-3A.5.5 0 0 1 8 4"/></svg>;
-const ChevronDownIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path fill-rule="evenodd" d="M1.646 4.646a.5.5 0 0 1 .708 0L8 10.293l5.646-5.647a.5.5 0 0 1 .708.708l-6 6a.5.5 0 0 1-.708 0l-6-6a.5.5 0 0 1 0-.708"/></svg>;
+// Use default icons from lucide-react if not overridden
+const HomeIcon = DefaultHomeIcon;
+const SettingsIcon = DefaultSettingsIcon;
+const UserIcon = DefaultUserIcon;
+const PlusIcon = DefaultPlusIcon;
+const ChevronDownIcon = DefaultChevronDownIcon;
 
+// Mock Logo component
+const MockLogo = () => (
+    <div className="p-1.5 rounded-lg bg-blue-600 text-white group-data-[collapsible=icon]:size-6 flex items-center justify-center transition-all"> {/* Simple Logo */}
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M8 0a8 8 0 1 0 0 16A8 8 0 0 0 8 0M4.5 7.5a.5.5 0 0 1 0-1h7a.5.5 0 0 1 0 1zm0 2a.5.5 0 0 1 0-1h7a.5.5 0 0 1 0 1zm-.5 2.5a.5.5 0 0 1 .5-.5h4a.5.5 0 0 1 0 1h-4a.5.5 0 0 1-.5-.5"/></svg>
+    </div>
+)
 
-// Basic CSS for mock components (add to your global CSS or a <style> tag)
+// Basic CSS variables (add to your global CSS or style tag)
+// These should match your Tailwind theme ideally
 /*
-.button-base { padding: 0.5rem 1rem; border: 1px solid #ccc; border-radius: 0.25rem; cursor: pointer; }
-.button-base.ghost { border: none; background: transparent; }
-.button-base.icon { padding: 0.5rem; }
-.input-base { padding: 0.5rem; border: 1px solid #ccc; border-radius: 0.25rem; }
-.separator-base { height: 1px; background-color: #eee; margin: 0.5rem 0; }
-.sheet-base[data-state='closed'] { display: none; }
-.sheet-content-base { position: fixed; top: 0; bottom: 0; background: white; box-shadow: -2px 0 5px rgba(0,0,0,0.1); padding: 1rem; z-index: 50; }
-.sheet-content-base.side-left { left: 0; }
-.sheet-content-base.side-right { right: 0; }
-.sheet-close-button { position: absolute; top: 0.5rem; right: 0.5rem; background: none; border: none; font-size: 1.5rem; cursor: pointer; }
-.skeleton-base { background-color: #e2e8f0; border-radius: 0.25rem; animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
-@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: .5; } }
-.tooltip-base { position: relative; display: inline-block; }
-.tooltip-content-base { position: absolute; background-color: #333; color: white; padding: 0.25rem 0.5rem; border-radius: 0.25rem; font-size: 0.875rem; z-index: 100; white-space: nowrap; }
-.tooltip-content-base.hidden { display: none; }
-.bg-sidebar { background-color: #f8fafc; /* Example color */}
-.text-sidebar-foreground { color: #0f172a; /* Example color */}
-.bg-sidebar-border { background-color: #e2e8f0; /* Example color */}
-.ring-sidebar-ring:focus-visible { outline: 2px solid blue; /* Example focus */}
-.bg-sidebar-accent { background-color: #e0f2fe; /* Example color */}
-.text-sidebar-accent-foreground { color: #0c4a6e; /* Example color */}
-.bg-background { background-color: #ffffff; /* Example color */}
+:root {
+  --sidebar: #f8fafc; // Example: Cool Gray 50
+  --sidebar-foreground: #1f2937; // Example: Cool Gray 800
+  --sidebar-border: #e5e7eb; // Example: Cool Gray 200
+  --sidebar-accent: #e0f2fe; // Example: Sky 100
+  --sidebar-accent-foreground: #075985; // Example: Sky 800
+  --sidebar-ring: #3b82f6; // Example: Blue 500
+  --background: #ffffff;
+  --border: #e5e7eb; // General border color
+  --input: #e5e7eb; // Input border
+  --ring: #3b82f6; // Focus ring
+  --primary: #3b82f6; // Example: Blue 500
+  --primary-foreground: #ffffff;
+  --accent: #f3f4f6; // Used by mock Button
+  --accent-foreground: #1f2937; // Used by mock Button
+  --popover: #ffffff;
+  --popover-foreground: #1f2937;
+  --muted: #f3f4f6; // Used by Skeleton
+}
+
+// Simple animation definitions if not using Tailwind animations plugin
+@keyframes slide-in-from-left { from { transform: translateX(-100%); } to { transform: translateX(0); } }
+@keyframes slide-out-to-left { from { transform: translateX(0); } to { transform: translateX(-100%); } }
+@keyframes slide-in-from-right { from { transform: translateX(100%); } to { transform: translateX(0); } }
+@keyframes slide-out-to-right { from { transform: translateX(0); } to { transform: translateX(100%); } }
+@keyframes fade-in-0 { from { opacity: 0; } to { opacity: 1; } }
+@keyframes zoom-in-95 { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
+
+.animate-in { animation-duration: 300ms; animation-timing-function: ease-out; }
+.animate-out { animation-duration: 200ms; animation-timing-function: ease-in; }
+.slide-in-from-left { animation-name: slide-in-from-left; }
+.slide-out-to-left { animation-name: slide-out-to-left; }
+.slide-in-from-right { animation-name: slide-in-from-right; }
+.slide-out-to-right { animation-name: slide-out-to-right; }
+.fade-in-0 { animation-name: fade-in-0; }
+.zoom-in-95 { animation-name: zoom-in-95; }
+
+// Tailwind theme function mock (basic)
+.m-2 { margin: 0.5rem; }
+.ml-2 { margin-left: 0.5rem; }
+.p-2 { padding: 0.5rem; }
+.p-4 { padding: 1rem; }
+.p-6 { padding: 1.5rem; }
+.pt-0 { padding-top: 0; }
+.px-1 { padding-left: 0.25rem; padding-right: 0.25rem; }
+.px-1\.5 { padding-left: 0.375rem; padding-right: 0.375rem; }
+.px-2 { padding-left: 0.5rem; padding-right: 0.5rem; }
+.px-2\.5 { padding-left: 0.625rem; padding-right: 0.625rem; }
+.px-3 { padding-left: 0.75rem; padding-right: 0.75rem; }
+.px-3\.5 { padding-left: 0.875rem; padding-right: 0.875rem; }
+.py-0\.5 { padding-top: 0.125rem; padding-bottom: 0.125rem; }
+.py-1\.5 { padding-top: 0.375rem; padding-bottom: 0.375rem; }
+.gap-1 { gap: 0.25rem; }
+.gap-2 { gap: 0.5rem; }
+.gap-4 { gap: 1rem; }
+.mx-2 { margin-left: 0.5rem; margin-right: 0.5rem; }
+.mx-3\.5 { margin-left: 0.875rem; margin-right: 0.875rem; }
+.my-1 { margin-top: 0.25rem; margin-bottom: 0.25rem; }
+.ml-5 { margin-left: 1.25rem; }
+.ml-auto { margin-left: auto; }
+.min-h-svh { min-height: 100svh; }
+.min-h-0 { min-height: 0; }
+.min-w-0 { min-width: 0; }
+.min-w-5 { min-width: 1.25rem; }
+.w-full { width: 100%; }
+.w-auto { width: auto; }
+.w-3\/4 { width: 75%; }
+.w-4 { width: 1rem; }
+.w-5 { width: 1.25rem; }
+.h-full { height: 100%; }
+.h-svh { height: 100svh; }
+.h-4 { height: 1rem; }
+.h-5 { height: 1.25rem; }
+.h-7 { height: 1.75rem; }
+.h-8 { height: 2rem; }
+.h-12 { height: 3rem; }
+.size-4 { width: 1rem; height: 1rem; }
+.size-6 { width: 1.5rem; height: 1.5rem; }
+.size-8 { width: 2rem; height: 2rem; }
+.aspect-square { aspect-ratio: 1 / 1; }
+.flex { display: flex; }
+.flex-1 { flex: 1 1 0%; }
+.flex-col { flex-direction: column; }
+.items-center { align-items: center; }
+.justify-center { justify-content: center; }
+.justify-between { justify-content: space-between; }
+.shrink-0 { flex-shrink: 0; }
+.overflow-hidden { overflow: hidden; }
+.overflow-y-auto { overflow-y: auto; }
+.rounded-md { border-radius: 0.375rem; }
+.rounded-lg { border-radius: 0.5rem; }
+.rounded-xl { border-radius: 0.75rem; }
+.rounded-full { border-radius: 9999px; }
+.rounded-sm { border-radius: 0.125rem; }
+.border { border-width: 1px; }
+.border-r { border-right-width: 1px; }
+.border-l { border-left-width: 1px; }
+.shadow { box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1); }
+.shadow-lg { box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1); }
+.shadow-none { box-shadow: none; }
+.font-medium { font-weight: 500; }
+.font-semibold { font-weight: 600; }
+.text-xs { font-size: 0.75rem; line-height: 1rem; }
+.text-sm { font-size: 0.875rem; line-height: 1.25rem; }
+.text-left { text-align: left; }
+.text-sidebar-foreground { color: var(--sidebar-foreground); }
+.text-sidebar-foreground\/70 { color: color-mix(in srgb, var(--sidebar-foreground) 70%, transparent); }
+.text-sidebar-foreground\/80 { color: color-mix(in srgb, var(--sidebar-foreground) 80%, transparent); }
+.text-sidebar-accent-foreground { color: var(--sidebar-accent-foreground); }
+.text-primary-foreground { color: var(--primary-foreground); }
+.bg-sidebar { background-color: var(--sidebar); }
+.bg-sidebar-border { background-color: var(--sidebar-border); }
+.bg-sidebar-accent { background-color: var(--sidebar-accent); }
+.bg-background { background-color: var(--background); }
+.bg-transparent { background-color: transparent; }
+.bg-primary { background-color: var(--primary); }
+.bg-border { background-color: var(--border); }
+.bg-popover { background-color: var(--popover); }
+.bg-muted { background-color: var(--muted); }
+.border-sidebar-border { border-color: var(--sidebar-border); }
+.border-input { border-color: var(--input); }
+.border-border { border-color: var(--border); }
+.ring-sidebar-ring:focus-visible { --tw-ring-color: var(--sidebar-ring); box-shadow: 0 0 0 2px var(--background), 0 0 0 4px var(--tw-ring-color); } // Adjusted focus ring
+.focus-visible\:ring-2:focus-visible { --tw-ring-offset-shadow: var(--tw-ring-inset) 0 0 0 var(--tw-ring-offset-width) var(--tw-ring-offset-color); --tw-ring-shadow: var(--tw-ring-inset) 0 0 0 calc(2px + var(--tw-ring-offset-width)) var(--tw-ring-color); box-shadow: var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow, 0 0 #0000); } // Basic ring setup
+.focus-visible\:ring-sidebar-ring:focus-visible { --tw-ring-color: var(--sidebar-ring); }
+.absolute { position: absolute; }
+.relative { position: relative; }
+.fixed { position: fixed; }
+.inset-0 { top: 0; right: 0; bottom: 0; left: 0; }
+.inset-y-0 { top: 0; bottom: 0; }
+.left-0 { left: 0; }
+.right-0 { right: 0; }
+.right-1 { right: 0.25rem; }
+.right-3 { right: 0.75rem; }
+.right-4 { right: 1rem; }
+.-right-2 { right: -0.5rem; }
+.-right-4 { right: -1rem; }
+.top-1 { top: 0.25rem; }
+.top-1\.5 { top: 0.375rem; }
+.top-2\.5 { top: 0.625rem; }
+.top-3\.5 { top: 0.875rem; }
+.top-4 { top: 1rem; }
+.z-10 { z-index: 10; }
+.z-20 { z-index: 20; }
+.z-50 { z-index: 50; }
+.hidden { display: none; }
+.block { display: block; }
+.inline-flex { display: inline-flex; }
+.md\:block { @media (min-width: 768px) { display: block; } }
+.md\:flex { @media (min-width: 768px) { display: flex; } }
+.md\:hidden { @media (min-width: 768px) { display: none; } }
+.sm\:flex { @media (min-width: 640px) { display: flex; } }
+.sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border-width: 0; }
+.truncate { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tabular-nums { font-variant-numeric: tabular-nums; }
+.select-none { user-select: none; }
+.pointer-events-none { pointer-events: none; }
+.cursor-w-resize { cursor: w-resize; }
+.cursor-e-resize { cursor: e-resize; }
+.transition-all { transition-property: all; transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1); transition-duration: 150ms; }
+.transition-\[width\] { transition-property: width; }
+.transition-\[left\,right\,width\] { transition-property: left, right, width; }
+.transition-\[margin\,opacity\] { transition-property: margin, opacity; }
+.transition-transform { transition-property: transform; }
+.duration-150 { transition-duration: 150ms; }
+.duration-200 { transition-duration: 200ms; }
+.ease-linear { transition-timing-function: linear; }
+.ease-in-out { transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1); }
+.translate-x-px { transform: translateX(1px); }
+.-translate-x-1\/2 { transform: translateX(-50%); }
+.translate-x-0 { transform: translateX(0); }
+.rotate-180 { transform: rotate(180deg); }
+.after\:absolute::after { content: ""; position: absolute; }
+.after\:inset-y-0::after { top: 0; bottom: 0; }
+.after\:left-1\/2::after { left: 50%; }
+.after\:w-\[2px\]::after { width: 2px; }
+.after\:left-full::after { left: 100%; }
+.after\:-inset-2::after { top: -0.5rem; right: -0.5rem; bottom: -0.5rem; left: -0.5rem; }
+.after\:md\:hidden::after { @media (min-width: 768px) { display: none; } }
+.hover\:after\:bg-sidebar-border:hover::after { background-color: var(--sidebar-border); }
+.hover\:bg-sidebar:hover { background-color: var(--sidebar); }
+.hover\:bg-sidebar-accent:hover { background-color: var(--sidebar-accent); }
+.hover\:text-sidebar-accent-foreground:hover { color: var(--sidebar-accent-foreground); }
+.hover\:shadow-\[0_0_0_1px_hsl\(var\(--sidebar-accent\)\)\]:hover { box-shadow: 0 0 0 1px var(--sidebar-accent); }
+.outline-none { outline: 2px solid transparent; outline-offset: 2px; }
+.focus-visible\:ring-2:focus-visible { --tw-ring-offset-shadow: var(--tw-ring-inset) 0 0 0 var(--tw-ring-offset-width) var(--tw-ring-offset-color); --tw-ring-shadow: var(--tw-ring-inset) 0 0 0 calc(2px + var(--tw-ring-offset-width)) var(--tw-ring-color); box-shadow: var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow, 0 0 #0000); }
+.active\:bg-sidebar-accent:active { background-color: var(--sidebar-accent); }
+.active\:text-sidebar-accent-foreground:active { color: var(--sidebar-accent-foreground); }
+.disabled\:pointer-events-none:disabled { pointer-events: none; }
+.disabled\:opacity-50:disabled { opacity: 0.5; }
+.aria-disabled\:pointer-events-none[aria-disabled=true] { pointer-events: none; }
+.aria-disabled\:opacity-50[aria-disabled=true] { opacity: 0.5; }
+.group\/sidebar-wrapper {}
+.group\/menu-item {}
+.group-data-\[\[data-variant=inset\]\]\:bg-sidebar.has-\[\[data-variant=inset\]\] { background-color: var(--sidebar); }
+.group-data-\[collapsible=offcanvas\]\:w-0[data-collapsible=offcanvas] { width: 0; }
+.group-data-\[side=right\]\:rotate-180[data-side=right] { transform: rotate(180deg); }
+.group-data-\[collapsible=icon\]\:w-\[calc\(var\(--sidebar-width-icon\)_+_theme\(spacing\.4\)\)\][data-collapsible=icon] { width: calc(var(--sidebar-width-icon) + 1rem); } // Assuming theme(spacing.4) = 1rem
+.group-data-\[collapsible=icon\]\:w-\[var\(--sidebar-width-icon\)\][data-collapsible=icon] { width: var(--sidebar-width-icon); }
+.group-data-\[collapsible=offcanvas\]\:left-\[calc\(var\(--sidebar-width\)*-1\)\][data-collapsible=offcanvas] { left: calc(var(--sidebar-width) * -1); }
+.group-data-\[collapsible=offcanvas\]\:right-\[calc\(var\(--sidebar-width\)*-1\)\][data-collapsible=offcanvas] { right: calc(var(--sidebar-width) * -1); }
+.group-data-\[collapsible=icon\]\:w-\[calc\(var\(--sidebar-width-icon\)_+_theme\(spacing\.4\)_+2px\)\][data-collapsible=icon] { width: calc(var(--sidebar-width-icon) + 1rem + 2px); } // Assuming theme(spacing.4) = 1rem
+.group-data-\[side=left\]\:border-r[data-side=left] { border-right-width: 1px; border-color: var(--sidebar-border); }
+.group-data-\[side=right\]\:border-l[data-side=right] { border-left-width: 1px; border-color: var(--sidebar-border); }
+.group-data-\[variant=floating\]\:rounded-lg[data-variant=floating] { border-radius: 0.5rem; }
+.group-data-\[variant=floating\]\:border[data-variant=floating] { border-width: 1px; }
+.group-data-\[variant=floating\]\:border-sidebar-border[data-variant=floating] { border-color: var(--sidebar-border); }
+.group-data-\[variant=floating\]\:shadow[data-variant=floating] { box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1); }
+.group-data-\[collapsible=icon\]\:hidden[data-collapsible=icon] { display: none; }
+.group-data-\[collapsible=icon\]\:-mt-8[data-collapsible=icon] { margin-top: -2rem; }
+.group-data-\[collapsible=icon\]\:opacity-0[data-collapsible=icon] { opacity: 0; }
+.group-data-\[collapsible=icon]\:px-0[data-collapsible=icon] { padding-left: 0; padding-right: 0; }
+.group-data-\[collapsible=icon\]\:overflow-hidden[data-collapsible=icon] { overflow: hidden; }
+.group-data-\[collapsible=icon\]\:justify-center[data-collapsible=icon] { justify-content: center; }
+.group-data-\[collapsible=icon\]\:\!size-8[data-collapsible=icon] { width: 2rem !important; height: 2rem !important; }
+.group-data-\[collapsible=icon\]\:\!p-0[data-collapsible=icon] { padding: 0 !important; }
+.group-has-\[\[data-sidebar=menu-action\]\]\/menu-item\:pr-8.group\/menu-item:has([data-sidebar=menu-action]) { padding-right: 2rem; }
+.group-focus-within\/menu-item\:opacity-100.group\/menu-item:focus-within { opacity: 1; }
+.group-hover\/menu-item\:opacity-100.group\/menu-item:hover { opacity: 1; }
+.data-\[active=true\]\:bg-sidebar-accent[data-active=true] { background-color: var(--sidebar-accent); }
+.data-\[active=true\]\:font-medium[data-active=true] { font-weight: 500; }
+.data-\[active=true\]\:text-sidebar-accent-foreground[data-active=true] { color: var(--sidebar-accent-foreground); }
+.data-\[state=open\]\:hover\:bg-sidebar-accent[data-state=open]:hover { background-color: var(--sidebar-accent); }
+.data-\[state=open\]\:hover\:text-sidebar-accent-foreground[data-state=open]:hover { color: var(--sidebar-accent-foreground); }
+.data-\[state=open\]\:opacity-100[data-state=open] { opacity: 1; }
+.data-\[state=open]\:bg-sidebar-accent[data-state=open] { background-color: var(--sidebar-accent); }
+.data-\[state=open]\:text-sidebar-accent-foreground[data-state=open] { color: var(--sidebar-accent-foreground); }
+.data-\[state=open\]\:rotate-180[data-state=open] { transform: rotate(180deg); }
+.peer-data-\[variant=inset\]\:min-h-\[calc\(100svh-theme\(spacing\.4\,1rem\)\)\]:is([data-variant=inset] ~ *) { min-height: calc(100svh - 1rem); } // Adjusted peer selector
+.peer-data-\[variant=inset\]\:m-2:is([data-variant=inset] ~ *) { @media (min-width: 768px) { margin: 0.5rem; } }
+.peer-data-\[state=collapsed\]\:peer-data-\[variant=inset\]\:ml-2:is([data-state=collapsed][data-variant=inset] ~ *) { @media (min-width: 768px) { margin-left: 0.5rem; } }
+.peer-data-\[variant=inset\]\:ml-0:is([data-variant=inset] ~ *) { @media (min-width: 768px) { margin-left: 0; } }
+.peer-data-\[variant=inset\]\:rounded-xl:is([data-variant=inset] ~ *) { @media (min-width: 768px) { border-radius: 0.75rem; } }
+.peer-data-\[variant=inset\]\:shadow:is([data-variant=inset] ~ *) { @media (min-width: 768px) { box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1); } }
+.peer-hover\/menu-button\:text-sidebar-accent-foreground:is(:hover ~ .peer\/menu-button), .peer\/menu-button:hover ~ * { color: var(--sidebar-accent-foreground); } // Complex peer hover needs adjustment based on structure
+.peer-data-\[active=true\]\/menu-button\:text-sidebar-accent-foreground:is([data-active=true] ~ .peer\/menu-button), .peer\/menu-button[data-active=true] ~ * { color: var(--sidebar-accent-foreground); } // Complex peer active needs adjustment
+.peer-data-\[size=sm\]\/menu-button\:top-1:is([data-size=sm] ~ .peer\/menu-button), .peer\/menu-button[data-size=sm] ~ * { top: 0.25rem; }
+.peer-data-\[size=default\]\/menu-button\:top-1\.5:is([data-size=default] ~ .peer\/menu-button), .peer\/menu-button[data-size=default] ~ * { top: 0.375rem; }
+.peer-data-\[size=lg\]\/menu-button\:top-2\.5:is([data-size=lg] ~ .peer\/menu-button), .peer\/menu-button[data-size=lg] ~ * { top: 0.625rem; }
+.\!size-8 { width: 2rem !important; height: 2rem !important; } // Need important for override
+.\!p-0 { padding: 0 !important; } // Need important for override
+.\&>span:not\(\.sr-only\)\:group-data-\[collapsible=icon\]\:hidden > span:not(.sr-only)[data-collapsible=icon] { display: none; } // Needs specific parent selector context
+.\&>svg~svg\:group-data-\[collapsible=icon\]\:hidden > svg ~ svg[data-collapsible=icon] { display: none; } // Needs specific parent selector context
+.\&>svg\:size-4 > svg { width: 1rem; height: 1rem; }
+.\&>svg\:shrink-0 > svg { flex-shrink: 0; }
+
+// Placeholder styles for theme() function usage - replace with actual Tailwind setup
+.min-h-\[calc\(100svh-theme\(spacing\.4\,1rem\)\)\] { min-height: calc(100svh - 1rem); }
+.w-\[calc\(var\(--sidebar-width-icon\)_+_theme\(spacing\.4\)\)\] { width: calc(var(--sidebar-width-icon) + 1rem); }
+.w-\[calc\(var\(--sidebar-width-icon\)_+_theme\(spacing\.4\)_+2px\)\] { width: calc(var(--sidebar-width-icon) + 1rem + 2px); }
+
 */
+
 
 function App() {
   const [subOpen, setSubOpen] = React.useState(false);
+  const [isLoading, setIsLoading] = React.useState(true); // Simulate loading state
+
+  // Simulate loading data
+  React.useEffect(() => {
+    const timer = setTimeout(() => {
+        setIsLoading(false);
+    }, 1500); // Simulate 1.5 second load time
+    return () => clearTimeout(timer);
+  }, []);
+
 
   return (
     <SidebarProvider defaultOpen> {/* Wrap with Provider */}
       <Sidebar collapsible="icon" side="left" variant="sidebar"> {/* Sidebar component */}
         <SidebarHeader> {/* Header section */}
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between pb-2"> {/* Added padding-bottom */}
              {/* Logo or title area */}
-             <div className="flex items-center gap-2 group-data-[collapsible=icon]:justify-center">
-                <div className="p-1 rounded-lg bg-blue-500 text-white group-data-[collapsible=icon]:size-6 flex items-center justify-center"> {/* Simple Logo */}
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M8 0a8 8 0 1 0 0 16A8 8 0 0 0 8 0M4.5 7.5a.5.5 0 0 1 0-1h7a.5.5 0 0 1 0 1zm0 2a.5.5 0 0 1 0-1h7a.5.5 0 0 1 0 1zm-.5 2.5a.5.5 0 0 1 .5-.5h4a.5.5 0 0 1 0 1h-4a.5.5 0 0 1-.5-.5"/></svg>
-                </div>
-                <span className="font-semibold group-data-[collapsible=icon]:hidden">My App</span>
+             <div className="flex items-center gap-2 group-data-[collapsible=icon]:justify-center flex-grow min-w-0"> {/* Added flex-grow and min-w-0 */}
+                <MockLogo />
+                <span className="font-semibold truncate group-data-[collapsible=icon]:hidden">My Application Name That Might Be Long</span> {/* Added truncate */}
              </div>
-            <SidebarTrigger className="group-data-[collapsible=icon]:hidden" /> {/* Trigger to collapse/expand */}
+            <SidebarTrigger className="ml-1 shrink-0" /> {/* Trigger to collapse/expand, added margin and shrink */}
           </div>
-          <SidebarInput placeholder="Search..." /> {/* Search input */}
+          <SidebarInput placeholder="Search..." className="group-data-[collapsible=icon]:hidden"/> {/* Search input, hidden when icon */}
+          <SidebarInput placeholder="S" className="hidden group-data-[collapsible=icon]:block w-8 h-8 mx-auto my-1 text-center p-0" /> {/* Icon search placeholder */}
         </SidebarHeader>
 
         <SidebarContent> {/* Main scrollable content area */}
-          <SidebarGroup> {/* Group of items */}
-            <SidebarGroupLabel>Main Menu</SidebarGroupLabel>
-            <SidebarGroupContent>
-              <SidebarMenu> {/* Menu list */}
-                <SidebarMenuItem> {/* Menu item */}
-                  <SidebarMenuButton tooltip="Home" isActive> {/* Button with tooltip */}
-                    <HomeIcon />
-                    <span>Home</span>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-                <SidebarMenuItem>
-                  <SidebarMenuButton tooltip="Settings">
-                    <SettingsIcon />
-                    <span>Settings</span>
-                  </SidebarMenuButton>
-                   {/* Example Submenu */}
-                   <SidebarMenuSub>
-                     <SidebarMenuSubItem>
-                        <SidebarMenuSubButton href="#">Profile</SidebarMenuSubButton>
-                     </SidebarMenuSubItem>
-                     <SidebarMenuSubItem>
-                        <SidebarMenuSubButton href="#" isActive>Billing</SidebarMenuSubButton>
-                     </SidebarMenuSubItem>
-                   </SidebarMenuSub>
-                </SidebarMenuItem>
-                 {/* Collapsible Submenu Example */}
-                 <SidebarMenuItem>
-                   <SidebarMenuButton
-                     tooltip="Users"
-                     onClick={() => setSubOpen(!subOpen)}
-                     data-state={subOpen ? 'open' : 'closed'}
-                   >
-                     <UserIcon />
-                     <span>Users</span>
-                     <ChevronDownIcon className="ml-auto size-4 transition-transform duration-200 group-data-[collapsible=icon]:hidden data-[state=open]:rotate-180" />
-                   </SidebarMenuButton>
-                   {subOpen && (
-                     <SidebarMenuSub>
-                       <SidebarMenuSubItem>
-                         <SidebarMenuSubButton href="#">All Users</SidebarMenuSubButton>
-                       </SidebarMenuSubItem>
-                       <SidebarMenuSubItem>
-                         <SidebarMenuSubButton href="#">Add New</SidebarMenuSubButton>
-                       </SidebarMenuSubItem>
-                     </SidebarMenuSub>
-                   )}
-                 </SidebarMenuItem>
-
-                 {/* Add more items to test scrolling */}
-                 {[...Array(20)].map((_, i) => (
-                    <SidebarMenuItem key={i}>
-                      <SidebarMenuButton tooltip={`Item ${i + 1}`}>
-                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14m0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16"/><path d="m8.93 6.588-2.29.287-.082.38.45.083c.294.055.48.132.57.203.09.07.143.18.143.319v.317a.5.5 0 0 1-.854.354l-.622-.622a.5.5 0 0 1 .316-.99h.883c.28-.047.47-.149.56-.295.09-.146.12-.34.12-.586v-.659a.5.5 0 0 1 .271-.45l.563-.281c.16-.08.308-.189.437-.335a.5.5 0 0 1 .416-.235c.123 0 .239.05.328.139.09.087.15.217.175.372l.078.477a.5.5 0 0 1-.424.552l-.25.042z"/></svg>
-                        <span>Scroll Item {i + 1}</span>
-                      </SidebarMenuButton>
+          {isLoading ? (
+             // Loading State Skeletons
+             <div className="flex flex-col gap-2">
+                 <SidebarMenuSkeleton />
+                 <SidebarMenuSkeleton />
+                 <SidebarGroupLabel><Skeleton className="h-4 w-1/2" /></SidebarGroupLabel>
+                 <SidebarMenuSkeleton />
+                 <SidebarMenuSkeleton />
+                 <SidebarMenuSkeleton />
+                 <SidebarSeparator className="!mx-0" /> {/* Use !mx-0 to override default margin */}
+                 <SidebarMenuSkeleton />
+                 <SidebarMenuSkeleton />
+             </div>
+          ) : (
+            // Actual Content
+            <>
+                <SidebarMenu> {/* Menu list */}
+                    <SidebarMenuItem> {/* Menu item */}
+                    <SidebarMenuButton tooltip="Home" isActive> {/* Button with tooltip */}
+                        <HomeIcon />
+                        <span>Home</span>
+                    </SidebarMenuButton>
                     </SidebarMenuItem>
-                 ))}
+                    <SidebarMenuItem>
+                    <SidebarMenuButton
+                        tooltip="Settings"
+                        onClick={() => setSubOpen(!subOpen)}
+                        data-state={subOpen ? 'open' : 'closed'}
+                    >
+                        <SettingsIcon />
+                        <span>Settings</span>
+                        <ChevronDownIcon className="ml-auto size-4 transition-transform duration-200 group-data-[collapsible=icon]:hidden data-[state=open]:rotate-180" />
+                    </SidebarMenuButton>
+                    {/* Collapsible Submenu */}
+                    {subOpen && (
+                        <SidebarMenuSub>
+                            <SidebarMenuSubItem>
+                                <SidebarMenuSubButton href="#" isActive>Profile</SidebarMenuSubButton>
+                            </SidebarMenuSubItem>
+                            <SidebarMenuSubItem>
+                                <SidebarMenuSubButton href="#">Appearance</SidebarMenuSubButton>
+                            </SidebarMenuSubItem>
+                            <SidebarMenuSubItem>
+                                <SidebarMenuSubButton href="#">Notifications</SidebarMenuSubButton>
+                            </SidebarMenuSubItem>
+                        </SidebarMenuSub>
+                    )}
+                    </SidebarMenuItem>
+                </SidebarMenu>
 
-              </SidebarMenu>
-            </SidebarGroupContent>
-          </SidebarGroup>
+                <SidebarSeparator />
+
+                <SidebarGroup> {/* Group of items */}
+                    <SidebarGroupLabel className="flex justify-between items-center">
+                        <span>Projects</span>
+                        <SidebarGroupAction asChild>
+                            <Button variant="ghost" size="icon" className="h-5 w-5"><PlusIcon className="h-3 w-3"/></Button>
+                        </SidebarGroupAction>
+                    </SidebarGroupLabel>
+                    <SidebarGroupContent>
+                    <SidebarMenu>
+                        {/* Add more items to test scrolling */}
+                        {[...Array(25)].map((_, i) => (
+                            <SidebarMenuItem key={i}>
+                            <SidebarMenuButton tooltip={{ children: `Project ${i + 1} - A slightly longer description for tooltip`, side: 'right', align: 'start' }}>
+                                {/* Placeholder Icon */}
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16" className="text-gray-500"><path d="M3.5 2A1.5 1.5 0 0 0 2 3.5v9A1.5 1.5 0 0 0 3.5 14h9a1.5 1.5 0 0 0 1.5-1.5V7.879a.5.5 0 0 0-.146-.353l-4-4A.5.5 0 0 0 9.5 3H3.5zm0 1h5.793L13 7.207V12.5a.5.5 0 0 1-.5.5h-9a.5.5 0 0 1-.5-.5v-9a.5.5 0 0 1 .5-.5z"/></svg>
+                                <span>Project {i + 1}</span>
+                                <SidebarMenuBadge>{i * 3}</SidebarMenuBadge>
+                                {/* Example Action */}
+                                <SidebarMenuAction showOnHover>
+                                    <SettingsIcon className="h-3 w-3"/>
+                                </SidebarMenuAction>
+                            </SidebarMenuButton>
+                            </SidebarMenuItem>
+                        ))}
+                    </SidebarMenu>
+                    </SidebarGroupContent>
+                </SidebarGroup>
+            </>
+          )}
         </SidebarContent>
 
         <SidebarFooter> {/* Footer section */}
            <SidebarSeparator />
            <SidebarMenu>
                 <SidebarMenuItem>
-                    <SidebarMenuButton tooltip="Profile">
+                    <SidebarMenuButton tooltip="My Profile">
                         <UserIcon />
-                        <span>Your Profile</span>
+                        <span>Ahmad Al-Masri</span> {/* Example username */}
                     </SidebarMenuButton>
                 </SidebarMenuItem>
            </SidebarMenu>
@@ -1073,11 +1415,22 @@ function App() {
 
       {/* Main content area that adjusts based on sidebar */}
       <SidebarInset>
-        <div className="p-4">
-          <h1>Main Content Area</h1>
-          <p>This content will be pushed or overlaid depending on the sidebar state and variant.</p>
-          {/* Add a button to toggle sidebar on mobile */}
-          <SidebarTrigger className="md:hidden fixed top-4 right-4 z-20" />
+        <div className="p-6"> {/* Increased padding */}
+          <div className="flex justify-between items-center mb-4">
+             <h1 className="text-2xl font-semibold">Main Content Area</h1>
+             {/* Add a button to toggle sidebar on mobile - positioned inside content */}
+             <SidebarTrigger className="md:hidden" />
+          </div>
+          <p className="text-gray-600 mb-4">This content will be pushed or overlaid depending on the sidebar state and variant. The scroll bar should now appear within the sidebar itself when the content exceeds the available height.</p>
+          {/* Example content */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+             {[...Array(9)].map((_, i) => (
+                 <div key={i} className="border rounded-lg p-4 shadow-sm bg-white">
+                     <h3 className="font-medium mb-2">Card Title {i+1}</h3>
+                     <p className="text-sm text-gray-500">Some placeholder content for the card to demonstrate how the main area looks.</p>
+                 </div>
+             ))}
+          </div>
         </div>
       </SidebarInset>
     </SidebarProvider>
@@ -1086,3 +1439,19 @@ function App() {
 
 export default App; // Export the App component for rendering
 
+
+التغييرات الرئيسية (الطريقة المبتكرة):
+ * تعديل SidebarContent:
+   * أصبح SidebarContent الآن حاوية خارجية (relative, flex-1, min-h-0).
+   * تمت إضافة div داخلي (absolute inset-0 overflow-y-auto). هذا الـ div الداخلي يملأ الحاوية الخارجية بالكامل وهو المسؤول حصريًا عن التمرير.
+   * تم نقل padding و gap إلى div آخر داخل الحاوية القابلة للتمرير لضمان وجود مساحة حول المحتوى الفعلي الذي يتم تمريره.
+لماذا هذه الطريقة مبتكرة وقد تنجح:
+ * فصل التحكم: تفصل هذه الطريقة بين حاوية التخطيط (SidebarContent الخارجي) وحاوية التمرير (div الداخلي). هذا يعطي المتصفح تعليمات واضحة جدًا حول الجزء الذي يجب أن يطبق عليه التمرير.
+ * position: absolute: استخدام position: absolute مع inset: 0 يضمن أن الحاوية الداخلية للتمرير تأخذ بالضبط حجم الحاوية الخارجية (SidebarContent) بغض النظر عن محتواها الأولي.
+ * min-h-0 و flex-1: هذه الخصائص على الحاوية الخارجية ضرورية للسماح لها بالتقلص والتمدد لتناسب المساحة المتاحة بين SidebarHeader و SidebarFooter في تخطيط flex العمودي للمكون Sidebar.
+ملاحظات إضافية:
+ * الاعتمادات الوهمية: تأكد من استبدال المكونات والأدوات المساعدة الوهمية (cn, Button, Input... إلخ) بالاستيرادات الفعلية من مشروعك (مثل lucide-react, @radix-ui/react-slot, مكتبة UI الخاصة بك مثل shadcn/ui). لقد قمت بتضمين استيرادات أساسية من lucide-react وبعض الأنماط الأساسية لمحاولة جعل المثال يعمل بشكل مستقل قدر الإمكان.
+ * CSS/Tailwind: تأكد من أن لديك Tailwind CSS مهيأ بشكل صحيح في مشروعك وأن المتغيرات (--sidebar, --sidebar-border, إلخ) والفئات المساعدة (theme(), peer-data-*, group-data-*...) تعمل كما هو متوقع. لقد أضفت قسم CSS أساسي مع متغيرات وفئات وهمية لتقريب الشكل.
+ * المحتوى التجريبي: أضفت المزيد من العناصر (Project 1 إلى Project 25) داخل SidebarContent للتأكد من وجود محتوى كافٍ لتجاوز ارتفاع الشاشة واختبار التمرير.
+ * حالة التحميل: أضفت مثالاً بسيطًا لحالة التحميل باستخدام SidebarMenuSkeleton لإظهار كيف يمكن أن يبدو الشريط الجانبي أثناء جلب البيانات.
+جرب هذا الكود المحدث. يجب أن يضمن الهيكل الجديد لـ SidebarContent ظهور شريط التمرير عند الحاجة إليه.
