@@ -192,7 +192,7 @@ const Index = () => {
               onClick={handleCreateNew}
               variant="glass" // Needs custom variant definition
               size="circle"   // Needs custom size definition
-              aria-label="إضافة امتنان جديد"
+              aria-label="| إضافة امتنان جديد"
               className="w-14 h-14 shadow-lg relative rounded-full" // Added rounded-full
             >
               <Plus className="w-7 h-7 text-white/70" />
