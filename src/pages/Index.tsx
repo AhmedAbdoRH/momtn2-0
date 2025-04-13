@@ -39,7 +39,10 @@ const MockPhotoGrid = ({ closeSidebar }: { closeSidebar: () => void }) => {
     // Ensure this runs only on the client-side where document is available
     const [container, setContainer] = React.useState<HTMLElement | null>(null);
     React.useEffect(() => {
-        setContainer(document.getElementById('hashtags-container'));
+        // Ensure document is defined (runs only on client)
+        if (typeof document !== 'undefined') {
+            setContainer(document.getElementById('hashtags-container'));
+        }
     }, []);
 
 
@@ -320,3 +323,58 @@ const Index = () => {
 };
 
 export default Index;
+
+/* أضف هذا الـ CSS إلى ملف CSS العام الخاص بك إذا لم يكن موجودًا */
+/* أو تأكد من أن إعدادات Tailwind لديك تتضمن هذه التأثيرات */
+/*
+@keyframes float {
+  0% { transform: translateY(0px); }
+  50% { transform: translateY(-10px); } /* Increased float height */
+/* 100% { transform: translateY(0px); }
+}
+.animate-float {
+  animation: float 4s ease-in-out infinite; /* Slower animation */
+/*}
+
+@keyframes pulse-slow {
+  0% { transform: scale(1); opacity: 0.5; }
+  50% { transform: scale(1.15); opacity: 0.2; } /* Adjusted scale and opacity */
+/* 100% { transform: scale(1); opacity: 0.5; }
+}
+.animate-pulse-slow {
+  animation: pulse-slow 3s cubic-bezier(0.4, 0, 0.6, 1) infinite; /* Slower pulse */
+/*}
+
+/* Ensure Tailwind base styles are included for CSS variables like --background, --foreground etc. */
+/* Add this if you don't have a global CSS setup */
+/*
+body {
+  background-color: var(--background, #f9fafb); /* Default background */
+/* color: var(--foreground, #1f2937); /* Default text color */
+/*}
+
+/* Define CSS variables if not using Tailwind config (Example Only) */
+/* هذه مجرد أمثلة، استخدم إعدادات Tailwind الفعلية لديك */
+/*
+:root {
+    --background: #f9fafb; /* gray-50 */
+/* --foreground: #1f2937; /* gray-800 */
+/* --border: #e5e7eb; /* gray-200 */
+/* --input: #d1d5db; /* gray-300 */
+/* --ring: #fb7185; /* pink-500 */
+/* --primary: #f43f5e; /* rose-500 */
+/* --primary-foreground: #ffffff;
+    --secondary: #e5e7eb; /* gray-200 */
+/* --secondary-foreground: #111827; /* gray-900 */
+/* --accent: #fce7f3; /* pink-100 */
+/* --accent-foreground: #be185d; /* pink-700 */
+/* --muted: #f3f4f6; /* gray-100 */
+/* --muted-foreground: #6b7280; /* gray-500 */
+/* --popover: #ffffff;
+    --popover-foreground: #1f2937; /* gray-800 */
+/*}
+
+*/
+```
+
+تمت إعادة كتلة التعليقات التي تحتوي على أمثلة لمتغيرات CSS في نهاية الملف. مرة أخرى، هذه مجرد أمثلة تعريفية ولا تؤثر مباشرة على الألوان ما لم تقم بربطها بفئات Tailwind أو استخدامها في CSS مخصص. الألوان الفعلية تأتي من إعدادات Tailwind لد
