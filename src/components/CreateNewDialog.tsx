@@ -1,4 +1,4 @@
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { useState, useEffect, useRef } from "react";
 import { ImagePlus } from "lucide-react";
@@ -21,12 +21,15 @@ const CreateNewDialog = ({ open, onOpenChange, onPhotoAdded }: CreateNewDialogPr
   const [showSuggestions, setShowSuggestions] = useState(false);
   const { toast } = useToast();
   const { user } = useAuth();
+  // مرجع لعنصر label الخاص برفع الصور
   const imageLabelRef = useRef<HTMLLabelElement>(null);
 
+  // إعادة تعيين الحالة وتنشيط التركيز عند فتح الـ Dialog
   useEffect(() => {
     if (open) {
       resetFormState();
       fetchAlbumSuggestions();
+      // تنشيط التركيز على label رفع الصور
       if (imageLabelRef.current) {
         imageLabelRef.current.focus();
       }
@@ -172,10 +175,13 @@ const CreateNewDialog = ({ open, onOpenChange, onPhotoAdded }: CreateNewDialogPr
       }}
     >
       <DialogContent
-        className="top-[40%] sm:max-w-[350px] max-h-[80vh] overflow-y-auto bg-gray-900/80 backdrop-blur-lg text-white border border-gray-700 shadow-xl rounded-lg no-close-button"
+        className="top-[45%] sm:max-w-[350px] max-h-[85vh] overflow-y-auto bg-gray-900/80 backdrop-blur-lg text-white border border-gray-700 shadow-xl rounded-lg no-close-button"
       >
         <DialogHeader>
           <DialogTitle className="text-right text-white">إضافة صورة جديدة</DialogTitle>
+          <DialogDescription className="text-right text-gray-300">
+            قم بتحميل صورة وأضفها إلى ألبوم (اختياري).
+          </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4 pt-2">
           <div className="flex flex-col items-center gap-4">
