@@ -183,11 +183,8 @@ const Index = () => {
               <img
                 src="/EmptyCard.png" // Path to your image in the public folder
                 alt="أضف أول امتنان لك" // Descriptive alt text
-                className="mx-auto w-72 h-auto opacity-80 hover:opacity-100 transition-opacity" // Center, size, add some styling
-              />
-              <p className="mt-4 text-gray-400">
-                يبدو أن معرض الامتنان الخاص بك فارغ. ابدأ بإضافة لحظة جميلة!
-              </p>
+                className="mx-auto w-72 h-auto opacity-100 hover:opacity-100 transition-opacity" // Center, size, add some styling
+
             </div>
           )}
 
