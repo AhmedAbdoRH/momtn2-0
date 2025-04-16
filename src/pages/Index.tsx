@@ -4,7 +4,7 @@ import { Plus, Menu, LogOut, User } from "lucide-react";
 import PhotoGrid from "@/components/PhotoGrid"; // Using original component import
 import { Button } from "@/components/ui/button"; // Using original component import
 import CreateNewDialog from "@/components/CreateNewDialog"; // Using original component import
-import { useState, useEffect } from "react";
+import { useState, useEffect } from "react"; // **** Import useEffect ****
 import { useAuth } from "@/components/AuthProvider"; // Using original hook import
 import {
   DropdownMenu,
@@ -13,15 +13,14 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"; // Using original component import
 import { HeartSoundProvider } from "@/components/HeartSound"; // Using original provider import
-// Import the default card image
-import defaultCardImage from "@/pages/default-card.png"; // Adjust the path if necessary
 
 const Index = () => {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [btnAnimation, setBtnAnimation] = useState(false);
-  // State to track if any photos have been added
-  const [hasGratitudes, setHasGratitudes] = useState(false);
+  // **** الحالة لتتبع ما إذا كانت الشبكة فارغة ****
+  // **** State to track if the grid is empty ****
+  const [isGridEmpty, setIsGridEmpty] = useState(true); // Start assuming it's empty
   // Using original useAuth hook
   const { signOut, user } = useAuth();
 
@@ -33,41 +32,31 @@ const Index = () => {
 
   const toggleSidebar = () => setSidebarOpen((prev) => !prev);
 
-    // Effect to close sidebar on Escape key press
-    React.useEffect(() => {
-     const handleEscape = (event: KeyboardEvent) => {
-       if (event.key === 'Escape') {
-         setSidebarOpen(false);
-       }
-     };
-     // Ensure document is defined (client-side)
-     if (sidebarOpen && typeof document !== 'undefined') {
-       document.addEventListener('keydown', handleEscape);
-     }
-     // Cleanup function
-     return () => {
-       if (typeof document !== 'undefined') {
-         document.removeEventListener('keydown', handleEscape);
-       }
-     };
-   }, [sidebarOpen]);
+  // Effect to close sidebar on Escape key press
+  React.useEffect(() => {
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setSidebarOpen(false);
+      }
+    };
+    // Ensure document is defined (client-side)
+    if (sidebarOpen && typeof document !== 'undefined') {
+      document.addEventListener('keydown', handleEscape);
+    }
+    // Cleanup function
+    return () => {
+      if (typeof document !== 'undefined') {
+        document.removeEventListener('keydown', handleEscape);
+      }
+    };
+  }, [sidebarOpen]);
 
-   // Effect to listen for the 'photo-added' event
-   useEffect(() => {
-     const handlePhotoAdded = () => {
-       setHasGratitudes(true);
-     };
-
-     if (typeof window !== 'undefined') {
-       window.addEventListener("photo-added", handlePhotoAdded);
-     }
-
-     return () => {
-       if (typeof window !== 'undefined') {
-         window.removeEventListener("photo-added", handlePhotoAdded);
-       }
-     };
-   }, []);
+  // **** دالة Callback لتحديث حالة الشبكة من PhotoGrid ****
+  // **** Callback function for PhotoGrid to update the grid status ****
+  const handleGridStatusChange = (isEmpty: boolean) => {
+    console.log("Grid empty status received:", isEmpty); // For debugging
+    setIsGridEmpty(isEmpty);
+  };
 
   return (
     // Using original HeartSoundProvider
@@ -100,7 +89,7 @@ const Index = () => {
                 onClick={() => signOut?.()} // Check if signOut is defined before calling
                 className="text-red-500 focus:text-red-500 cursor-pointer focus:bg-gray-100"
               >
-                <LogOut className="mr-2 h-4 w-4" /> {/* Use ml-2 for Arabic */}
+                <LogOut className="ml-2 h-4 w-4" /> {/* Use ml-2 for Arabic */}
                 <span>تسجيل الخروج</span>
               </DropdownMenuItem>
             </DropdownMenuContent>
@@ -125,7 +114,7 @@ const Index = () => {
               {/* <button className="text-right w-full p-2 rounded hover:bg-gray-700/50 text-gray-300">#Placeholder 1</button>
               <button className="text-right w-full p-2 rounded hover:bg-gray-700/50 text-gray-300">#Placeholder 2</button>
               {[...Array(20)].map((_, i) => (
-                <button key={i} className="text-right w-full p-2 rounded hover:bg-gray-700/50 text-gray-300">#ألبوم_وهمي_{i + 1}</button>
+                  <button key={i} className="text-right w-full p-2 rounded hover:bg-gray-700/50 text-gray-300">#ألبوم_وهمي_{i + 1}</button>
               ))} */}
             </div>
           </div>
@@ -148,12 +137,12 @@ const Index = () => {
                 src="/lovable-Uploads/f39108e3-15cc-458c-bb92-7e6b18e100cc.png"
                 alt="Logo"
                 className="w-full h-full object-contain animate-float" // Ensure animate-float is defined in CSS
-                  // Simple fallback
-                  onError={(e) => {
-                    if (e.currentTarget instanceof HTMLImageElement) {
-                      e.currentTarget.src = 'https://placehold.co/192x192/f1f5f9/94a3b8?text=Logo';
-                    }
-                }}
+                 // Simple fallback
+                 onError={(e) => {
+                   if (e.currentTarget instanceof HTMLImageElement) {
+                       e.currentTarget.src = 'https://placehold.co/192x192/f1f5f9/94a3b8?text=Logo';
+                   }
+                 }}
               />
             </div>
             {/* Ensure text-white-300 is a valid class or adjust */}
@@ -161,7 +150,7 @@ const Index = () => {
               لحظاتك السعيدة، والنعم الجميلة في حياتك
             </p>
 
-            <div className="relative inline-block mb-4"> {/* Added mb-4 to create space */}
+            <div className="relative inline-block">
               <Button // Using original Button
                 onClick={handleCreateNew}
                 // Ensure color #d94550 is defined, e.g., in tailwind.config.js or use a Tailwind color class
@@ -171,7 +160,7 @@ const Index = () => {
               >
                 <span className="relative z-10 flex items-center">
                   <Plus
-                    className={`w-5 h-5 mr-2 transition-transform duration-300 ${ // Use ml-2 for Arabic
+                    className={`w-5 h-5 ml-2 transition-transform duration-300 ${ // Use ml-2 for Arabic
                       btnAnimation ? "rotate-180" : ""
                     }`}
                   />
@@ -185,27 +174,30 @@ const Index = () => {
                 ></span>
               </Button>
             </div>
-
-            {/* Default Card - Render only if no gratitudes have been added yet */}
-            {!hasGratitudes && (
-              <div className="max-w-md mx-auto bg-white rounded-lg shadow-md overflow-hidden">
-                <img
-                  src={defaultCardImage}
-                  alt="Default Card"
-                  className="w-full h-auto"
-                />
-                {/* You can add more content to the card here if needed */}
-                {/* <div className="p-4">
-                  <h3 className="text-lg font-semibold text-gray-800">ابدأ رحلتك للامتنان</h3>
-                  <p className="text-gray-600">أضف أول لحظة امتنان لك بالضغط على زر "إضافة امتنان جديد".</p>
-                </div> */}
-              </div>
-            )}
           </div>
 
+          {/* **** إضافة الصورة التوجيهية هنا، يتم عرضها فقط إذا كانت الشبكة فارغة **** */}
+          {/* **** Add the placeholder image here, render only if grid is empty **** */}
+          {isGridEmpty && (
+            <div className="text-center mt-10 mb-10 fade-in"> {/* Added fade-in animation class (define in CSS) */}
+              <img
+                src="/EmptyCard.png" // Path to your image in the public folder
+                alt="أضف أول امتنان لك" // Descriptive alt text
+                className="mx-auto w-72 h-auto opacity-80 hover:opacity-100 transition-opacity" // Center, size, add some styling
+              />
+              <p className="mt-4 text-gray-400">
+                يبدو أن معرض الامتنان الخاص بك فارغ. ابدأ بإضافة لحظة جميلة!
+              </p>
+            </div>
+          )}
+
           {/* Using original PhotoGrid component */}
-          {/* Pass closeSidebar function to PhotoGrid */}
-          <PhotoGrid closeSidebar={() => setSidebarOpen(false)} />
+          {/* Pass closeSidebar function AND the new callback to PhotoGrid */}
+          {/* **** تمرير الدالة للتحقق من حالة الشبكة **** */}
+          <PhotoGrid
+            closeSidebar={() => setSidebarOpen(false)}
+            onStatusChange={handleGridStatusChange} // **** Pass the callback here ****
+          />
 
           {/* Using original CreateNewDialog component */}
           <CreateNewDialog
@@ -215,10 +207,12 @@ const Index = () => {
               // استدعاء إعادة تحميل الصور عندما تضاف صورة جديدة
               // Ensure this update mechanism works for PhotoGrid
               console.log("Attempting to trigger photo update...");
-              setHasGratitudes(true); // Set hasGratitudes to true when a photo is added
               if (typeof window !== 'undefined') {
                   window.dispatchEvent(new CustomEvent("photo-added"));
               }
+              // **** Optionally, assume grid is no longer empty immediately ****
+              // **** (PhotoGrid should ideally confirm this via onStatusChange) ****
+              // setIsGridEmpty(false);
             }}
           />
 
@@ -229,7 +223,7 @@ const Index = () => {
             <Button // Using original Button
               onClick={handleCreateNew}
               variant="glass" // Needs custom variant definition
-              size="circle"     // Needs custom size definition
+              size="circle"   // Needs custom size definition
               aria-label="| إضافة امتنان جديد"
               className="w-14 h-14 shadow-lg relative rounded-full" // Added rounded-full
             >
