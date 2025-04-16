@@ -145,7 +145,7 @@ const CreateNewDialog = ({ open, onOpenChange, onPhotoAdded }: CreateNewDialogPr
         throw insertError;
       }
 
-      toast({ title: "تمت الإضافة بنجاح", description: "إلمس الصورة للتعليق عليها, التحريك, الإزالة." });
+      toast({ description: " تمت الإضافة بنجاح ", title: " إلمس الصورة للتعليق عليها, التحريك, الإزالة "" });
       onPhotoAdded();
       onOpenChange(false);
     } catch (error: any) {
