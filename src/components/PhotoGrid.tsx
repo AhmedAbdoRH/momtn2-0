@@ -181,7 +181,7 @@ const PhotoGrid: React.FC<PhotoGridProps> = ({ closeSidebar }) => {
       }
       if (data && data.length > 0) {
         setPhotos(prev => [data[0], ...prev]);
-        toast({ title: "تمت الإضافة بنجاح", description: "تمت إضافة الصورة الجديدة" });
+        toast({ title: "تمت الإضافة بنجاح", description: "إلمس الصورة للتعليق عليها, التحريك" });
       }
       return true;
     } catch {
