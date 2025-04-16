@@ -34,12 +34,13 @@ const PhotoGrid: React.FC<PhotoGridProps> = ({ closeSidebar }) => {
   const [allHashtags, setAllHashtags] = useState<Set<string>>(new Set());
   const { user } = useAuth();
   const [loadingInitialPhotos, setLoadingInitialPhotos] = useState(true);
+  const [hasPhotosLoadedOnce, setHasPhotosLoadedOnce] = useState(false);
 
   useEffect(() => {
     if (user) {
       fetchPhotos();
     } else {
-      setLoadingInitialPhotos(false); // If no user, consider initial load complete
+      setLoadingInitialPhotos(false);
     }
   }, [user]);
 
@@ -125,6 +126,7 @@ const PhotoGrid: React.FC<PhotoGridProps> = ({ closeSidebar }) => {
         return;
       }
       setPhotos(data || []);
+      setHasPhotosLoadedOnce(true); // تم تحميل الصور مرة واحدة على الأقل
     } catch (err) {
       console.error('Exception fetching photos:', err);
     } finally {
@@ -191,6 +193,7 @@ const PhotoGrid: React.FC<PhotoGridProps> = ({ closeSidebar }) => {
       }
       if (data && data.length > 0) {
         setPhotos(prev => [data[0], ...prev]);
+        setHasPhotosLoadedOnce(true); // تم إضافة صورة، لذا تم التحميل مرة واحدة
         toast({ title: "تمت الإضافة بنجاح", description: "إلمس الصورة للتعليق عليها, التحريك" });
       }
       return true;
@@ -224,6 +227,9 @@ const PhotoGrid: React.FC<PhotoGridProps> = ({ closeSidebar }) => {
         await supabase.storage.from('photos').remove([fileName]);
       }
       setPhotos(prev => prev.filter(photo => photo.id !== id));
+      if (photos.length === 1) { // إذا كانت آخر صورة يتم حذفها
+        setHasPhotosLoadedOnce(false); // يمكن اعتبار التطبيق فارغًا مرة أخرى
+      }
       toast({ title: "تم الحذف بنجاح", description: "تم حذف الصورة" });
     } catch {
       console.error('Exception deleting photo');
@@ -269,10 +275,9 @@ const PhotoGrid: React.FC<PhotoGridProps> = ({ closeSidebar }) => {
 
       {loadingInitialPhotos ? (
         <div className="flex justify-center items-center h-48">
-          {/* يمكنك إضافة مؤشر تحميل هنا إذا أردت */}
           <p className="text-gray-400">جارٍ التحميل...</p>
         </div>
-      ) : photos.length === 0 ? (
+      ) : !hasPhotosLoadedOnce || photos.length === 0 ? (
         <div className="flex justify-center items-center h-48">
           <img src="/EmptyCard.png" alt="لا توجد صور" className="max-w-full max-h-full" />
         </div>
