@@ -137,7 +137,7 @@ const Index = () => {
             </div>
             {/* Ensure text-white-300 is a valid class or adjust */}
             <p className="text-lg text-white-300 max-w-2xl mx-auto mb-6"> {/* Changed text color */}
-              .. لحظاتك السعيدة، والنعم الجميلة في حياتك ..
+             لحظاتك السعيدة، والنعم الجميلة في حياتك
             </p>
 
             <div className="relative inline-block">
