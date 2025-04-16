@@ -33,10 +33,13 @@ const PhotoGrid: React.FC<PhotoGridProps> = ({ closeSidebar }) => {
   const [selectedHashtag, setSelectedHashtag] = useState<string | null>(null);
   const [allHashtags, setAllHashtags] = useState<Set<string>>(new Set());
   const { user } = useAuth();
+  const [loadingInitialPhotos, setLoadingInitialPhotos] = useState(true);
 
   useEffect(() => {
     if (user) {
       fetchPhotos();
+    } else {
+      setLoadingInitialPhotos(false); // If no user, consider initial load complete
     }
   }, [user]);
 
@@ -103,7 +106,11 @@ const PhotoGrid: React.FC<PhotoGridProps> = ({ closeSidebar }) => {
   };
 
   const fetchPhotos = async () => {
-    if (!user) return;
+    if (!user) {
+      setLoadingInitialPhotos(false);
+      return;
+    }
+    setLoadingInitialPhotos(true);
     try {
       const { data, error } = await supabase
         .from('photos')
@@ -114,11 +121,14 @@ const PhotoGrid: React.FC<PhotoGridProps> = ({ closeSidebar }) => {
 
       if (error) {
         console.error('Error fetching photos:', error);
+        setLoadingInitialPhotos(false);
         return;
       }
       setPhotos(data || []);
     } catch (err) {
       console.error('Exception fetching photos:', err);
+    } finally {
+      setLoadingInitialPhotos(false);
     }
   };
 
@@ -257,44 +267,55 @@ const PhotoGrid: React.FC<PhotoGridProps> = ({ closeSidebar }) => {
 
       {renderHashtags()}
 
-      <DragDropContext onDragEnd={handleDragEnd}>
-        <Droppable droppableId="photos">
-          {(provided) => (
-            <div
-              {...provided.droppableProps}
-              ref={provided.innerRef}
-              className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6"
-            >
-              {filteredPhotos.map((photo, index) => (
-                <Draggable key={photo.id} draggableId={photo.id} index={index}>
-                  {(provided) => (
-                    <div
-                      ref={provided.innerRef}
-                      {...provided.draggableProps}
-                      className="transform transition-all duration-300 hover:scale-[0.98]"
-                    >
-                      <div className="rounded-xl overflow-hidden shadow-lg scale-95">
-                        <PhotoCard
-                          imageUrl={photo.image_url}
-                          likes={photo.likes || 0}
-                          caption={photo.caption || ""}
-                          hashtags={photo.hashtags || []}
-                          dragHandleProps={provided.dragHandleProps}
-                          onDelete={() => handleDelete(photo.id, photo.image_url)}
-                          onUpdateCaption={(caption, hashtags) =>
-                            handleUpdateCaption(photo.id, caption, hashtags)
-                          }
-                        />
+      {loadingInitialPhotos ? (
+        <div className="flex justify-center items-center h-48">
+          {/* يمكنك إضافة مؤشر تحميل هنا إذا أردت */}
+          <p className="text-gray-400">جارٍ التحميل...</p>
+        </div>
+      ) : photos.length === 0 ? (
+        <div className="flex justify-center items-center h-48">
+          <img src="/EmptyCard.png" alt="لا توجد صور" className="max-w-full max-h-full" />
+        </div>
+      ) : (
+        <DragDropContext onDragEnd={handleDragEnd}>
+          <Droppable droppableId="photos">
+            {(provided) => (
+              <div
+                {...provided.droppableProps}
+                ref={provided.innerRef}
+                className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6"
+              >
+                {filteredPhotos.map((photo, index) => (
+                  <Draggable key={photo.id} draggableId={photo.id} index={index}>
+                    {(provided) => (
+                      <div
+                        ref={provided.innerRef}
+                        {...provided.draggableProps}
+                        className="transform transition-all duration-300 hover:scale-[0.98]"
+                      >
+                        <div className="rounded-xl overflow-hidden shadow-lg scale-95">
+                          <PhotoCard
+                            imageUrl={photo.image_url}
+                            likes={photo.likes || 0}
+                            caption={photo.caption || ""}
+                            hashtags={photo.hashtags || []}
+                            dragHandleProps={provided.dragHandleProps}
+                            onDelete={() => handleDelete(photo.id, photo.image_url)}
+                            onUpdateCaption={(caption, hashtags) =>
+                              handleUpdateCaption(photo.id, caption, hashtags)
+                            }
+                          />
+                        </div>
                       </div>
-                    </div>
-                  )}
-                </Draggable>
-              ))}
-              {provided.placeholder}
-            </div>
-          )}
-        </Droppable>
-      </DragDropContext>
+                    )}
+                  </Draggable>
+                ))}
+                {provided.placeholder}
+              </div>
+            )}
+          </Droppable>
+        </DragDropContext>
+      )}
     </div>
   );
 };
