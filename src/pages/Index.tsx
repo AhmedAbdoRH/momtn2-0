@@ -4,7 +4,7 @@ import { Plus, Menu, LogOut, User } from "lucide-react";
 import PhotoGrid from "@/components/PhotoGrid"; // Using original component import
 import { Button } from "@/components/ui/button"; // Using original component import
 import CreateNewDialog from "@/components/CreateNewDialog"; // Using original component import
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "@/components/AuthProvider"; // Using original hook import
 import {
   DropdownMenu,
@@ -13,11 +13,15 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"; // Using original component import
 import { HeartSoundProvider } from "@/components/HeartSound"; // Using original provider import
+// Import the default card image
+import defaultCardImage from "@/pages/default-card.png"; // Adjust the path if necessary
 
 const Index = () => {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [btnAnimation, setBtnAnimation] = useState(false);
+  // State to track if any photos have been added
+  const [hasGratitudes, setHasGratitudes] = useState(false);
   // Using original useAuth hook
   const { signOut, user } = useAuth();
 
@@ -29,24 +33,41 @@ const Index = () => {
 
   const toggleSidebar = () => setSidebarOpen((prev) => !prev);
 
-   // Effect to close sidebar on Escape key press
-   React.useEffect(() => {
-    const handleEscape = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
-        setSidebarOpen(false);
-      }
-    };
-    // Ensure document is defined (client-side)
-    if (sidebarOpen && typeof document !== 'undefined') {
-      document.addEventListener('keydown', handleEscape);
-    }
-    // Cleanup function
-    return () => {
-      if (typeof document !== 'undefined') {
-        document.removeEventListener('keydown', handleEscape);
-      }
-    };
-  }, [sidebarOpen]);
+    // Effect to close sidebar on Escape key press
+    React.useEffect(() => {
+     const handleEscape = (event: KeyboardEvent) => {
+       if (event.key === 'Escape') {
+         setSidebarOpen(false);
+       }
+     };
+     // Ensure document is defined (client-side)
+     if (sidebarOpen && typeof document !== 'undefined') {
+       document.addEventListener('keydown', handleEscape);
+     }
+     // Cleanup function
+     return () => {
+       if (typeof document !== 'undefined') {
+         document.removeEventListener('keydown', handleEscape);
+       }
+     };
+   }, [sidebarOpen]);
+
+   // Effect to listen for the 'photo-added' event
+   useEffect(() => {
+     const handlePhotoAdded = () => {
+       setHasGratitudes(true);
+     };
+
+     if (typeof window !== 'undefined') {
+       window.addEventListener("photo-added", handlePhotoAdded);
+     }
+
+     return () => {
+       if (typeof window !== 'undefined') {
+         window.removeEventListener("photo-added", handlePhotoAdded);
+       }
+     };
+   }, []);
 
   return (
     // Using original HeartSoundProvider
@@ -91,8 +112,8 @@ const Index = () => {
           className={`fixed top-0 right-0 h-full bg-black/40 backdrop-blur-md border-l border-gray-800 w-72 transform transition-transform duration-300 ease-in-out z-40 flex flex-col ${
             sidebarOpen ? "translate-x-0" : "translate-x-full"
           }`}
-           aria-hidden={!sidebarOpen}
-           role="complementary"
+            aria-hidden={!sidebarOpen}
+            role="complementary"
         >
           {/* **** التعديل الوحيد هنا: إضافة overflow-y-auto **** */}
           <div className="flex-1 p-6 pt-20 overflow-y-auto">
@@ -104,7 +125,7 @@ const Index = () => {
               {/* <button className="text-right w-full p-2 rounded hover:bg-gray-700/50 text-gray-300">#Placeholder 1</button>
               <button className="text-right w-full p-2 rounded hover:bg-gray-700/50 text-gray-300">#Placeholder 2</button>
               {[...Array(20)].map((_, i) => (
-                 <button key={i} className="text-right w-full p-2 rounded hover:bg-gray-700/50 text-gray-300">#ألبوم_وهمي_{i + 1}</button>
+                <button key={i} className="text-right w-full p-2 rounded hover:bg-gray-700/50 text-gray-300">#ألبوم_وهمي_{i + 1}</button>
               ))} */}
             </div>
           </div>
@@ -127,20 +148,20 @@ const Index = () => {
                 src="/lovable-Uploads/f39108e3-15cc-458c-bb92-7e6b18e100cc.png"
                 alt="Logo"
                 className="w-full h-full object-contain animate-float" // Ensure animate-float is defined in CSS
-                 // Simple fallback
-                 onError={(e) => {
+                  // Simple fallback
+                  onError={(e) => {
                     if (e.currentTarget instanceof HTMLImageElement) {
-                        e.currentTarget.src = 'https://placehold.co/192x192/f1f5f9/94a3b8?text=Logo';
+                      e.currentTarget.src = 'https://placehold.co/192x192/f1f5f9/94a3b8?text=Logo';
                     }
                 }}
               />
             </div>
             {/* Ensure text-white-300 is a valid class or adjust */}
             <p className="text-lg text-white-300 max-w-2xl mx-auto mb-6"> {/* Changed text color */}
-             لحظاتك السعيدة، والنعم الجميلة في حياتك
+              لحظاتك السعيدة، والنعم الجميلة في حياتك
             </p>
 
-            <div className="relative inline-block">
+            <div className="relative inline-block mb-4"> {/* Added mb-4 to create space */}
               <Button // Using original Button
                 onClick={handleCreateNew}
                 // Ensure color #d94550 is defined, e.g., in tailwind.config.js or use a Tailwind color class
@@ -164,6 +185,22 @@ const Index = () => {
                 ></span>
               </Button>
             </div>
+
+            {/* Default Card - Render only if no gratitudes have been added yet */}
+            {!hasGratitudes && (
+              <div className="max-w-md mx-auto bg-white rounded-lg shadow-md overflow-hidden">
+                <img
+                  src={defaultCardImage}
+                  alt="Default Card"
+                  className="w-full h-auto"
+                />
+                {/* You can add more content to the card here if needed */}
+                {/* <div className="p-4">
+                  <h3 className="text-lg font-semibold text-gray-800">ابدأ رحلتك للامتنان</h3>
+                  <p className="text-gray-600">أضف أول لحظة امتنان لك بالضغط على زر "إضافة امتنان جديد".</p>
+                </div> */}
+              </div>
+            )}
           </div>
 
           {/* Using original PhotoGrid component */}
@@ -178,8 +215,9 @@ const Index = () => {
               // استدعاء إعادة تحميل الصور عندما تضاف صورة جديدة
               // Ensure this update mechanism works for PhotoGrid
               console.log("Attempting to trigger photo update...");
+              setHasGratitudes(true); // Set hasGratitudes to true when a photo is added
               if (typeof window !== 'undefined') {
-                 window.dispatchEvent(new CustomEvent("photo-added"));
+                  window.dispatchEvent(new CustomEvent("photo-added"));
               }
             }}
           />
@@ -191,7 +229,7 @@ const Index = () => {
             <Button // Using original Button
               onClick={handleCreateNew}
               variant="glass" // Needs custom variant definition
-              size="circle"   // Needs custom size definition
+              size="circle"     // Needs custom size definition
               aria-label="| إضافة امتنان جديد"
               className="w-14 h-14 shadow-lg relative rounded-full" // Added rounded-full
             >
