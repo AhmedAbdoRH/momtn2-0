@@ -203,7 +203,7 @@ const PhotoCard = ({
             </div>
             {/* حقل الهاشتاجات */}
             <div>
-              <label className="block text-sm font-medium mb-2">Album Name</label>
+              <label className="block text-sm font-medium mb-2">اسم الالبوم</label>
               <input
                 type="text"
                 value={hashtags.join(' ')} // عرض الهاشتاجات كسلسلة نصية
