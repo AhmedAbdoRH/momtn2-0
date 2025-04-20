@@ -278,7 +278,7 @@ const PhotoGrid: React.FC<PhotoGridProps> = ({ closeSidebar }) => {
           <p className="text-gray-300">جارٍ التحميل...</p>
         </div>
       ) : !hasPhotosLoadedOnce || photos.length === 0 ? (
-        <div className="flex justify-center items-center h-68">
+        <div className="flex justify-center items-center h-55">
           <img src="/EmptyCard.gif" alt="لا توجد صور" className="max-w-full max-h-full" />
         </div>
       ) : (
