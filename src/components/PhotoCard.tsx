@@ -68,7 +68,7 @@ const PhotoCard = ({
 
   // دالة لمعالجة تغيير الهاشتاجات
   const handleHashtagsChange = (value: string) => {
-    const tags = value.split(' ').filter(tag => tag.startsWith('#')); // تقسيم النص إلى كلمات وتصفية الهاشتاجات فقط
+    const tags = value.split(' '); // Treat space-separated words as album name
     setHashtags(tags); // تحديث حالة الهاشتاجات
   };
 
@@ -203,14 +203,13 @@ const PhotoCard = ({
             </div>
             {/* حقل الهاشتاجات */}
             <div>
-              <label className="block text-sm font-medium mb-2">الهاشتاجات</label>
+              <label className="block text-sm font-medium mb-2">Album Name</label>
               <input
                 type="text"
                 value={hashtags.join(' ')} // عرض الهاشتاجات كسلسلة نصية
                 onChange={(e) => handleHashtagsChange(e.target.value)} // تحديث الهاشتاجات عند التغيير
                 className="w-full px-3 py-2 bg-white/10 backdrop-blur-sm rounded-md text-white"
-                placeholder="#رمضان #عبادة"
-              />
+                />
             </div>
             {/* أزرار الإلغاء والحفظ */}
             <div className="flex justify-end gap-2">
