@@ -279,7 +279,7 @@ const PhotoGrid: React.FC<PhotoGridProps> = ({ closeSidebar }) => {
         </div>
       ) : !hasPhotosLoadedOnce || photos.length === 0 ? (
         <div className="flex justify-center items-center h-48">
-          <img src="/EmptyCard.png" alt="لا توجد صور" className="max-w-full max-h-full" />
+          <img src="/EmptyCard.gif" alt="لا توجد صور" className="max-w-full max-h-full" />
         </div>
       ) : (
         <DragDropContext onDragEnd={handleDragEnd}>
