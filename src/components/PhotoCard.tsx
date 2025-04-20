@@ -1,327 +1,230 @@
-// src/components/PhotoCard.tsx
-import React, { useState, useEffect } from "react";
-import { GripVertical, Heart, MessageCircle, Trash2 } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client"; // تأكد من صحة المسار
-import { Dialog, DialogContent } from "./ui/dialog"; // تأكد من صحة المسار
+import { useState } from "react"; // استيراد useState لإدارة الحالة في المكون
+import { GripVertical, Heart, MessageCircle, Trash2 } from "lucide-react"; // استيراد أيقونات من مكتبة lucide-react
+import { supabase } from "@/integrations/supabase/client"; // استيراد عميل supabase للتفاعل مع قاعدة البيانات
+import { Dialog, DialogContent } from "./ui/dialog"; // استيراد مكونات Dialog لعرض نافذة تحرير التعليق والهاشتاجات
 
+// تعريف واجهة (interface) لتحديد خصائص المكون PhotoCard
 interface PhotoCardProps {
-  id: string; // معرف الصورة الفريد من قاعدة البيانات
-  imageUrl: string;
-  likes: number;
-  caption?: string;
-  album?: string; // اسم الألبوم كسلسلة نصية (يتم استخراجه من hashtags في المكون الأب)
-  onDelete?: (id: string) => void; // دالة الحذف تستقبل ID
-  dragHandleProps?: any;
-  onUpdateCaption?: (id: string, caption: string, album: string) => Promise<void>; // دالة التحديث تستقبل ID
+  imageUrl: string; // رابط الصورة
+  likes: number; // عدد الإعجابات الأولية
+  caption?: string; // التعليق (اختياري)
+  hashtags?: string[]; // الهاشتاجات (اختيارية)
+  onDelete?: () => void; // دالة لحذف الصورة (اختيارية)
+  dragHandleProps?: any; // خصائص للسحب والإفلات (اختيارية)
+  onUpdateCaption?: (caption: string, hashtags: string[]) => Promise<void>; // دالة لتحديث التعليق والهاشتاجات (اختيارية)
 }
 
-const PhotoCard = ({
-  id, // استقبال ID
-  imageUrl,
-  likes: initialLikes,
-  caption: initialCaption = '',
-  album: initialAlbum = '',
+// تعريف المكون PhotoCard مع خصائصه
+const PhotoCard = ({ 
+  imageUrl, 
+  likes: initialLikes, 
+  caption: initialCaption = '', // قيمة افتراضية فارغة إذا لم يُحدد تعليق
+  hashtags: initialHashtags = [], // قيمة افتراضية مصفوفة فارغة إذا لم تُحدد هاشتاجات
   onDelete,
   dragHandleProps,
-  onUpdateCaption
+  onUpdateCaption 
 }: PhotoCardProps) => {
-  const [isLoved, setIsLoved] = useState(false);
-  const [likes, setLikes] = useState(initialLikes);
-  const [isEditing, setIsEditing] = useState(false);
-  // حالات منفصلة لـ input داخل النافذة المنبثقة
-  const [editCaption, setEditCaption] = useState(initialCaption);
-  const [editAlbum, setEditAlbum] = useState(initialAlbum);
-  const [isControlsVisible, setIsControlsVisible] = useState(false);
-  const [isHeartAnimating, setIsHeartAnimating] = useState(false);
+  // تعريف الحالات باستخدام useState
+  const [isLoved, setIsLoved] = useState(false); // حالة لتتبع ما إذا تم الإعجاب بالصورة
+  const [likes, setLikes] = useState(initialLikes); // حالة لتتبع عدد الإعجابات
+  const [isEditing, setIsEditing] = useState(false); // حالة لتتبع ما إذا كان وضع التحرير مفعلاً
+  const [caption, setCaption] = useState(initialCaption); // حالة لتتبع التعليق الحالي
+  const [hashtags, setHashtags] = useState(initialHashtags); // حالة لتتبع الهاشتاجات الحالية
+  const [isControlsVisible, setIsControlsVisible] = useState(false); // حالة لإظهار/إخفاء الأزرار (مثل الحذف والتحرير)
+  const [isHeartAnimating, setIsHeartAnimating] = useState(false); // حالة لتتبع تشغيل أنيميشن القلب
 
-  // --- State and Logic for Album Suggestions ---
-  const [suggestions, setSuggestions] = useState<string[]>([]);
-  const [showSuggestions, setShowSuggestions] = useState(false);
-
-  const fetchAlbumSuggestions = async () => {
-    try {
-      const { data, error } = await supabase
-        .from("photos")
-        .select("hashtags")
-        .not("hashtags", "is", null);
-
-      if (error) throw error;
-      const allAlbumNames = data.flatMap((item) => item.hashtags || []).filter(Boolean);
-      const uniqueAlbumNames = [...new Set(allAlbumNames)].sort();
-      setSuggestions(uniqueAlbumNames);
-    } catch (error) {
-      console.error("Error fetching album suggestions:", error);
-      setSuggestions([]);
-    }
-  };
-
-  useEffect(() => {
-    if (isEditing) {
-      // جلب الاقتراحات وتعيين القيم الأولية عند فتح النافذة
-      fetchAlbumSuggestions();
-      setEditCaption(initialCaption);
-      setEditAlbum(initialAlbum);
-    } else {
-      setShowSuggestions(false);
-    }
-  }, [isEditing, initialCaption, initialAlbum]);
-
-
-  const handleAlbumInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value;
-    setEditAlbum(value); // تحديث حالة الألبوم المؤقتة للنافذة
-    setShowSuggestions(suggestions.length > 0);
-  };
-
-  const handleSuggestionClick = (suggestion: string) => {
-    setEditAlbum(suggestion); // تحديث حالة الألبوم المؤقتة للنافذة
-    setShowSuggestions(false);
-  };
-
-  const filteredSuggestions = editAlbum
-    ? suggestions.filter((suggestion) =>
-        typeof suggestion === "string" &&
-        suggestion.toLowerCase().includes(editAlbum.toLowerCase())
-      )
-    : suggestions;
-
-  // --- End: State and Logic for Album Suggestions ---
-
-
+  // دالة لمعالجة الإعجاب بالصورة
   const handleLike = async () => {
-    // (من الأفضل نقل هذا المنطق للمكون الأب إذا كان يؤثر على بيانات شاملة)
-    setIsHeartAnimating(true);
-    const newLikeCount = likes + 1; // تحديث مؤقت
-    setLikes(newLikeCount);
-    setIsLoved(true); // حالة مؤقتة للأنيميشن
+    setIsHeartAnimating(true); // تفعيل أنيميشن القلب
+    const newLikeCount = likes + 1; // زيادة عدد الإعجابات بـ 1
+    setLikes(newLikeCount); // تحديث عدد الإعجابات في الحالة
+    setIsLoved(true); // تعيين حالة الإعجاب إلى صحيح
 
+    // تحديث عدد الإعجابات في قاعدة البيانات باستخدام supabase
     const { error } = await supabase
-      .from('photos')
-      .update({ likes: newLikeCount })
-      .eq('id', id); // استخدام ID لتحديث اللايكات
+      .from('photos') // الجدول في قاعدة البيانات
+      .update({ likes: newLikeCount }) // تحديث حقل الإعجابات
+      .eq('image_url', imageUrl); // شرط لتحديد الصورة بناءً على رابطها
 
-    if (error) {
-      console.error('Error updating likes:', error);
-      setLikes(likes); // التراجع في حالة الخطأ
+    if (error) { // في حالة حدوث خطأ
+      console.error('Error updating likes:', error); // تسجيل الخطأ في وحدة التحكم
+      setLikes(likes); // إعادة عدد الإعجابات إلى القيمة السابقة
     }
 
+    // إيقاف الأنيميشن بعد ثانية واحدة (1000 مللي ثانية)
     setTimeout(() => {
-      setIsHeartAnimating(false);
-      setIsLoved(false); // إيقاف الأنيميشن
+      setIsHeartAnimating(false); // إيقاف أنيميشن القلب
+      setIsLoved(false); // إعادة حالة الإعجاب إلى خطأ
     }, 1000);
   };
 
-  // استدعاء دالة التحديث من المكون الأب عند الحفظ
+  // دالة لتقديم التعليق والهاشتاجات بعد التحرير
   const handleCaptionSubmit = async () => {
-    if (onUpdateCaption) {
-      // تمرير ID والقيم الجديدة من حالات النافذة
-      await onUpdateCaption(id, editCaption, editAlbum);
+    if (onUpdateCaption) { // إذا كانت دالة التحديث موجودة
+      await onUpdateCaption(caption, hashtags); // استدعاء الدالة لتحديث التعليق والهاشتاجات
     }
-    setIsEditing(false); // إغلاق النافذة بعد الحفظ
+    setIsEditing(false); // إغلاق وضع التحرير
   };
 
-  // استدعاء دالة الحذف من المكون الأب
-  const handleDeleteClick = () => {
-    if (onDelete) {
-        onDelete(id); // تمرير ID للدالة
-    }
-  }
+  // دالة لمعالجة تغيير الهاشتاجات
+  const handleHashtagsChange = (value: string) => {
+    const tags = value.split(' ').filter(tag => tag.startsWith('#')); // تقسيم النص إلى كلمات وتصفية الهاشتاجات فقط
+    setHashtags(tags); // تحديث حالة الهاشتاجات
+  };
 
+  // دالة لتبديل إظهار/إخفاء الأزرار
   const toggleControls = () => {
-    setIsControlsVisible(!isControlsVisible);
+    setIsControlsVisible(!isControlsVisible); // تغيير الحالة بين الإظهار والإخفاء
   };
 
-  const handleCancelEdit = () => {
-      setIsEditing(false);
-      // لا حاجة لإعادة التعيين هنا لأن useEffect سيفعل ذلك عند الفتح التالي
-  };
-
-
+  // العرض (render) للمكون
   return (
     <>
-      {/* Card Display */}
-      <div
+      {/* الحاوية الرئيسية للبطاقة */}
+      <div 
         className="relative group overflow-hidden rounded-xl shadow-xl transition-all duration-300"
-        onClick={toggleControls}
+        onClick={toggleControls} // تبديل إظهار الأزرار عند النقر
       >
-        {/* Image and Gradient Overlay */}
+        {/* حاوية الصورة */}
         <div className="relative overflow-hidden rounded-xl">
           <img
-            src={imageUrl}
-            alt={initialCaption || "Gallery image"}
-            className="w-full h-auto object-contain transition-transform duration-500 group-hover:scale-105"
-            loading="lazy"
+            src={imageUrl} // رابط الصورة
+            alt="Gallery" // نص بديل للصورة
+            className="w-full h-auto object-contain transition-transform duration-500 group-hover:scale-105" // تنسيق الصورة مع تأثير تكبير عند التمرير
+            loading="lazy" // تحميل كسول للصورة لتحسين الأداء
           />
+          {/* تدرج شفاف فوق الصورة يظهر عند إظهار الأزرار */}
           <div className={`absolute inset-0 bg-gradient-to-b from-black/30 via-transparent to-black/70 transition-opacity duration-300 ${
-            isControlsVisible ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
+            isControlsVisible ? 'opacity-100' : 'opacity-0'
           }`} />
         </div>
+        
+        {/* زر السحب (drag handle) */}
+        <div 
+          {...dragHandleProps} // خصائص السحب والإفلات
+          className={`absolute top-2 right-2 p-2 rounded-full bg-black/20 backdrop-blur-sm transition-opacity duration-300 cursor-move ${
+            isControlsVisible ? 'opacity-50' : 'opacity-0' // يظهر عند تفعيل الأزرار
+          }`}
+        >
+          <GripVertical className="w-4 h-4 text-white" /> {/* أيقونة السحب */}
+        </div>
 
-        {/* Controls visible on hover/click */}
-        <div className={`absolute inset-0 transition-opacity duration-300 ${
-            isControlsVisible ? 'opacity-100' : 'opacity-0 pointer-events-none'
-          }`}>
+        {/* زر التحرير (تعليق وهاشتاجات) */}
+        <button
+          onClick={(e) => {
+            e.stopPropagation(); // منع النقر من التأثير على الحاوية الرئيسية
+            setIsEditing(true); // فتح وضع التحرير
+          }}
+          className={`absolute top-2 left-2 p-2 rounded-full bg-black/20 backdrop-blur-sm transition-opacity duration-300 hover:opacity-100 ${
+            isControlsVisible ? 'opacity-50' : 'opacity-0' // يظهر عند تفعيل الأزرار
+          }`}
+        >
+          <MessageCircle className="w-4 h-4 text-white" /> {/* أيقونة التعليق */}
+        </button>
 
-            {/* Drag Handle */}
-             {dragHandleProps && (
-                <div
-                {...dragHandleProps}
-                className={`absolute top-2 right-2 p-2 rounded-full bg-black/20 backdrop-blur-sm cursor-move opacity-50 hover:opacity-100 transition-opacity`}
-                >
-                <GripVertical className="w-4 h-4 text-white" />
+        {/* زر الحذف */}
+        <button
+          onClick={(e) => {
+            e.stopPropagation(); // منع النقر من التأثير على الحاوية الرئيسية
+            onDelete?.(); // استدعاء دالة الحذف إذا كانت موجودة
+          }}
+          className={`absolute bottom-2 right-2 p-2 rounded-full bg-black/20 backdrop-blur-sm transition-opacity duration-300 hover:bg-red-500/50 ${
+            isControlsVisible ? 'opacity-50' : 'opacity-0' // يظهر عند تفعيل الأزرار
+          } hover:opacity-100`}
+        >
+          <Trash2 className="w-4 h-4 text-white" /> {/* أيقونة الحذف */}
+        </button>
+
+        {/* قسم الإعجابات */}
+        <div className="absolute bottom-2 left-2 flex items-center gap-1">
+          <button
+            onClick={(e) => {
+              e.stopPropagation(); // منع النقر من التأثير على الحاوية الرئيسية
+              handleLike(); // استدعاء دالة الإعجاب
+            }}
+            className="relative group flex items-center gap-2 text-white/90 hover:text-white transition-colors p-2"
+          >
+            <div className="relative">
+              <Heart
+                className={`w-6 h-6 transition-all duration-300 transform ${
+                  isLoved ? "fill-[#ea384c] text-[#ea384c] scale-125" : "hover:scale-110" // تغيير شكل القلب عند الإعجاب
+                }`}
+              />
+              {isHeartAnimating && ( // عرض الأنيميشن عند تفعيله
+                <div className="absolute inset-0 animate-ping">
+                  <Heart className="w-6 h-6 text-[#ea384c]/30" /> {/* أنيميشن ping للقلب */}
                 </div>
-            )}
-
-
-            {/* Edit Button */}
-            {onUpdateCaption && (
-                <button
-                onClick={(e) => {
-                    e.stopPropagation();
-                    setIsEditing(true);
-                }}
-                className={`absolute top-2 left-2 p-2 rounded-full bg-black/20 backdrop-blur-sm opacity-50 hover:opacity-100 transition-opacity`}
-                aria-label="Edit caption and album"
-                >
-                <MessageCircle className="w-4 h-4 text-white" />
-                </button>
-            )}
-
-
-            {/* Delete Button */}
-             {onDelete && (
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleDeleteClick(); // استدعاء الدالة الوسيطة
-                }}
-                className={`absolute bottom-2 right-2 p-2 rounded-full bg-black/20 backdrop-blur-sm opacity-50 hover:bg-red-500/50 hover:opacity-100 transition-opacity`}
-                aria-label="Delete photo"
-              >
-                <Trash2 className="w-4 h-4 text-white" />
-              </button>
-             )}
-
-
-            {/* Like Button and Count */}
-            <div className="absolute bottom-2 left-2 flex items-center gap-1">
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleLike();
-                }}
-                className="relative group flex items-center gap-2 text-white/90 hover:text-white transition-colors p-1 rounded-full bg-black/20 backdrop-blur-sm"
-                aria-label="Like photo"
-              >
-                <div className="relative">
-                  <Heart
-                    className={`w-5 h-5 transition-all duration-300 transform ${
-                      isLoved ? "fill-[#ea384c] text-[#ea384c] scale-125" : "hover:scale-110"
-                    }`}
-                  />
-                  {isHeartAnimating && (
-                    <div className="absolute inset-0 animate-ping">
-                      <Heart className="w-5 h-5 text-[#ea384c]/30" />
-                    </div>
-                  )}
-                </div>
-              </button>
-              <span className="text-xs font-medium bg-black/20 backdrop-blur-sm px-2 py-0.5 rounded-md text-white/90">
-                {likes}
-              </span>
+                /* الإعدادات القديمة التي تحتوي على animate-pulse */
+                /* <div className="absolute inset-0 animate-pulse">
+                  <Heart className="w-6 h-6 text-[#ea384c]/20" /> // أنيميشن pulse (تم تعليقه)
+                </div> */
+              )}
             </div>
+          </button>
+          {/* عرض عدد الإعجابات */}
+          <span className="text-sm font-medium bg-black/10 backdrop-blur-sm px-2 py-1 rounded-md text-white/90">
+            {likes}
+          </span>
+        </div>
 
-             {/* Caption and Album Display */}
-            {(initialCaption || initialAlbum) && (
-              <div className={`absolute left-2 right-2 bottom-14 p-2 bg-black/50 backdrop-blur-md rounded-lg text-sm text-white opacity-80`}>
-                {initialCaption && <p className="mb-1">{initialCaption}</p>}
-                {initialAlbum && (
-                  <div className="flex flex-wrap gap-1 mt-1">
-                     <span className="text-xs bg-white/10 px-1.5 py-0.5 rounded">
-                       #{initialAlbum}
-                     </span>
-                  </div>
-                )}
+        {/* عرض التعليق والهاشتاجات إذا وجدت */}
+        {(caption || hashtags.length > 0) && (
+          <div className={`absolute left-2 right-2 bottom-14 p-2 bg-black/50 backdrop-blur-md rounded-lg transition-opacity duration-300 ${
+            isControlsVisible ? 'opacity-80' : 'opacity-0' // يظهر عند تفعيل الأزرار
+          }`}>
+            {caption && <p className="text-white text-sm mb-1">{caption}</p>} {/* التعليق */}
+            {hashtags.length > 0 && ( // الهاشتاجات
+              <div className="flex flex-wrap gap-1">
+                {hashtags.map((tag) => (
+                  <span key={tag} className="text-xs text-white-300">
+                    {tag}
+                  </span>
+                ))}
               </div>
             )}
-        </div>
+          </div>
+        )}
       </div>
 
-      {/* Edit Dialog */}
-      <Dialog open={isEditing} onOpenChange={(open) => {
-          if (!open) handleCancelEdit();
-          setIsEditing(open);
-      }}>
-        <DialogContent className="bg-gray-900/60 backdrop-blur-xl text-white border-0 sm:max-w-[425px]">
-          <div className="space-y-4 p-2">
-             <h3 className="text-lg font-medium leading-6 text-white mb-4 text-right">تعديل الصورة</h3>
+      {/* نافذة التحرير (Dialog) */}
+      <Dialog open={isEditing} onOpenChange={setIsEditing}>
+        <DialogContent className="bg-gray-900/60 backdrop-blur-xl text-white border-0">
+          <div className="space-y-4">
+            {/* حقل التعليق */}
             <div>
-              <label htmlFor={`caption-${id}`} className="block text-sm font-medium mb-1 text-right">التعليق</label>
+              <label className="block text-sm font-medium mb-2">التعليق</label>
               <textarea
-                id={`caption-${id}`}
-                value={editCaption} // استخدام حالة النافذة
-                onChange={(e) => setEditCaption(e.target.value)}
-                className="w-full px-3 py-2 bg-white/10 backdrop-blur-sm rounded-md text-white focus:ring-1 focus:ring-white/50 outline-none text-right"
+                value={caption} // قيمة التعليق الحالية
+                onChange={(e) => setCaption(e.target.value)} // تحديث التعليق عند التغيير
+                className="w-full px-3 py-2 bg-white/10 backdrop-blur-sm rounded-md text-white"
                 rows={3}
                 placeholder="أضف تعليقاً..."
               />
             </div>
-
-            {/* Album Input with Suggestions */}
-            <div className="relative">
-              <label htmlFor={`album-${id}`} className="block text-sm font-medium mb-1 text-right">الألبوم</label>
+            {/* حقل الهاشتاجات */}
+            <div>
+              <label className="block text-sm font-medium mb-2">الهاشتاجات</label>
               <input
-                id={`album-${id}`}
                 type="text"
-                value={editAlbum} // استخدام حالة النافذة
-                onChange={handleAlbumInputChange}
-                onFocus={() => setShowSuggestions(suggestions.length > 0)}
-                onBlur={() => setTimeout(() => setShowSuggestions(false), 150)}
-                className="w-full px-3 py-2 bg-white/10 backdrop-blur-sm rounded-md text-white focus:ring-1 focus:ring-white/50 outline-none text-right"
-                placeholder="اسم الألبوم (اختياري)"
-                autoComplete="off"
-                aria-haspopup="listbox"
-                aria-expanded={showSuggestions && filteredSuggestions.length > 0}
+                value={hashtags.join(' ')} // عرض الهاشتاجات كسلسلة نصية
+                onChange={(e) => handleHashtagsChange(e.target.value)} // تحديث الهاشتاجات عند التغيير
+                className="w-full px-3 py-2 bg-white/10 backdrop-blur-sm rounded-md text-white"
+                placeholder="#رمضان #عبادة"
               />
-              {showSuggestions && filteredSuggestions.length > 0 && (
-                <div
-                  role="listbox"
-                  aria-label="Album suggestions"
-                  className="absolute z-20 w-full mt-1 max-h-40 overflow-y-auto bg-gray-800/90 backdrop-blur-lg border border-white/20 rounded-md shadow-lg text-right suggestions-list"
-                >
-                  {filteredSuggestions.map((suggestion, index) => (
-                    <div
-                      key={index}
-                      role="option"
-                      aria-selected="false"
-                      className="px-3 py-2 cursor-pointer hover:bg-white/20 suggestion-item text-sm"
-                      onMouseDown={(e) => {
-                        e.preventDefault();
-                        handleSuggestionClick(suggestion);
-                      }}
-                    >
-                      {suggestion}
-                    </div>
-                  ))}
-                </div>
-              )}
             </div>
-
-            {/* Action Buttons */}
-            <div className="flex justify-end gap-3 pt-4">
+            {/* أزرار الإلغاء والحفظ */}
+            <div className="flex justify-end gap-2">
               <button
-                type="button"
-                onClick={handleCancelEdit}
+                onClick={() => setIsEditing(false)} // إغلاق النافذة بدون حفظ
                 className="px-4 py-2 rounded-md bg-white/10 backdrop-blur-sm text-white hover:bg-white/20 transition-colors"
               >
                 إلغاء
               </button>
               <button
-                type="button"
-                onClick={handleCaptionSubmit} // استدعاء الدالة التي تتصل بالأب
-                className="px-4 py-2 rounded-md bg-[#ea384c]/80 backdrop-blur-sm text-white hover:bg-[#ea384c] transition-colors"
+                onClick={handleCaptionSubmit} // حفظ التغييرات
+                className="px-4 py-2 rounded-md bg-white/20 backdrop-blur-sm text-white hover:bg-white/30 transition-colors"
               >
-                حفظ التغييرات
+                حفظ
               </button>
             </div>
           </div>
@@ -331,5 +234,5 @@ const PhotoCard = ({
   );
 };
 
+// تصدير المكون لاستخدامه في مكان آخر
 export default PhotoCard;
-
