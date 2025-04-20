@@ -125,8 +125,9 @@ const PhotoGrid: React.FC<PhotoGridProps> = ({ closeSidebar }) => {
         setLoadingInitialPhotos(false);
         return;
       }
+
       setPhotos(data || []);
-      setHasPhotosLoadedOnce(true); // تم تحميل الصور مرة واحدة على الأقل
+      setHasPhotosLoadedOnce(true);
     } catch (err) {
       console.error('Exception fetching photos:', err);
     } finally {
@@ -136,6 +137,7 @@ const PhotoGrid: React.FC<PhotoGridProps> = ({ closeSidebar }) => {
 
   const handleDragEnd = async (result: any) => {
     if (!result.destination) return;
+
     const items = Array.from(photos);
     const [reorderedItem] = items.splice(result.source.index, 1);
     items.splice(result.destination.index, 0, reorderedItem);
@@ -160,6 +162,7 @@ const PhotoGrid: React.FC<PhotoGridProps> = ({ closeSidebar }) => {
           });
         }
       }
+
       toast({ title: "تم الترتيب", description: "تم حفظ ترتيب الصور بنجاح" });
     } catch {
       toast({
@@ -187,15 +190,18 @@ const PhotoGrid: React.FC<PhotoGridProps> = ({ closeSidebar }) => {
           order: 0
         })
         .select();
+
       if (error) {
         toast({ title: "خطأ في الإضافة", description: "لم نتمكن من إضافة الصورة", variant: "destructive" });
         return false;
       }
+
       if (data && data.length > 0) {
         setPhotos(prev => [data[0], ...prev]);
-        setHasPhotosLoadedOnce(true); // تم إضافة صورة، لذا تم التحميل مرة واحدة
+        setHasPhotosLoadedOnce(true);
         toast({ title: "تمت الإضافة بنجاح", description: "إلمس الصورة للتعليق عليها, التحريك" });
       }
+
       return true;
     } catch {
       toast({ title: "خطأ غير متوقع", description: "حدث خطأ أثناء إضافة الصورة", variant: "destructive" });
@@ -218,18 +224,22 @@ const PhotoGrid: React.FC<PhotoGridProps> = ({ closeSidebar }) => {
         .delete()
         .eq('id', id)
         .eq('user_id', user?.id);
+
       if (error) {
         toast({ title: "خطأ في الحذف", description: "لم نتمكن من حذف الصورة", variant: "destructive" });
         return;
       }
+
       const fileName = imageUrl.split('/').pop();
       if (fileName) {
         await supabase.storage.from('photos').remove([fileName]);
       }
+
       setPhotos(prev => prev.filter(photo => photo.id !== id));
-      if (photos.length === 1) { // إذا كانت آخر صورة يتم حذفها
-        setHasPhotosLoadedOnce(false); // يمكن اعتبار التطبيق فارغًا مرة أخرى
+      if (photos.length === 1) {
+        setHasPhotosLoadedOnce(false);
       }
+
       toast({ title: "تم الحذف بنجاح", description: "تم حذف الصورة" });
     } catch {
       console.error('Exception deleting photo');
@@ -244,13 +254,16 @@ const PhotoGrid: React.FC<PhotoGridProps> = ({ closeSidebar }) => {
         .update({ caption, hashtags: cleaned })
         .eq('id', id)
         .eq('user_id', user?.id);
+
       if (error) {
         toast({ title: "خطأ في التحديث", description: "لم نتمكن من تحديث التعليق", variant: "destructive" });
         return;
       }
+
       setPhotos(prev =>
         prev.map(photo => photo.id === id ? { ...photo, caption, hashtags: cleaned } : photo)
       );
+
       toast({ title: "تم التحديث بنجاح", description: "تم تحديث التعليق والهاشتاجات" });
     } catch {
       console.error('Exception updating caption');
@@ -278,8 +291,8 @@ const PhotoGrid: React.FC<PhotoGridProps> = ({ closeSidebar }) => {
           <p className="text-gray-300">جارٍ التحميل...</p>
         </div>
       ) : !hasPhotosLoadedOnce || photos.length === 0 ? (
-        <div className="flex justify-center items-center h-50">
-          <img src="/EmptyCard.gif" alt="لا توجد صور" className="max-w-full max-h-full" />
+        <div className="flex justify-center items-center h-50 mt-10">
+          <img src="/EmptyCard.gif" alt="لا توجد صور" className="max-w-full max-h-full opacity-80" />
         </div>
       ) : (
         <DragDropContext onDragEnd={handleDragEnd}>
