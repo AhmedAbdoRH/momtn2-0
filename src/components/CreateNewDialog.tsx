@@ -1,27 +1,48 @@
-import { useState, useEffect } from 'react';
-import { useUser } from '@supabase/auth-helpers-react';
-import { supabase } from '../utils/supabaseClient';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { useState, useEffect, useRef } from "react";
+import { ImagePlus } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "./AuthProvider";
 
-interface PhotoData {
-  user_id: string;
-  image_url: string;
-  hashtags: string[];
-  created_at: string;
+interface CreateNewDialogProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onPhotoAdded: () => void;
 }
 
-const PhotoUploadForm = () => {
-  const user = useUser();
+const CreateNewDialog = ({ open, onOpenChange, onPhotoAdded }: CreateNewDialogProps) => {
   const [image, setImage] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string>("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [albumName, setAlbumName] = useState<string>("");
   const [suggestions, setSuggestions] = useState<string[]>([]);
-  const [showSuggestions, setShowSuggestions] = useState<boolean>(false);
-  const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const { toast } = useToast();
+  const { user } = useAuth();
+  // مرجع لعنصر label الخاص برفع الصور
+  const imageLabelRef = useRef<HTMLLabelElement>(null);
 
-  // جلب اقتراحات الألبومات عند تحميل المكون
+  // إعادة تعيين الحالة وتنشيط التركيز عند فتح الـ Dialog
   useEffect(() => {
-    fetchAlbumSuggestions();
-  }, [user]);
+    if (open) {
+      resetFormState();
+      fetchAlbumSuggestions();
+      // تنشيط التركيز على label رفع الصور
+      if (imageLabelRef.current) {
+        imageLabelRef.current.focus();
+      }
+    }
+  }, [open]);
+
+  useEffect(() => {
+    return () => {
+      if (previewUrl) {
+        URL.revokeObjectURL(previewUrl);
+      }
+    };
+  }, [previewUrl]);
 
   const fetchAlbumSuggestions = async () => {
     if (!user) return;
@@ -64,7 +85,7 @@ const PhotoUploadForm = () => {
   const handleAlbumChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
     setAlbumName(value);
-    setShowSuggestions(value.length > 0 && suggestions.length > 0);
+    setShowSuggestions(suggestions.length > 0);
   };
 
   const handleSuggestionClick = (suggestion: string) => {
@@ -74,253 +95,199 @@ const PhotoUploadForm = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    // التحقق من الصحة
-    if (!user) {
-      alert('يجب تسجيل الدخول أولاً');
-      return;
-    }
-    
-    if (!image) {
-      alert('يرجى اختيار صورة');
-      return;
-    }
-
-    if (!albumName.trim()) {
-      alert('يرجى إدخال اسم الألبوم أو الهاشتاجات');
-      return;
-    }
+    if (!image || isSubmitting || !user) return;
 
     setIsSubmitting(true);
 
     try {
-      // 1. تحضير اسم الملف
       const fileExt = image.name.split(".").pop()?.toLowerCase() || "jpg";
       const fileName = `${user.id}/photo_${Date.now()}.${fileExt}`;
 
-      // 2. رفع الصورة إلى التخزين
-      const { error: uploadError } = await supabase.storage
-        .from('photos')
-        .upload(fileName, image, {
-          cacheControl: '3600',
-          upsert: false
+      const { error: uploadError, data: uploadData } = await supabase.storage
+        .from("photos")
+        .upload(fileName, image, { cacheControl: "3600", upsert: false });
+
+      if (uploadError) {
+        toast({
+          title: "خطأ في الرفع",
+          description: `فشل رفع الملف: ${uploadError.message}`,
+          variant: "destructive",
         });
+        setIsSubmitting(false);
+        return;
+      }
 
-      if (uploadError) throw uploadError;
+      const filePath = uploadData?.path;
+      if (!filePath) throw new Error("File path not returned after upload.");
 
-      // 3. الحصول على رابط الصورة
-      const { data: { publicUrl } } = supabase.storage
-        .from('photos')
-        .getPublicUrl(fileName);
+      const { data: urlData } = supabase.storage.from("photos").getPublicUrl(filePath);
+      const publicUrl = urlData?.publicUrl;
+      if (!publicUrl) {
+        await supabase.storage.from("photos").remove([filePath]);
+        throw new Error("لم يتم العثور على الرابط العام للصورة بعد الرفع.");
+      }
 
-      // 4. تقسيم الهاشتاجات (يمكن إدخالها مفصولة بفواصل)
-      const hashtags = albumName.split(',')
-        .map(tag => tag.trim())
-        .filter(Boolean)
-        .map(tag => tag.startsWith('#') ? tag : `#${tag}`);
+      const finalAlbumName = albumName.trim();
+      const albumDataForDB = finalAlbumName ? [finalAlbumName] : null;
 
-      // 5. تحضير بيانات الصورة
-      const photoData: PhotoData = {
-        user_id: user.id,
-        image_url: publicUrl,
-        hashtags,
-        created_at: new Date().toISOString()
-      };
+      const { data: insertData, error: insertError } = await supabase
+        .from("photos")
+        .insert({
+          image_url: publicUrl,
+          hashtags: albumDataForDB,
+          user_id: user.id,
+        })
+        .select()
+        .single();
 
-      // 6. حفظ البيانات في قاعدة البيانات
-      const { error: insertError } = await supabase
-        .from('photos')
-        .insert(photoData);
+      if (insertError) {
+        await supabase.storage.from("photos").remove([filePath]);
+        throw insertError;
+      }
 
-      if (insertError) throw insertError;
-
-      // 7. إعادة تعيين الحالة
-      resetFormState();
-      alert('تم رفع الصورة بنجاح!');
-      fetchAlbumSuggestions(); // تحديث الاقتراحات
-
-    } catch (error) {
-      console.error('Error uploading photo:', error);
-      alert(`حدث خطأ أثناء رفع الصورة: ${error.message}`);
+      toast({ description: " إلمس الصورة لإضافة تعليق, التحريك أو الإزالة ", title: " تمت الإضافة بنجاح " });
+      onPhotoAdded();
+      onOpenChange(false);
+    } catch (error: any) {
+      toast({
+        title: "حدث خطأ",
+        description: error.message || "لم نتمكن من إضافة الصورة.",
+        variant: "destructive",
+      });
     } finally {
       setIsSubmitting(false);
     }
   };
 
+  const filteredSuggestions = albumName
+    ? suggestions.filter((suggestion) =>
+        typeof suggestion === "string" &&
+        suggestion.toLowerCase().includes(albumName.toLowerCase())
+      )
+    : suggestions;
+
   return (
-    <div className="photo-upload-container">
-      <h2>رفع صورة جديدة</h2>
-      
-      <form onSubmit={handleSubmit} className="upload-form">
-        <div className="form-group">
-          <label htmlFor="image-upload" className="upload-label">
-            اختر صورة
-          </label>
-          <input
-            id="image-upload"
-            type="file"
-            accept="image/*"
-            onChange={handleImageChange}
-            disabled={isSubmitting}
-            className="file-input"
-          />
-          {previewUrl && (
-            <div className="image-preview">
-              <img 
-                src={previewUrl} 
-                alt="معاينة الصورة" 
-                className="preview-image"
-              />
-            </div>
-          )}
-        </div>
-
-        <div className="form-group">
-          <label htmlFor="album-name">الهاشتاجات (مفصولة بفواصل)</label>
-          <input
-            id="album-name"
-            type="text"
-            value={albumName}
-            onChange={handleAlbumChange}
-            disabled={isSubmitting}
-            placeholder="مثال: #مناسبات, #عائلة, #أصدقاء"
-            className="album-input"
-          />
-          {showSuggestions && suggestions.length > 0 && (
-            <div className="suggestions-container">
-              {suggestions.map((suggestion) => (
-                <div 
-                  key={suggestion}
-                  className="suggestion-item"
-                  onClick={() => handleSuggestionClick(suggestion)}
-                >
-                  {suggestion}
+    <Dialog
+      open={open}
+      onOpenChange={(isOpen) => {
+        if (!isOpen) resetFormState();
+        onOpenChange(isOpen);
+      }}
+    >
+      <DialogContent className="top-[45%] sm:max-w-[350px] max-h-[85vh] overflow-y-auto bg-gray-900/80 backdrop-blur-lg text-white border border-gray-700 shadow-xl rounded-lg">
+        <DialogHeader>
+          <DialogTitle className="text-right text-white">إضافة صورة جديدة</DialogTitle>
+          <DialogDescription className="text-right text-gray-300">
+            قم بتحميل صورة وأضفها إلى ألبوم (اختياري).
+          </DialogDescription>
+        </DialogHeader>
+        <form onSubmit={handleSubmit} className="space-y-4 pt-2">
+          <div className="flex flex-col items-center gap-4">
+            <label
+              htmlFor="imageUpload"
+              ref={imageLabelRef} // إضافة المرجع
+              tabIndex={0} // جعل label قابلة للتركيز
+              className="w-full h-40 border-2 border-dashed border-gray-600 rounded-lg flex flex-col items-center justify-center cursor-pointer hover:border-gray-500 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-colors outline-none"
+            >
+              {previewUrl ? (
+                <img src={previewUrl} alt="Preview" className="w-full h-full object-contain rounded-lg p-1" />
+              ) : (
+                <div className="text-center pointer-events-none">
+                  <ImagePlus className="w-10 h-10 text-gray-400 mx-auto" />
+                  <p className="mt-2 text-sm text-gray-400">اضغط لاختيار صورة</p>
                 </div>
-              ))}
+              )}
+            </label>
+            <input
+              id="imageUpload"
+              type="file"
+              accept="image/*,.heic,.heif"
+              onChange={handleImageChange}
+              className="hidden"
+            />
+
+            <div className="w-full relative">
+              <label htmlFor="albumName" className="block text-sm font-medium text-gray-300 mb-1 text-right">
+                اسم الألبوم (اختياري)
+              </label>
+              <input
+                id="albumName"
+                type="text"
+                value={albumName}
+                onChange={handleAlbumChange}
+                onFocus={() => setShowSuggestions(suggestions.length > 0)}
+                onBlur={() => setTimeout(() => setShowSuggestions(false), 150)}
+                placeholder="مثال: رحلات الصيف"
+                className="w-full px-3 py-2 bg-gray-800/60 border border-gray-600 rounded-md text-right placeholder:text-gray-500 text-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none"
+                autoComplete="off"
+                aria-haspopup="listbox"
+                aria-expanded={showSuggestions && filteredSuggestions.length > 0}
+              />
+              {showSuggestions && filteredSuggestions.length > 0 && (
+                <div
+                  role="listbox"
+                  id="suggestions-list"
+                  aria-label="Album suggestions"
+                  className="absolute z-10 w-full mt-1 max-h-48 overflow-y-auto bg-gray-800 border border-gray-700 rounded-md shadow-lg text-right suggestions-list"
+                >
+                  {filteredSuggestions.map((suggestion, index) => (
+                    <div
+                      key={index}
+                      role="option"
+                      aria-selected="false"
+                      className="px-3 py-2 cursor-pointer hover:bg-gray-700 suggestion-item"
+                      onMouseDown={(e) => {
+                        e.preventDefault();
+                        handleSuggestionClick(suggestion);
+                      }}
+                    >
+                      {suggestion}
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
-          )}
-        </div>
-
-        <button
-          type="submit"
-          disabled={!image || !albumName.trim() || isSubmitting}
-          className="submit-button"
-        >
-          {isSubmitting ? (
-            <>
-              <span className="spinner"></span>
-              جاري الرفع...
-            </>
-          ) : (
-            'رفع الصورة'
-          )}
-        </button>
-      </form>
-
-      <style jsx>{`
-        .photo-upload-container {
-          max-width: 600px;
-          margin: 0 auto;
-          padding: 20px;
-          background: #f9f9f9;
-          border-radius: 10px;
-          box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-        }
-        
-        h2 {
-          text-align: center;
-          color: #333;
-          margin-bottom: 20px;
-        }
-        
-        .upload-form {
-          display: flex;
-          flex-direction: column;
-          gap: 20px;
-        }
-        
-        .form-group {
-          display: flex;
-          flex-direction: column;
-          gap: 8px;
-        }
-        
-        label {
-          font-weight: bold;
-          color: #444;
-        }
-        
-        .file-input, .album-input {
-          padding: 10px;
-          border: 1px solid #ddd;
-          border-radius: 5px;
-          font-size: 16px;
-        }
-        
-        .image-preview {
-          margin-top: 10px;
-          text-align: center;
-        }
-        
-        .preview-image {
-          max-width: 100%;
-          max-height: 300px;
-          border-radius: 5px;
-          border: 1px solid #eee;
-        }
-        
-        .suggestions-container {
-          border: 1px solid #ddd;
-          border-radius: 5px;
-          max-height: 150px;
-          overflow-y: auto;
-        }
-        
-        .suggestion-item {
-          padding: 8px 12px;
-          cursor: pointer;
-          border-bottom: 1px solid #eee;
-        }
-        
-        .suggestion-item:hover {
-          background-color: #f0f0f0;
-        }
-        
-        .submit-button {
-          padding: 12px;
-          background-color: #4CAF50;
-          color: white;
-          border: none;
-          border-radius: 5px;
-          font-size: 16px;
-          cursor: pointer;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          gap: 8px;
-        }
-        
-        .submit-button:disabled {
-          background-color: #cccccc;
-          cursor: not-allowed;
-        }
-        
-        .spinner {
-          border: 3px solid rgba(255, 255, 255, 0.3);
-          border-radius: 50%;
-          border-top: 3px solid white;
-          width: 16px;
-          height: 16px;
-          animation: spin 1s linear infinite;
-        }
-        
-        @keyframes spin {
-          0% { transform: rotate(0deg); }
-          100% { transform: rotate(360deg); }
-        }
-      `}</style>
-    </div>
+          </div>
+          <div className="flex justify-end gap-3 pt-4">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => onOpenChange(false)}
+              className="bg-transparent border-gray-600 text-gray-300 hover:bg-gray-700/50 focus:ring-gray-500"
+            >
+              إلغاء
+            </Button>
+            <Button
+              type="submit"
+              disabled={!image || isSubmitting}
+              className="bg-[#ea384c] hover:bg-[#d93042] text-white disabled:opacity-50 disabled:cursor-not-allowed focus:ring-[#ea384c]"
+            >
+              {isSubmitting ? (
+                <div className="flex items-center gap-2">
+                  <svg
+                    className="animate-spin h-4 w-4 text-white"
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                  >
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path
+                      className="opacity-75"
+                      fill="currentColor"
+                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                    ></path>
+                  </svg>
+                  <span>جاري الحفظ...</span>
+                </div>
+              ) : (
+                "حفظ الصورة"
+              )}
+            </Button>
+          </div>
+        </form>
+      </DialogContent>
+    </Dialog>
   );
 };
 
-export default PhotoUploadForm;
+export default CreateNewDialog;
