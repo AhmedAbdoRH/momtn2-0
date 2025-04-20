@@ -41,10 +41,10 @@ const Index = () => {
   const [btnAnimation, setBtnAnimation] = useState(false);
 
   // State to track if the photo grid is empty. Initialized to true.
-  // This state controls the visibility of the placeholder image.
+  // This state *could* be used to control a placeholder, but we are removing the explicit placeholder in this component.
   // حالة لتتبع ما إذا كانت شبكة الصور فارغة. تبدأ بقيمة true.
-  // هذه الحالة تتحكم في ظهور الصورة المؤقتة.
-  const [isGridEmpty, setIsGridEmpty] = useState(true);
+  // هذه الحالة *يمكن* استخدامها للتحكم في صورة مؤقتة، لكننا نزيل الصورة المؤقتة الصريحة في هذا المكون.
+  const [isGridEmpty, setIsGridEmpty] = useState(true); // Note: State remains, but associated JSX is removed. / ملاحظة: الحالة تبقى، لكن الـ JSX المرتبط بها تمت إزالته.
 
   // Authentication context hook
   // خطاف سياق المصادقة
@@ -92,9 +92,11 @@ const Index = () => {
 
   /**
    * Callback function passed to PhotoGrid to update the grid's empty status.
-   * This function is crucial for hiding/showing the placeholder image based on PhotoGrid's content.
+   * This is still useful even without the explicit placeholder in this component,
+   * as it might be used for other conditional logic in the future.
    * دالة رد نداء يتم تمريرها إلى PhotoGrid لتحديث حالة فراغ الشبكة.
-   * هذه الدالة ضرورية لإخفاء/إظهار الصورة المؤقتة بناءً على محتوى PhotoGrid.
+   * لا تزال هذه مفيدة حتى بدون الصورة المؤقتة الصريحة في هذا المكون،
+   * حيث قد تستخدم لمنطق شرطي آخر في المستقبل.
    * @param {boolean} isEmpty - True if the grid is empty, false otherwise.
    */
   const handleGridStatusChange = (isEmpty: boolean) => {
@@ -229,32 +231,30 @@ const Index = () => {
             </div>
           </div>
 
-          {/* --- Conditional Placeholder Image --- */}
-          {/* --- الصورة المؤقتة الشرطية --- */}
-          {/* This section is rendered ONLY when isGridEmpty is true */}
-          {/* يتم عرض هذا القسم فقط عندما تكون isGridEmpty قيمتها true */}
-          {isGridEmpty && (
-            <div className="text-center mt-10 mb-10 fade-in">
-              <img
-                src="/EmptyCard.png" // Source for the placeholder image / مصدر الصورة المؤقتة
-                alt="أضف أول امتنان لك" // Alt text in Arabic / نص بديل بالعربية
-                className="mx-auto w-72 h-auto opacity-80 hover:opacity-100 transition-opacity" // Styling / تنسيق
-              />
-              {/* The <p> tag previously here was removed as requested */}
-              {/* تم حذف وسم <p> الذي كان هنا سابقًا حسب الطلب */}
-            </div>
-          )}
-          {/* --- End of Conditional Placeholder Image --- */}
-          {/* --- نهاية الصورة المؤقتة الشرطية --- */}
+          {/* --- Conditional Placeholder Image REMOVED --- */}
+          {/* --- تم إزالة الصورة المؤقتة الشرطية --- */}
+          {/* The block previously here that rendered `/EmptyCard.png` based on `isGridEmpty` has been removed as requested. */}
+          {/* تم حذف الكتلة التي كانت هنا والتي تعرض `/EmptyCard.png` بناءً على `isGridEmpty` حسب الطلب. */}
+          {/* {isGridEmpty && ( */}
+          {/* <div className="text-center mt-10 mb-10 fade-in"> */}
+          {/* <img */}
+          {/* src="/EmptyCard.png" */}
+          {/* alt="أضف أول امتنان لك" */}
+          {/* className="mx-auto w-72 h-auto opacity-80 hover:opacity-100 transition-opacity" */}
+          {/* /> */}
+          {/* </div> */}
+          {/* )} */}
+          {/* --- End of REMOVED Placeholder Image --- */}
+          {/* --- نهاية الصورة المؤقتة المحذوفة --- */}
 
 
           {/* Photo Grid Component */}
           {/* مكون شبكة الصور */}
-          {/* It receives the callback to report its status (empty/not empty) */}
-          {/* يستقبل دالة رد النداء للإبلاغ عن حالته (فارغ/غير فارغ) */}
+          {/* It still receives the callback to report its status */}
+          {/* لا يزال يستقبل دالة رد النداء للإبلاغ عن حالته */}
           <PhotoGrid
             closeSidebar={() => setSidebarOpen(false)} // Prop to allow PhotoGrid to close the sidebar / خاصية للسماح لـ PhotoGrid بإغلاق الشريط الجانبي
-            onStatusChange={handleGridStatusChange} // *** CRUCIAL PROP *** Passes the callback function / *** خاصية حاسمة *** تمرير دالة رد النداء
+            onStatusChange={handleGridStatusChange} // Passes the callback function / تمرير دالة رد النداء
           />
 
           {/* Create New Dialog Component */}
@@ -269,9 +269,9 @@ const Index = () => {
               if (typeof window !== 'undefined') {
                   window.dispatchEvent(new CustomEvent("photo-added"));
               }
-              // 2. Optimistically update the state to hide the placeholder immediately
-              // 2. تحديث الحالة بشكل تفاؤلي لإخفاء الصورة المؤقتة فورًا
-              console.log("Index: Optimistically setting grid to not empty."); // للمعاينة
+              // 2. Update the state (though it no longer controls the explicit placeholder here)
+              // 2. تحديث الحالة (مع أنها لم تعد تتحكم في الصورة المؤقتة الصريحة هنا)
+              console.log("Index: Setting grid to not empty."); // للمعاينة
               setIsGridEmpty(false); // Assume grid is no longer empty / افتراض أن الشبكة لم تعد فارغة
             }}
           />
@@ -303,4 +303,3 @@ const Index = () => {
 // Export the component for use in other parts of the application
 // تصدير المكون للاستخدام في أجزاء أخرى من التطبيق
 export default Index;
-
