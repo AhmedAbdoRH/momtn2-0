@@ -1,6 +1,7 @@
 import * as React from 'react'; // Import React
 import { useState, useEffect } from "react"; // Import useState and useEffect hooks
-import { Plus, Menu, LogOut, User } from "lucide-react"; // Import icons
+import { Plus, Menu, LogOut, User, Settings } from "lucide-react"; // Added Settings icon
+import { useNavigate } from "react-router-dom";
 
 // --- افتراضيات لمسارات الاستيراد ---
 // --- Assumptions for import paths ---
@@ -49,6 +50,7 @@ const Index = () => {
   // Authentication context hook
   // خطاف سياق المصادقة
   const { signOut, user } = useAuth();
+  const navigate = useNavigate();
 
   /**
    * Handles opening the 'Create New' dialog and triggering button animation.
@@ -137,6 +139,16 @@ const Index = () => {
               {/* Display user email */}
               {/* عرض بريد المستخدم الإلكتروني */}
               <div className="px-2 py-1.5 text-sm font-medium text-white-300 truncate">{user?.email}</div>
+              
+              {/* Settings option */}
+              <DropdownMenuItem
+                onClick={() => navigate("/settings")}
+                className="cursor-pointer text-gray-600 focus:text-gray-800 focus:bg-gray-100"
+              >
+                <Settings className="mr-2 h-4 w-4" />
+                <span>الإعدادات</span>
+              </DropdownMenuItem>
+              
               {/* Logout Button */}
               {/* زر تسجيل الخروج */}
               <DropdownMenuItem
