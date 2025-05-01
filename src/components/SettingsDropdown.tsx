@@ -16,12 +16,15 @@ export const SettingsDropdown = () => {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" className="w-10 h-10 p-0">
+        <Button variant="ghost" className="w-10 h-10 p-0 rounded-full">
           <Settings className="h-6 w-6" />
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="bg-white">
-        <DropdownMenuItem onClick={() => navigate("/settings")} className="cursor-pointer text-right">
+      <DropdownMenuContent align="end" className="bg-white shadow-md mt-1 z-50">
+        <DropdownMenuItem 
+          onClick={() => navigate("/settings")} 
+          className="cursor-pointer text-right py-2 px-4 hover:bg-gray-100"
+        >
           الإعدادات
         </DropdownMenuItem>
       </DropdownMenuContent>
