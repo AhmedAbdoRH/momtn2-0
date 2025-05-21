@@ -262,11 +262,9 @@ const Index = () => {
 
           {/* Photo Grid Component */}
           {/* مكون شبكة الصور */}
-          {/* It still receives the callback to report its status */}
-          {/* لا يزال يستقبل دالة رد النداء للإبلاغ عن حالته */}
           <PhotoGrid
             closeSidebar={() => setSidebarOpen(false)} // Prop to allow PhotoGrid to close the sidebar / خاصية للسماح لـ PhotoGrid بإغلاق الشريط الجانبي
-            onStatusChange={handleGridStatusChange} // Passes the callback function / تمرير دالة رد النداء
+            // Removed onStatusChange prop as it's not defined in PhotoGridProps
           />
 
           {/* Create New Dialog Component */}
