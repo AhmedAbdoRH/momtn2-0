@@ -1,7 +1,8 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../components/ui/tabs";
 import { ContributorsList } from "../components/ContributorsList";
+import { BackgroundSettings } from "../components/BackgroundSettings";
 
 const SettingsPage = () => {
   const [activeTab, setActiveTab] = useState("general");
@@ -11,8 +12,9 @@ const SettingsPage = () => {
       <h1 className="text-3xl font-bold text-right mb-6">الإعدادات</h1>
       
       <Tabs defaultValue="general" dir="rtl" onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid grid-cols-2 mb-8">
+        <TabsList className="grid grid-cols-3 mb-8">
           <TabsTrigger value="general">عام</TabsTrigger>
+          <TabsTrigger value="background">خلفية التطبيق</TabsTrigger>
           <TabsTrigger value="contributors">لائحة الشكر</TabsTrigger>
         </TabsList>
         
@@ -23,6 +25,10 @@ const SettingsPage = () => {
               سيتم إضافة الإعدادات هنا في المستقبل. حالياً لا توجد إعدادات متاحة.
             </p>
           </div>
+        </TabsContent>
+
+        <TabsContent value="background">
+          <BackgroundSettings />
         </TabsContent>
         
         <TabsContent value="contributors">

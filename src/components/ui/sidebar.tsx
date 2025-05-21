@@ -12,10 +12,10 @@ import { Sheet, SheetContent } from "@/components/ui/sheet"
 // ------------------------------
 
 interface SidebarContextType {
-  open: boolean
-  mobile: boolean
-  setOpen: (open: boolean) => void
-  setOpenOnMobile: (open: boolean) => void
+  open: boolean;
+  mobile: boolean;
+  setOpen: (open: boolean) => void;
+  setMobileOpen: (open: boolean) => void;
 }
 
 const SidebarContext = React.createContext<SidebarContextType | null>(null)
@@ -41,7 +41,7 @@ function SidebarProvider({
   children,
 }: SidebarProviderProps) {
   const [open, setOpen] = React.useState(defaultOpen)
-  const [openOnMobile, setOpenOnMobile] = React.useState(false)
+  const [mobileOpen, setMobileOpen] = React.useState(false)
   const [mobile, setMobile] = React.useState(false)
   const ref = React.useRef<HTMLDivElement>(null)
   const mobileBreakpoint = 768
@@ -63,22 +63,22 @@ function SidebarProvider({
   // Close sidebar when click outside
   React.useEffect(() => {
     const handleOutsideClick = (e: MouseEvent) => {
-      if (mobile && openOnMobile && ref.current && !ref.current.contains(e.target as Node)) {
-        setOpenOnMobile(false)
+      if (mobile && mobileOpen && ref.current && !ref.current.contains(e.target as Node)) {
+        setMobileOpen(false)
       }
     }
     document.addEventListener("mousedown", handleOutsideClick)
     return () => {
       document.removeEventListener("mousedown", handleOutsideClick)
     }
-  }, [mobile, openOnMobile, ref])
+  }, [mobile, mobileOpen, ref])
 
   const providerValue = React.useMemo(
     () => ({
       open,
       mobile,
       setOpen,
-      setOpenOnMobile,
+      setMobileOpen,
     }),
     [open, mobile]
   )
@@ -172,15 +172,18 @@ const SidebarMobile = React.forwardRef<
     side?: "left" | "right"
   }
 >(({ className, side = "left", ...props }, ref) => {
-  const { mobile, openOnMobile, setOpenOnMobile } = useSidebarContext()
+  const { mobile, setMobileOpen } = useSidebarContext()
+  const { mobileOpen } = useSidebarContext() as { mobileOpen?: boolean }
 
   if (!mobile) {
     return null
   }
 
   return (
-    <Sheet open={openOnMobile} onOpenChange={setOpenOnMobile}>
-      <SheetContent side={side} className={cn("w-64", className)} {...props} />
+    <Sheet open={!!mobileOpen} onOpenChange={setMobileOpen}>
+      <SheetContent side={side} className={cn("w-64", className)}>
+        <div ref={ref} {...props} />
+      </SheetContent>
     </Sheet>
   )
 })
@@ -391,11 +394,11 @@ const SidebarTrigger = React.forwardRef<
   HTMLButtonElement,
   React.ButtonHTMLAttributes<HTMLButtonElement>
 >(({ className, ...props }, ref) => {
-  const { open, setOpen, mobile, setOpenOnMobile } = useSidebarContext()
+  const { open, setOpen, mobile, setMobileOpen } = useSidebarContext()
 
   const handleClick = () => {
     if (mobile) {
-      setOpenOnMobile(true)
+      setMobileOpen(true)
     } else {
       setOpen(!open)
     }
