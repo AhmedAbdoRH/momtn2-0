@@ -1,9 +1,10 @@
+
 #root {
-  max-width: 1280px;
+  max-width: 100%; /* تغيير من 1280px إلى 100% */
   margin: 0 auto;
   padding: 2rem;
   text-align: center;
-  color: white; /* لون النص الأبيض */
+  color: white;
 }
 
 .logo {
@@ -39,5 +40,5 @@
 }
 
 .read-the-docs {
-  color: white; /* لون النص الأبيض */
+  color: white;
 }

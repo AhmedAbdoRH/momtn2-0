@@ -32,8 +32,12 @@
     --radius: 1rem;
   }
 
+  html, body {
+    @apply h-full w-full m-0 p-0;
+  }
+
   body {
-    @apply bg-gradient-to-br from-[#2D1F3D] via-[#1A1F2C] to-[#3D1F2C] text-foreground antialiased;
+    @apply bg-gradient-to-br from-[#2D1F3D] via-[#1A1F2C] to-[#3D1F2C] text-foreground antialiased min-h-screen;
   }
 
   img {
@@ -44,11 +48,10 @@
   button {
     /* تطبيق الخلفية الشفافة (--primary) */
     /* إضافة تمويه الخلفية (backdrop-blur) وحدود خفيفة */
-    @apply bg-primary text-primary-foreground rounded-lg px-4 py-2 backdrop-blur-md border border-white/20 transition-colors; /* تم إضافة backdrop-blur-md و border */
+    @apply bg-primary text-primary-foreground rounded-lg px-4 py-2 backdrop-blur-md border border-white/20 transition-colors;
     /* تعديل حالة الـ hover لتتناسب مع التأثير الزجاجي */
     /* هنا نزيد شفافية الخلفية قليلاً عند الـ hover */
-    @apply hover:bg-primary/90; /* تعديل الشفافية في hover */
-    /* يمكنك أيضاً تغيير لون الحدود في hover: hover:border-white/40 */
+    @apply hover:bg-primary/90;
   }
 
   /* الأنماط الأخرى للأزرار تبقى كما هي، لكنها لن تكون زجاجية إلا إذا تم تعديلها */
