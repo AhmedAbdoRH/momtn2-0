@@ -20,10 +20,10 @@ export const SettingsDropdown = () => {
           <Settings className="h-6 w-6" />
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="bg-white shadow-md mt-1 z-50">
+      <DropdownMenuContent align="end" className="bg-black/50 backdrop-blur-md shadow-xl border-white/10 mt-1 z-50">
         <DropdownMenuItem 
           onClick={() => navigate("/settings")} 
-          className="cursor-pointer text-right py-2 px-4 hover:bg-gray-100"
+          className="cursor-pointer text-right py-2 px-4 hover:bg-white/10 text-gray-200"
         >
           الإعدادات
         </DropdownMenuItem>

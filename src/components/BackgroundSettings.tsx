@@ -15,12 +15,12 @@ const gradientOptions: GradientOption[] = [
   // الخلفية الافتراضية
   { id: "default", name: "افتراضي", gradient: "bg-gradient-to-br from-[#2D1F3D] via-[#1A1F2C] to-[#3D1F2C]", textColor: "text-white" },
   
-  // خلفيات احترافية جديدة
+  // خمسة خلفيات احترافية جديدة
   { id: "cosmic", name: "فضائي", gradient: "bg-gradient-to-br from-[#0F2027] via-[#203A43] to-[#2C5364]", textColor: "text-white" },
-  { id: "midnight", name: "منتصف الليل", gradient: "bg-gradient-to-br from-[#1A1A40] via-[#270082] to-[#7A0BC0]", textColor: "text-white" },
-  { id: "aurora", name: "شفق قطبي", gradient: "bg-gradient-to-br from-[#082032] via-[#2C394B] to-[#334756]", textColor: "text-white" },
   { id: "royal", name: "ملكي", gradient: "bg-gradient-to-br from-[#240046] via-[#3C096C] to-[#5A189A]", textColor: "text-white" },
   { id: "galaxy", name: "مجرة", gradient: "bg-gradient-to-br from-[#0B0C10] via-[#1F2833] to-[#2C3531]", textColor: "text-white" },
+  { id: "aurora", name: "شفق قطبي", gradient: "bg-gradient-to-br from-[#04293A] via-[#064663] to-[#041C32]", textColor: "text-white" },
+  { id: "midnight", name: "منتصف الليل", gradient: "bg-gradient-to-br from-[#0F044C] via-[#141E61] to-[#282A3A]", textColor: "text-white" },
 ];
 
 // مفتاح تخزين تفضيل المستخدم في التخزين المحلي
@@ -138,7 +138,7 @@ export const BackgroundSettings: React.FC = () => {
   };
 
   return (
-    <div className="bg-black/40 p-6 rounded-lg shadow backdrop-blur-md border border-white/10">
+    <div className="bg-black/60 p-6 rounded-xl shadow-lg backdrop-blur-md border border-white/10">
       <div className="flex items-center justify-end mb-6">
         <h2 className="text-2xl font-bold text-right ml-2 text-white">تغيير خلفية التطبيق</h2>
         <Palette className="h-6 w-6 text-gray-300" />
@@ -148,13 +148,13 @@ export const BackgroundSettings: React.FC = () => {
         اختر إحدى التدرجات اللونية المتاحة لتطبيقها على خلفية التطبيق.
       </p>
       
-      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 gap-6 mt-8">
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-6 mt-8">
         {gradientOptions.map((option) => (
           <div
             key={option.id}
             onClick={() => handleGradientSelect(option.id)}
-            className={`${option.gradient} ${option.textColor || "text-white"} h-28 rounded-xl flex items-center justify-center cursor-pointer transition-transform hover:scale-105 shadow-lg ${
-              selectedGradient === option.id ? "ring-4 ring-offset-2 ring-white/50" : "border border-white/10"
+            className={`${option.gradient} ${option.textColor || "text-white"} h-28 rounded-xl flex items-center justify-center cursor-pointer transition-all duration-300 hover:scale-105 shadow-lg ${
+              selectedGradient === option.id ? "ring-4 ring-white ring-opacity-50 transform scale-[1.03]" : "border border-white/10"
             }`}
           >
             <span className="font-bold drop-shadow-md text-lg">{option.name}</span>

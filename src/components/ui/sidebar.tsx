@@ -1,3 +1,4 @@
+
 import * as React from "react"
 import { cva } from "class-variance-authority"
 import { X } from "lucide-react"
@@ -346,39 +347,36 @@ const SidebarMenuButton = React.forwardRef<
 >(({ className, variant, asChild = false, ...props }, ref) => {
   const { open } = useSidebarContext();
   
-  if (!asChild) {
-    return (
-      <button
-        ref={ref}
-        className={cn(menuButtonVariants({ variant }), className)}
-        {...props}
-      />
-    );
+  if (asChild) {
+    const child = React.Children.only(props.children) as React.ReactElement;
+    
+    if (!React.isValidElement(child)) {
+      return null;
+    }
+    
+    return React.cloneElement(child, {
+      ref,
+      className: cn(menuButtonVariants({ variant }), child.props.className, className),
+      children: (
+        <>
+          {React.Children.map(child.props.children, (grandChild) => {
+            if (React.isValidElement(grandChild) && grandChild.type === "span" && !open) {
+              return null;
+            }
+            return grandChild;
+          })}
+        </>
+      ),
+    });
   }
-
-  const child = asChild && React.Children.only(props.children) as React.ReactElement;
   
-  if (!React.isValidElement(child)) {
-    return null;
-  }
-
-  return React.cloneElement(child, {
-    className: cn(
-      menuButtonVariants({ variant }),
-      child.props.className,
-      className
-    ),
-    children: (
-      <>
-        {React.Children.map(child.props.children, (grandChild) => {
-          if (React.isValidElement(grandChild) && grandChild.type === "span" && !open) {
-            return null;
-          }
-          return grandChild;
-        })}
-      </>
-    ),
-  });
+  return (
+    <button
+      ref={ref}
+      className={cn(menuButtonVariants({ variant }), className)}
+      {...props}
+    />
+  );
 });
 
 SidebarMenuButton.displayName = "SidebarMenuButton"

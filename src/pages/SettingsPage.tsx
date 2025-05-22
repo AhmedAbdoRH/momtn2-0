@@ -4,7 +4,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "../components/ui/tabs"
 import { ContributorsList } from "../components/ContributorsList";
 import { BackgroundSettings } from "../components/BackgroundSettings";
 import { Button } from "../components/ui/button";
-import { Home } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 const SettingsPage = () => {
@@ -27,25 +27,41 @@ const SettingsPage = () => {
       <div className="flex justify-between items-center mb-8">
         <Button 
           onClick={() => navigate("/")}
-          variant="ghost" 
-          className="flex items-center gap-2 hover:bg-white/10"
+          variant="glass" 
+          className="flex items-center gap-2 hover:bg-white/20 transition-all duration-300"
+          size="lg"
         >
-          <Home className="h-5 w-5" />
-          <span>الرئيسية</span>
+          <ArrowLeft className="h-5 w-5" />
+          <span>العودة للرئيسية</span>
         </Button>
-        <h1 className="text-3xl font-bold">الإعدادات</h1>
+        <h1 className="text-3xl font-bold text-gradient">الإعدادات</h1>
       </div>
       
-      <div className="glass-effect p-8 rounded-2xl shadow-xl backdrop-blur-md">
+      <div className="glass-effect p-8 rounded-2xl shadow-xl backdrop-blur-md bg-black/60 border border-white/10">
         <Tabs defaultValue="general" dir="rtl" onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid grid-cols-3 mb-8 bg-white/10 p-1.5">
-            <TabsTrigger value="general" className="text-lg py-2.5">عام</TabsTrigger>
-            <TabsTrigger value="background" className="text-lg py-2.5">خلفية التطبيق</TabsTrigger>
-            <TabsTrigger value="contributors" className="text-lg py-2.5">لائحة الشكر</TabsTrigger>
+          <TabsList className="grid grid-cols-3 mb-8 bg-black/30 backdrop-blur-md p-1.5 rounded-lg">
+            <TabsTrigger 
+              value="general" 
+              className="text-lg py-3 rounded-md data-[state=active]:bg-white/10 data-[state=active]:text-white text-gray-300"
+            >
+              عام
+            </TabsTrigger>
+            <TabsTrigger 
+              value="background" 
+              className="text-lg py-3 rounded-md data-[state=active]:bg-white/10 data-[state=active]:text-white text-gray-300"
+            >
+              خلفية التطبيق
+            </TabsTrigger>
+            <TabsTrigger 
+              value="contributors" 
+              className="text-lg py-3 rounded-md data-[state=active]:bg-white/10 data-[state=active]:text-white text-gray-300"
+            >
+              لائحة الشكر
+            </TabsTrigger>
           </TabsList>
           
           <TabsContent value="general" className="space-y-4">
-            <div className="bg-black/40 p-6 rounded-lg shadow backdrop-blur-md border border-white/10">
+            <div className="bg-black/60 p-6 rounded-xl shadow-lg backdrop-blur-md border border-white/10">
               <h2 className="text-2xl font-bold text-right mb-4 text-white">الإعدادات العامة</h2>
               <p className="text-right text-gray-300">
                 سيتم إضافة الإعدادات هنا في المستقبل. حالياً لا توجد إعدادات متاحة.

@@ -4,7 +4,6 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { AuthProvider } from "./components/AuthProvider";
 import ProtectedRoute from "./components/ProtectedRoute";
 import { Toaster } from "./components/ui/toaster";
-import { SettingsDropdown } from "./components/SettingsDropdown";
 import NotFound from "./pages/NotFound";
 import AuthPage from "./pages/AuthPage";
 import EmailVerificationPage from "./pages/EmailVerificationPage";
@@ -62,9 +61,7 @@ function App() {
     <Router>
       <QueryClientProvider client={queryClient}>
         <AuthProvider>
-          <div className="absolute left-4 top-4 z-10">
-            <SettingsDropdown />
-          </div>
+          {/* Removed the permanent settings button from here */}
           <Routes>
             <Route
               path="/"
