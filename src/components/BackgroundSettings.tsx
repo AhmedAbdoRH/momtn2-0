@@ -10,20 +10,57 @@ interface GradientOption {
 }
 
 const gradientOptions: GradientOption[] = [
-  { id: "default", name: "افتراضي", gradient: "bg-gradient-to-br from-[#2D1F3D] via-[#1A1F2C] to-[#3D1F2C]", textColor: "text-white" },
-  { id: "cosmic", name: "فضائي", gradient: "bg-gradient-to-br from-[#0F2027] via-[#203A43] to-[#2C5364]", textColor: "text-white" },
-  { id: "midnight", name: "منتصف الليل", gradient: "bg-gradient-to-br from-[#1A1A40] via-[#270082] to-[#7A0BC0]", textColor: "text-white" },
-  { id: "aurora", name: "شفق قطبي", gradient: "bg-gradient-to-br from-[#082032] via-[#2C394B] to-[#334756]", textColor: "text-white" },
-  { id: "royal", name: "ملكي", gradient: "bg-gradient-to-br from-[#240046] via-[#3C096C] to-[#5A189A]", textColor: "text-white" },
-  { id: "galaxy", name: "مجرة", gradient: "bg-gradient-to-br from-[#0B0C10] via-[#1F2833] to-[#2C3531]", textColor: "text-white" },
+  // الخلفية الافتراضية
+  {
+    id: "default",
+    name: "افتراضي",
+    gradient: "bg-gradient-to-br from-[#2D1F3D] via-[#1A1F2C] to-[#3D1F2C]",
+    textColor: "text-white"
+  },
 
-  // الخلفيات الجديدة الاحترافية
-  { id: "sunrise-bliss", name: "شروق دافئ", gradient: "bg-gradient-to-br from-[#FFDEE9] via-[#B5FFFC] to-[#86E3CE]", textColor: "text-gray-900" },
-  { id: "serene-sky", name: "سماء صافية", gradient: "bg-gradient-to-br from-[#a1c4fd] via-[#c2e9fb] to-[#ffffff]", textColor: "text-gray-900" },
-  { id: "golden-glow", name: "وهج ذهبي", gradient: "bg-gradient-to-br from-[#f6d365] via-[#fda085] to-[#fbc2eb]", textColor: "text-gray-900" },
-  { id: "forest-breeze", name: "نسيم الغابة", gradient: "bg-gradient-to-br from-[#a8e6cf] via-[#dcedc1] to-[#ffd3b6]", textColor: "text-gray-900" },
-  { id: "calm-lavender", name: "لافندر هادئ", gradient: "bg-gradient-to-br from-[#c1c8e4] via-[#dcd6f7] to-[#f3e1f7]", textColor: "text-gray-900" },
-  { id: "hope-light", name: "نور الأمل", gradient: "bg-gradient-to-br from-[#fef9d7] via-[#d299c2] to-[#f6f0c4]", textColor: "text-gray-900" },
+  // ألوان الطيف - تدرجات داكنة واحترافية مستوحاة من كل لون
+  {
+    id: "spectrum-red",
+    name: "الأحمر الهادئ",
+    gradient: "bg-gradient-to-br from-[#3B0A0A] via-[#5C1A1A] to-[#7B2E2E]",
+    textColor: "text-white"
+  },
+  {
+    id: "spectrum-orange",
+    name: "البرتقالي الدافئ",
+    gradient: "bg-gradient-to-br from-[#4A2600] via-[#804000] to-[#BF5E00]",
+    textColor: "text-white"
+  },
+  {
+    id: "spectrum-yellow",
+    name: "الأصفر الذهبي",
+    gradient: "bg-gradient-to-br from-[#4B3800] via-[#8C6D1F] to-[#D4AF37]",
+    textColor: "text-white"
+  },
+  {
+    id: "spectrum-green",
+    name: "الأخضر العميق",
+    gradient: "bg-gradient-to-br from-[#0B3D0B] via-[#1C5D1C] to-[#338F33]",
+    textColor: "text-white"
+  },
+  {
+    id: "spectrum-blue",
+    name: "الأزرق السماوي",
+    gradient: "bg-gradient-to-br from-[#0D1B2A] via-[#1B263B] to-[#415A77]",
+    textColor: "text-white"
+  },
+  {
+    id: "spectrum-indigo",
+    name: "النيلي الداكن",
+    gradient: "bg-gradient-to-br from-[#1C1C3C] via-[#2E2E5E] to-[#464687]",
+    textColor: "text-white"
+  },
+  {
+    id: "spectrum-violet",
+    name: "البنفسجي الملكي",
+    gradient: "bg-gradient-to-br from-[#2A003F] via-[#4B007D] to-[#6E0BA5]",
+    textColor: "text-white"
+  }
 ];
 
 const BACKGROUND_STORAGE_KEY = "app-background-gradient";
@@ -134,7 +171,7 @@ export const BackgroundSettings: React.FC = () => {
       </div>
 
       <p className="text-right text-gray-300 mb-6">
-        اختر إحدى التدرجات اللونية المتاحة لتطبيقها على خلفية التطبيق.
+        اختر إحدى التدرجات اللونية المستوحاة من ألوان الطيف لتطبيقها على خلفية التطبيق.
       </p>
 
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 gap-6 mt-8">
