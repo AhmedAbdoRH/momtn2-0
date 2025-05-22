@@ -9,8 +9,8 @@ interface GradientOption {
   textColor?: string;
 }
 
+// خلفيات احترافية مستوحاة من ألوان الطيف
 const gradientOptions: GradientOption[] = [
-  // الخلفية الافتراضية
   {
     id: "default",
     name: "افتراضي",
@@ -18,47 +18,52 @@ const gradientOptions: GradientOption[] = [
     textColor: "text-white"
   },
 
-  // ألوان الطيف - تدرجات داكنة واحترافية مستوحاة من كل لون
   {
     id: "spectrum-red",
     name: "الأحمر الهادئ",
     gradient: "bg-gradient-to-br from-[#3B0A0A] via-[#5C1A1A] to-[#7B2E2E]",
     textColor: "text-white"
   },
+
   {
     id: "spectrum-orange",
-    name: "البرتقالي الدافئ",
-    gradient: "bg-gradient-to-br from-[#4A2600] via-[#804000] to-[#BF5E00]",
+    name: "البرتقالي الغني",
+    gradient: "bg-gradient-to-br from-[#3B1F00] via-[#8B3E00] to-[#BF6F30]",
     textColor: "text-white"
   },
+
   {
     id: "spectrum-yellow",
-    name: "الأصفر الذهبي",
-    gradient: "bg-gradient-to-br from-[#4B3800] via-[#8C6D1F] to-[#D4AF37]",
+    name: "الذهبي الغامق",
+    gradient: "bg-gradient-to-br from-[#2F2500] via-[#7A5E00] to-[#B28F1F]",
     textColor: "text-white"
   },
+
   {
     id: "spectrum-green",
-    name: "الأخضر العميق",
-    gradient: "bg-gradient-to-br from-[#0B3D0B] via-[#1C5D1C] to-[#338F33]",
+    name: "الأخضر المخملي",
+    gradient: "bg-gradient-to-br from-[#0F2F1F] via-[#1F5F3F] to-[#3FAF6F]",
     textColor: "text-white"
   },
+
   {
     id: "spectrum-blue",
     name: "الأزرق السماوي",
     gradient: "bg-gradient-to-br from-[#0D1B2A] via-[#1B263B] to-[#415A77]",
     textColor: "text-white"
   },
+
   {
     id: "spectrum-indigo",
     name: "النيلي الداكن",
     gradient: "bg-gradient-to-br from-[#1C1C3C] via-[#2E2E5E] to-[#464687]",
     textColor: "text-white"
   },
+
   {
     id: "spectrum-violet",
-    name: "البنفسجي الملكي",
-    gradient: "bg-gradient-to-br from-[#2A003F] via-[#4B007D] to-[#6E0BA5]",
+    name: "البنفسجي الكوني",
+    gradient: "bg-gradient-to-br from-[#2B0A3D] via-[#3A1C5A] to-[#5D2E7F]",
     textColor: "text-white"
   }
 ];
@@ -74,6 +79,7 @@ export const applyGradientById = (gradientId: string) => {
 
 export const applyGradientToBody = (selected: GradientOption) => {
   document.body.classList.remove(...gradientOptions.flatMap(opt => opt.gradient.split(' ')));
+
   selected.gradient.split(' ').forEach(className => {
     document.body.classList.add(className);
   });
@@ -171,10 +177,10 @@ export const BackgroundSettings: React.FC = () => {
       </div>
 
       <p className="text-right text-gray-300 mb-6">
-        اختر إحدى التدرجات اللونية المستوحاة من ألوان الطيف لتطبيقها على خلفية التطبيق.
+        اختر إحدى التدرجات اللونية المتاحة لتطبيقها على خلفية التطبيق.
       </p>
 
-      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 gap-6 mt-8">
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-6 mt-8">
         {gradientOptions.map((option) => (
           <div
             key={option.id}
