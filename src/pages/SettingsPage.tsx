@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../components/ui/tabs";
 import { ContributorsList } from "../components/ContributorsList";
@@ -10,13 +9,10 @@ import { useNavigate } from "react-router-dom";
 const SettingsPage = () => {
   const [activeTab, setActiveTab] = useState("general");
   const navigate = useNavigate();
-  
-  // Apply saved background on component mount to ensure it persists
+
   useEffect(() => {
     const savedGradient = localStorage.getItem("app-background-gradient");
     if (savedGradient) {
-      console.log("SettingsPage: Applying saved gradient:", savedGradient);
-      // Dispatch custom event to apply the saved gradient
       const event = new CustomEvent('apply-gradient', { detail: { gradientId: savedGradient } });
       window.dispatchEvent(event);
     }
@@ -25,9 +21,9 @@ const SettingsPage = () => {
   return (
     <div className="container mx-auto p-4 min-h-screen" style={{ background: 'transparent' }}>
       <div className="flex justify-between items-center mb-8">
-        <Button 
+        <Button
           onClick={() => navigate("/")}
-          variant="glass" 
+          variant="glass"
           className="flex items-center gap-2 hover:bg-white/20 transition-all duration-300"
           size="lg"
         >
@@ -36,43 +32,38 @@ const SettingsPage = () => {
         </Button>
         <h1 className="text-3xl font-bold text-gradient">الإعدادات</h1>
       </div>
-      
+
       <div className="glass-effect p-8 rounded-2xl shadow-xl backdrop-blur-md bg-black/60 border border-white/10">
         <Tabs defaultValue="general" dir="rtl" onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid grid-cols-3 mb-8 bg-black/30 backdrop-blur-md p-1.5 rounded-lg">
-            <TabsTrigger 
-              value="general" 
+          <TabsList className="grid grid-cols-2 mb-8 bg-black/30 backdrop-blur-md p-1.5 rounded-lg">
+            <TabsTrigger
+              value="general"
               className="text-lg py-3 rounded-md data-[state=active]:bg-white/10 data-[state=active]:text-white text-gray-300"
             >
-              عام
+              الإعدادات العامة
             </TabsTrigger>
-            <TabsTrigger 
-              value="background" 
-              className="text-lg py-3 rounded-md data-[state=active]:bg-white/10 data-[state=active]:text-white text-gray-300"
-            >
-              خلفية التطبيق
-            </TabsTrigger>
-            <TabsTrigger 
-              value="contributors" 
+            <TabsTrigger
+              value="contributors"
               className="text-lg py-3 rounded-md data-[state=active]:bg-white/10 data-[state=active]:text-white text-gray-300"
             >
               لائحة الشكر
             </TabsTrigger>
           </TabsList>
-          
-          <TabsContent value="general" className="space-y-4">
-            <div className="bg-black/60 p-6 rounded-xl shadow-lg backdrop-blur-md border border-white/10">
-              <h2 className="text-2xl font-bold text-right mb-4 text-white">الإعدادات العامة</h2>
-              <p className="text-right text-gray-300">
-                سيتم إضافة الإعدادات هنا في المستقبل. حالياً لا توجد إعدادات متاحة.
+
+          <TabsContent value="general" className="space-y-8">
+            <section className="bg-black/50 p-6 rounded-xl shadow-lg backdrop-blur-md border border-white/10">
+              <h2 className="text-2xl font-semibold mb-4 text-white text-right">إعدادات عامة</h2>
+              <p className="text-gray-300 text-right">
+                سيتم إضافة المزيد من الإعدادات قريبًا.
               </p>
-            </div>
+            </section>
+
+            <section className="bg-black/50 p-6 rounded-xl shadow-lg backdrop-blur-md border border-white/10">
+              <h2 className="text-2xl font-semibold mb-4 text-white text-right">خلفية التطبيق</h2>
+              <BackgroundSettings />
+            </section>
           </TabsContent>
 
-          <TabsContent value="background">
-            <BackgroundSettings />
-          </TabsContent>
-          
           <TabsContent value="contributors">
             <ContributorsList />
           </TabsContent>
