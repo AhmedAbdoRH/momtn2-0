@@ -9,7 +9,6 @@ interface GradientOption {
   textColor?: string;
 }
 
-// خلفيات احترافية مستوحاة من ألوان الطيف
 const gradientOptions: GradientOption[] = [
   {
     id: "default",
@@ -27,22 +26,22 @@ const gradientOptions: GradientOption[] = [
 
   {
     id: "spectrum-orange",
-    name: "البرتقالي الغني",
-    gradient: "bg-gradient-to-br from-[#3B1F00] via-[#8B3E00] to-[#BF6F30]",
+    name: "النحاسي الدافئ",
+    gradient: "bg-gradient-to-br from-[#3F1D00] via-[#8B4513] to-[#D2691E]",
     textColor: "text-white"
   },
 
   {
     id: "spectrum-yellow",
-    name: "الذهبي الغامق",
-    gradient: "bg-gradient-to-br from-[#2F2500] via-[#7A5E00] to-[#B28F1F]",
+    name: "الذهبي الكهرماني",
+    gradient: "bg-gradient-to-br from-[#3B2F00] via-[#A67C00] to-[#FFBF00]",
     textColor: "text-white"
   },
 
   {
     id: "spectrum-green",
-    name: "الأخضر المخملي",
-    gradient: "bg-gradient-to-br from-[#0F2F1F] via-[#1F5F3F] to-[#3FAF6F]",
+    name: "الزمردي الغامق",
+    gradient: "bg-gradient-to-br from-[#0A2E25] via-[#1C5D4A] to-[#3FAF6F]",
     textColor: "text-white"
   },
 
@@ -55,15 +54,8 @@ const gradientOptions: GradientOption[] = [
 
   {
     id: "spectrum-indigo",
-    name: "النيلي الداكن",
+    name: "النيلي الغامق",
     gradient: "bg-gradient-to-br from-[#1C1C3C] via-[#2E2E5E] to-[#464687]",
-    textColor: "text-white"
-  },
-
-  {
-    id: "spectrum-violet",
-    name: "البنفسجي الكوني",
-    gradient: "bg-gradient-to-br from-[#2B0A3D] via-[#3A1C5A] to-[#5D2E7F]",
     textColor: "text-white"
   }
 ];
