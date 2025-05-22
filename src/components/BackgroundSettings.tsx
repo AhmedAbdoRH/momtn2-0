@@ -10,26 +10,23 @@ interface GradientOption {
   textColor?: string;
 }
 
-// Collection of professional gradient options
+// مجموعة خلفيات محترفة للتطبيق
 const gradientOptions: GradientOption[] = [
+  // الخلفية الافتراضية
   { id: "default", name: "افتراضي", gradient: "bg-gradient-to-br from-[#2D1F3D] via-[#1A1F2C] to-[#3D1F2C]", textColor: "text-white" },
-  { id: "sunset", name: "غروب الشمس", gradient: "bg-gradient-to-br from-orange-400 via-pink-500 to-purple-600", textColor: "text-white" },
-  { id: "ocean", name: "المحيط", gradient: "bg-gradient-to-br from-blue-500 via-teal-400 to-cyan-300", textColor: "text-white" },
-  { id: "forest", name: "الغابة", gradient: "bg-gradient-to-br from-green-500 via-emerald-400 to-teal-500", textColor: "text-white" },
-  { id: "lavender", name: "اللافندر", gradient: "bg-gradient-to-br from-purple-300 via-pink-200 to-indigo-300", textColor: "text-gray-800" },
-  { id: "midnight", name: "منتصف الليل", gradient: "bg-gradient-to-br from-blue-900 via-indigo-800 to-purple-900", textColor: "text-white" },
-  { id: "gold", name: "ذهبي", gradient: "bg-gradient-to-br from-amber-300 via-yellow-400 to-orange-400", textColor: "text-gray-800" },
-  { id: "rose", name: "وردي", gradient: "bg-gradient-to-br from-rose-300 via-pink-400 to-rose-500", textColor: "text-white" },
-  { id: "mint", name: "نعناعي", gradient: "bg-gradient-to-br from-green-200 via-teal-200 to-emerald-300", textColor: "text-gray-800" },
-  { id: "royal", name: "ملكي", gradient: "bg-gradient-to-br from-indigo-600 via-purple-500 to-pink-500", textColor: "text-white" },
-  { id: "ash", name: "رمادي", gradient: "bg-gradient-to-br from-gray-200 via-gray-300 to-gray-400", textColor: "text-gray-800" },
-  { id: "cosmic", name: "كوني", gradient: "bg-gradient-to-br from-indigo-900 via-purple-800 to-pink-900", textColor: "text-white" },
+  
+  // خلفيات احترافية جديدة
+  { id: "cosmic", name: "فضائي", gradient: "bg-gradient-to-br from-[#0F2027] via-[#203A43] to-[#2C5364]", textColor: "text-white" },
+  { id: "midnight", name: "منتصف الليل", gradient: "bg-gradient-to-br from-[#1A1A40] via-[#270082] to-[#7A0BC0]", textColor: "text-white" },
+  { id: "aurora", name: "شفق قطبي", gradient: "bg-gradient-to-br from-[#082032] via-[#2C394B] to-[#334756]", textColor: "text-white" },
+  { id: "royal", name: "ملكي", gradient: "bg-gradient-to-br from-[#240046] via-[#3C096C] to-[#5A189A]", textColor: "text-white" },
+  { id: "galaxy", name: "مجرة", gradient: "bg-gradient-to-br from-[#0B0C10] via-[#1F2833] to-[#2C3531]", textColor: "text-white" },
 ];
 
-// Local Storage key for saving user preference
+// مفتاح تخزين تفضيل المستخدم في التخزين المحلي
 const BACKGROUND_STORAGE_KEY = "app-background-gradient";
 
-// Helper function to apply gradient - can be called from anywhere in the app
+// وظيفة مساعدة لتطبيق التدرج - يمكن استدعاؤها من أي مكان في التطبيق
 export const applyGradientById = (gradientId: string) => {
   const selected = gradientOptions.find(option => option.id === gradientId);
   if (selected) {
@@ -37,20 +34,20 @@ export const applyGradientById = (gradientId: string) => {
   }
 };
 
-// The main function that actually applies the gradient to the document body
+// الوظيفة الرئيسية التي تطبق التدرج على جسم المستند
 export const applyGradientToBody = (selected: GradientOption) => {
-  // First remove all existing gradient classes from any previous selection
+  // أولاً قم بإزالة جميع فئات التدرج الموجودة من أي تحديد سابق
   document.body.classList.remove(...gradientOptions.flatMap(opt => opt.gradient.split(' ')));
   
-  // Apply new gradient classes
+  // تطبيق فئات التدرج الجديدة
   selected.gradient.split(' ').forEach(className => {
     document.body.classList.add(className);
   });
   
-  // Remove any background-color that might be set directly
+  // إزالة أي لون خلفية قد يتم تعيينه بشكل مباشر
   document.body.style.backgroundColor = "";
 
-  // Ensure body covers the entire viewport with !important flags
+  // التأكد من أن الجسم يغطي العرض بالكامل مع علامات !important
   const styleId = "gradient-full-height-style";
   let styleElement = document.getElementById(styleId) as HTMLStyleElement;
   
@@ -60,7 +57,7 @@ export const applyGradientToBody = (selected: GradientOption) => {
     document.head.appendChild(styleElement);
   }
   
-  // Use !important to override any conflicting styles
+  // استخدام !important لتجاوز أي أنماط متعارضة
   styleElement.textContent = `
     html, body {
       height: 100% !important;
@@ -84,14 +81,14 @@ export const applyGradientToBody = (selected: GradientOption) => {
     }
   `;
 
-  // Save the preference to localStorage
+  // حفظ التفضيل في localStorage
   localStorage.setItem(BACKGROUND_STORAGE_KEY, selected.id);
 };
 
 export const BackgroundSettings: React.FC = () => {
   const [selectedGradient, setSelectedGradient] = useState<string>("default");
 
-  // Load saved preference on component mount
+  // تحميل التفضيل المحفوظ عند تحميل المكون
   useEffect(() => {
     const savedGradient = localStorage.getItem(BACKGROUND_STORAGE_KEY);
     if (savedGradient) {
@@ -101,14 +98,14 @@ export const BackgroundSettings: React.FC = () => {
         applyGradientToBody(selected);
       }
     } else {
-      // Apply default gradient if no saved preference
+      // تطبيق التدرج الافتراضي إذا لم يكن هناك تفضيل محفوظ
       const defaultGradient = gradientOptions.find(option => option.id === "default");
       if (defaultGradient) {
         applyGradientToBody(defaultGradient);
       }
     }
     
-    // Listen for apply-gradient events from other components
+    // الاستماع لأحداث apply-gradient من المكونات الأخرى
     const handleApplyGradient = (event: CustomEvent) => {
       const { gradientId } = event.detail;
       if (gradientId) {
@@ -122,7 +119,7 @@ export const BackgroundSettings: React.FC = () => {
     
     window.addEventListener('apply-gradient', handleApplyGradient as EventListener);
     
-    // Clean up event listener when component unmounts
+    // تنظيف مستمع الحدث عند إلغاء تحميل المكون
     return () => {
       window.removeEventListener('apply-gradient', handleApplyGradient as EventListener);
     };
@@ -141,26 +138,26 @@ export const BackgroundSettings: React.FC = () => {
   };
 
   return (
-    <div className="bg-white p-6 rounded-lg shadow">
+    <div className="bg-black/40 p-6 rounded-lg shadow backdrop-blur-md border border-white/10">
       <div className="flex items-center justify-end mb-6">
-        <h2 className="text-2xl font-bold text-right ml-2">تغيير خلفية التطبيق</h2>
-        <Palette className="h-6 w-6 text-gray-600" />
+        <h2 className="text-2xl font-bold text-right ml-2 text-white">تغيير خلفية التطبيق</h2>
+        <Palette className="h-6 w-6 text-gray-300" />
       </div>
       
-      <p className="text-right text-gray-600 mb-6">
+      <p className="text-right text-gray-300 mb-6">
         اختر إحدى التدرجات اللونية المتاحة لتطبيقها على خلفية التطبيق.
       </p>
       
-      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 mt-4">
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 gap-6 mt-8">
         {gradientOptions.map((option) => (
           <div
             key={option.id}
             onClick={() => handleGradientSelect(option.id)}
-            className={`${option.gradient} ${option.textColor || "text-white"} h-24 rounded-lg flex items-center justify-center cursor-pointer transition-transform hover:scale-105 ${
-              selectedGradient === option.id ? "ring-4 ring-offset-2 ring-blue-500" : ""
+            className={`${option.gradient} ${option.textColor || "text-white"} h-28 rounded-xl flex items-center justify-center cursor-pointer transition-transform hover:scale-105 shadow-lg ${
+              selectedGradient === option.id ? "ring-4 ring-offset-2 ring-white/50" : "border border-white/10"
             }`}
           >
-            <span className="font-medium drop-shadow-md">{option.name}</span>
+            <span className="font-bold drop-shadow-md text-lg">{option.name}</span>
           </div>
         ))}
       </div>
