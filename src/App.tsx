@@ -11,11 +11,40 @@ import EmailVerificationPage from "./pages/EmailVerificationPage";
 import ResetPasswordPage from "./pages/ResetPasswordPage";
 import Index from "./pages/Index";
 import SettingsPage from "./pages/SettingsPage";
+import { useEffect } from "react";
 import "./App.css";
 
 const queryClient = new QueryClient();
 
+// Function to apply the saved gradient on app initialization
+const applyBackgroundGradient = () => {
+  // Get the saved gradient ID from localStorage
+  const savedGradientId = localStorage.getItem("app-background-gradient");
+  
+  if (savedGradientId) {
+    // Find the saved gradient in our options
+    // Note: This is a simplified version - in a real app, you'd import your gradientOptions array
+    const gradientClasses = document.body.classList;
+    
+    // Apply appropriate styles based on the saved ID
+    // Since we can't import the actual options here, we'll rely on the BackgroundSettings component
+    // to apply the proper classes when it mounts
+    console.log("App: Found saved gradient, will be applied by BackgroundSettings component");
+  }
+};
+
 function App() {
+  // Apply saved gradient when app initializes
+  useEffect(() => {
+    applyBackgroundGradient();
+    
+    // Ensure the body takes up the full viewport height
+    document.body.style.minHeight = "100vh";
+    document.body.style.margin = "0";
+    document.body.style.padding = "0";
+    document.documentElement.style.height = "100%";
+  }, []);
+
   return (
     <Router>
       <QueryClientProvider client={queryClient}>

@@ -38,10 +38,13 @@ export const BackgroundSettings: React.FC = () => {
     if (savedGradient) {
       setSelectedGradient(savedGradient);
       applyGradientToBody(savedGradient);
+    } else {
+      // Apply default gradient if no saved preference
+      applyGradientToBody("default");
     }
   }, []);
 
-  // Apply the gradient to the body element
+  // Apply the gradient to the body element and ensure it covers the entire viewport
   const applyGradientToBody = (gradientId: string) => {
     const selected = gradientOptions.find(option => option.id === gradientId);
     
@@ -54,6 +57,37 @@ export const BackgroundSettings: React.FC = () => {
       selected.gradient.split(' ').forEach(className => {
         document.body.classList.add(className);
       });
+
+      // Ensure body covers the entire viewport
+      document.body.style.minHeight = "100vh";
+      document.body.style.margin = "0";
+      document.body.style.padding = "0";
+      document.documentElement.style.height = "100%";
+      document.documentElement.style.margin = "0";
+      document.documentElement.style.padding = "0";
+
+      // Add CSS to ensure the gradient covers the entire viewport
+      // This is needed because sometimes other elements might override the body styles
+      const styleId = "gradient-full-height-style";
+      let styleElement = document.getElementById(styleId) as HTMLStyleElement;
+      
+      if (!styleElement) {
+        styleElement = document.createElement("style");
+        styleElement.id = styleId;
+        document.head.appendChild(styleElement);
+      }
+      
+      styleElement.textContent = `
+        html, body {
+          height: 100% !important;
+          min-height: 100vh !important;
+          margin: 0 !important;
+          padding: 0 !important;
+        }
+        #root {
+          min-height: 100vh !important;
+        }
+      `;
 
       // Save the preference to localStorage
       localStorage.setItem(BACKGROUND_STORAGE_KEY, gradientId);

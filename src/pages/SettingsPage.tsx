@@ -7,6 +7,15 @@ import { BackgroundSettings } from "../components/BackgroundSettings";
 const SettingsPage = () => {
   const [activeTab, setActiveTab] = useState("general");
 
+  // Apply saved background on component mount to ensure it persists
+  useEffect(() => {
+    const savedGradient = localStorage.getItem("app-background-gradient");
+    if (savedGradient) {
+      const event = new CustomEvent('apply-gradient', { detail: { gradientId: savedGradient } });
+      window.dispatchEvent(event);
+    }
+  }, []);
+
   return (
     <div className="container mx-auto p-4 min-h-screen">
       <h1 className="text-3xl font-bold text-right mb-6">الإعدادات</h1>
