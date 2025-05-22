@@ -11,6 +11,8 @@ const SettingsPage = () => {
   useEffect(() => {
     const savedGradient = localStorage.getItem("app-background-gradient");
     if (savedGradient) {
+      console.log("SettingsPage: Applying saved gradient:", savedGradient);
+      // Dispatch custom event to apply the saved gradient
       const event = new CustomEvent('apply-gradient', { detail: { gradientId: savedGradient } });
       window.dispatchEvent(event);
     }
@@ -49,3 +51,4 @@ const SettingsPage = () => {
 };
 
 export default SettingsPage;
+

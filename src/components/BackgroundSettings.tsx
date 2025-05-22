@@ -29,6 +29,55 @@ const gradientOptions: GradientOption[] = [
 // Local Storage key for saving user preference
 const BACKGROUND_STORAGE_KEY = "app-background-gradient";
 
+// Helper function to apply gradient - can be called from anywhere in the app
+export const applyGradientById = (gradientId: string) => {
+  const selected = gradientOptions.find(option => option.id === gradientId);
+  if (selected) {
+    applyGradientToBody(selected);
+  }
+};
+
+// The main function that actually applies the gradient to the document body
+export const applyGradientToBody = (selected: GradientOption) => {
+  // First remove all existing gradient classes from any previous selection
+  document.body.classList.remove(...gradientOptions.flatMap(opt => opt.gradient.split(' ')));
+  
+  // Apply new gradient classes
+  selected.gradient.split(' ').forEach(className => {
+    document.body.classList.add(className);
+  });
+
+  // Ensure body covers the entire viewport with !important flags
+  const styleId = "gradient-full-height-style";
+  let styleElement = document.getElementById(styleId) as HTMLStyleElement;
+  
+  if (!styleElement) {
+    styleElement = document.createElement("style");
+    styleElement.id = styleId;
+    document.head.appendChild(styleElement);
+  }
+  
+  // Use !important to override any conflicting styles
+  styleElement.textContent = `
+    html, body {
+      height: 100% !important;
+      min-height: 100vh !important;
+      margin: 0 !important;
+      padding: 0 !important;
+      background-attachment: fixed !important;
+    }
+    #root {
+      min-height: 100vh !important;
+    }
+    body {
+      overflow-x: hidden !important;
+    }
+  `;
+
+  // Save the preference to localStorage
+  localStorage.setItem(BACKGROUND_STORAGE_KEY, selected.id);
+};
+
 export const BackgroundSettings: React.FC = () => {
   const [selectedGradient, setSelectedGradient] = useState<string>("default");
 
@@ -37,71 +86,48 @@ export const BackgroundSettings: React.FC = () => {
     const savedGradient = localStorage.getItem(BACKGROUND_STORAGE_KEY);
     if (savedGradient) {
       setSelectedGradient(savedGradient);
-      applyGradientToBody(savedGradient);
+      const selected = gradientOptions.find(option => option.id === savedGradient);
+      if (selected) {
+        applyGradientToBody(selected);
+      }
     } else {
       // Apply default gradient if no saved preference
-      applyGradientToBody("default");
+      const defaultGradient = gradientOptions.find(option => option.id === "default");
+      if (defaultGradient) {
+        applyGradientToBody(defaultGradient);
+      }
     }
+    
+    // Listen for apply-gradient events from other components
+    const handleApplyGradient = (event: CustomEvent) => {
+      const { gradientId } = event.detail;
+      if (gradientId) {
+        setSelectedGradient(gradientId);
+        const selected = gradientOptions.find(option => option.id === gradientId);
+        if (selected) {
+          applyGradientToBody(selected);
+        }
+      }
+    };
+    
+    window.addEventListener('apply-gradient', handleApplyGradient as EventListener);
+    
+    // Clean up event listener when component unmounts
+    return () => {
+      window.removeEventListener('apply-gradient', handleApplyGradient as EventListener);
+    };
   }, []);
 
-  // Apply the gradient to the body element and ensure it covers the entire viewport
-  const applyGradientToBody = (gradientId: string) => {
+  const handleGradientSelect = (gradientId: string) => {
+    setSelectedGradient(gradientId);
     const selected = gradientOptions.find(option => option.id === gradientId);
-    
     if (selected) {
-      // Remove all existing gradient classes
-      document.body.classList.remove(...gradientOptions.map(opt => opt.gradient.split(' ')[0]));
-      document.body.classList.remove(...gradientOptions.flatMap(opt => opt.gradient.split(' ')));
-      
-      // Apply new gradient classes
-      selected.gradient.split(' ').forEach(className => {
-        document.body.classList.add(className);
-      });
-
-      // Ensure body covers the entire viewport
-      document.body.style.minHeight = "100vh";
-      document.body.style.margin = "0";
-      document.body.style.padding = "0";
-      document.documentElement.style.height = "100%";
-      document.documentElement.style.margin = "0";
-      document.documentElement.style.padding = "0";
-
-      // Add CSS to ensure the gradient covers the entire viewport
-      // This is needed because sometimes other elements might override the body styles
-      const styleId = "gradient-full-height-style";
-      let styleElement = document.getElementById(styleId) as HTMLStyleElement;
-      
-      if (!styleElement) {
-        styleElement = document.createElement("style");
-        styleElement.id = styleId;
-        document.head.appendChild(styleElement);
-      }
-      
-      styleElement.textContent = `
-        html, body {
-          height: 100% !important;
-          min-height: 100vh !important;
-          margin: 0 !important;
-          padding: 0 !important;
-        }
-        #root {
-          min-height: 100vh !important;
-        }
-      `;
-
-      // Save the preference to localStorage
-      localStorage.setItem(BACKGROUND_STORAGE_KEY, gradientId);
-      
+      applyGradientToBody(selected);
       toast({
         title: "تم تغيير الخلفية",
         description: `تم تطبيق خلفية "${selected.name}" بنجاح.`
       });
     }
-  };
-
-  const handleGradientSelect = (gradientId: string) => {
-    setSelectedGradient(gradientId);
-    applyGradientToBody(gradientId);
   };
 
   return (
@@ -131,3 +157,4 @@ export const BackgroundSettings: React.FC = () => {
     </div>
   );
 };
+

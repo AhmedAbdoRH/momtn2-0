@@ -12,31 +12,30 @@ import ResetPasswordPage from "./pages/ResetPasswordPage";
 import Index from "./pages/Index";
 import SettingsPage from "./pages/SettingsPage";
 import { useEffect } from "react";
+import { applyGradientById } from "./components/BackgroundSettings";
 import "./App.css";
 
 const queryClient = new QueryClient();
 
-// Function to apply the saved gradient on app initialization
-const applyBackgroundGradient = () => {
-  // Get the saved gradient ID from localStorage
-  const savedGradientId = localStorage.getItem("app-background-gradient");
-  
-  if (savedGradientId) {
-    // Find the saved gradient in our options
-    // Note: This is a simplified version - in a real app, you'd import your gradientOptions array
-    const gradientClasses = document.body.classList;
-    
-    // Apply appropriate styles based on the saved ID
-    // Since we can't import the actual options here, we'll rely on the BackgroundSettings component
-    // to apply the proper classes when it mounts
-    console.log("App: Found saved gradient, will be applied by BackgroundSettings component");
-  }
-};
-
 function App() {
   // Apply saved gradient when app initializes
   useEffect(() => {
-    applyBackgroundGradient();
+    // Get the saved gradient ID from localStorage
+    const savedGradientId = localStorage.getItem("app-background-gradient");
+    
+    if (savedGradientId) {
+      // Apply the saved gradient
+      console.log("App: Applying saved gradient:", savedGradientId);
+      
+      // Use a timeout to ensure the DOM is fully loaded
+      setTimeout(() => {
+        applyGradientById(savedGradientId);
+      }, 100);
+    } else {
+      // Apply default gradient if no saved preference
+      console.log("App: No saved gradient found, applying default");
+      applyGradientById("default");
+    }
     
     // Ensure the body takes up the full viewport height
     document.body.style.minHeight = "100vh";
@@ -83,3 +82,4 @@ function App() {
 }
 
 export default App;
+
