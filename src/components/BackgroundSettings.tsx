@@ -16,46 +16,40 @@ const gradientOptions: GradientOption[] = [
     gradient: "bg-gradient-to-br from-[#2D1F3D] via-[#1A1F2C] to-[#3D1F2C]",
     textColor: "text-white"
   },
-
   {
     id: "spectrum-red",
     name: "الأحمر الهادئ",
-    gradient: "bg-gradient-to-br from-[#3B0A0A] via-[#5C1A1A] to-[#7B2E2E]",
+    gradient: "bg-gradient-to-br from-[#3B0A0A] via-[#5C1A1A] to-[#3D1F2C]",
     textColor: "text-white"
   },
-
-  {
-    id: "spectrum-orange",
-    name: "النحاسي الدافئ",
-    gradient: "bg-gradient-to-br from-[#3F1D00] via-[#8B4513] to-[#D2691E]",
-    textColor: "text-white"
-  },
-
-  {
-    id: "spectrum-yellow",
-    name: "الذهبي الكهرماني",
-    gradient: "bg-gradient-to-br from-[#3B2F00] via-[#A67C00] to-[#FFBF00]",
-    textColor: "text-white"
-  },
-
-  {
-    id: "spectrum-green",
-    name: "الزمردي الغامق",
-    gradient: "bg-gradient-to-br from-[#0A2E25] via-[#1C5D4A] to-[#3FAF6F]",
-    textColor: "text-white"
-  },
-
   {
     id: "spectrum-blue",
     name: "الأزرق السماوي",
-    gradient: "bg-gradient-to-br from-[#0D1B2A] via-[#1B263B] to-[#415A77]",
+    gradient: "bg-gradient-to-br from-[#0D1B2A] via-[#1B263B] to-[#3D1F2C]",
     textColor: "text-white"
   },
-
   {
     id: "spectrum-indigo",
     name: "النيلي الغامق",
-    gradient: "bg-gradient-to-br from-[#1C1C3C] via-[#2E2E5E] to-[#464687]",
+    gradient: "bg-gradient-to-br from-[#1C1C3C] via-[#2E2E5E] to-[#3D1F2C]",
+    textColor: "text-white"
+  },
+  {
+    id: "spectrum-green",
+    name: "الأخضر الغامق",
+    gradient: "bg-gradient-to-br from-[#0F3D3E] via-[#1E5F5B] to-[#3D1F2C]",
+    textColor: "text-white"
+  },
+  {
+    id: "spectrum-yellow",
+    name: "الذهبي الدافئ",
+    gradient: "bg-gradient-to-br from-[#665C00] via-[#B79300] to-[#3D1F2C]",
+    textColor: "text-white"
+  },
+  {
+    id: "spectrum-orange",
+    name: "البرتقالي الغني",
+    gradient: "bg-gradient-to-br from-[#7B341E] via-[#C75B28] to-[#3D1F2C]",
     textColor: "text-white"
   }
 ];
@@ -71,7 +65,6 @@ export const applyGradientById = (gradientId: string) => {
 
 export const applyGradientToBody = (selected: GradientOption) => {
   document.body.classList.remove(...gradientOptions.flatMap(opt => opt.gradient.split(' ')));
-
   selected.gradient.split(' ').forEach(className => {
     document.body.classList.add(className);
   });
