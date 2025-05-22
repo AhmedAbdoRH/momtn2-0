@@ -2,7 +2,7 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { AuthProvider } from "./components/AuthProvider";
-import ProtectedRoute from "./components/ProtectedRoute"; // Changed from named import to default import
+import ProtectedRoute from "./components/ProtectedRoute";
 import { Toaster } from "./components/ui/toaster";
 import { SettingsDropdown } from "./components/SettingsDropdown";
 import NotFound from "./pages/NotFound";
@@ -37,11 +37,25 @@ function App() {
       applyGradientById("default");
     }
     
-    // Ensure the body takes up the full viewport height
+    // Ensure the body takes up the full viewport height and remove any background
     document.body.style.minHeight = "100vh";
     document.body.style.margin = "0";
     document.body.style.padding = "0";
     document.documentElement.style.height = "100%";
+    
+    // Listen for gradient changes from any part of the app
+    const handleApplyGradient = (event: CustomEvent) => {
+      const { gradientId } = event.detail;
+      if (gradientId) {
+        applyGradientById(gradientId);
+      }
+    };
+    
+    window.addEventListener('apply-gradient', handleApplyGradient as EventListener);
+    
+    return () => {
+      window.removeEventListener('apply-gradient', handleApplyGradient as EventListener);
+    };
   }, []);
 
   return (
@@ -82,4 +96,3 @@ function App() {
 }
 
 export default App;
-

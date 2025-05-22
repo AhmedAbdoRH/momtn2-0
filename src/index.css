@@ -37,7 +37,8 @@
   }
 
   body {
-    @apply bg-gradient-to-br from-[#2D1F3D] via-[#1A1F2C] to-[#3D1F2C] text-foreground antialiased min-h-screen;
+    @apply text-foreground antialiased min-h-screen;
+    /* Remove the default gradient here */
   }
 
   img {

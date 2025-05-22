@@ -46,6 +46,9 @@ export const applyGradientToBody = (selected: GradientOption) => {
   selected.gradient.split(' ').forEach(className => {
     document.body.classList.add(className);
   });
+  
+  // Remove any background-color that might be set directly
+  document.body.style.backgroundColor = "";
 
   // Ensure body covers the entire viewport with !important flags
   const styleId = "gradient-full-height-style";
@@ -68,9 +71,16 @@ export const applyGradientToBody = (selected: GradientOption) => {
     }
     #root {
       min-height: 100vh !important;
+      background: transparent !important;
     }
     body {
       overflow-x: hidden !important;
+    }
+    .min-h-screen {
+      background: transparent !important;
+    }
+    [class*="bg-background"] {
+      background: transparent !important;
     }
   `;
 
@@ -157,4 +167,3 @@ export const BackgroundSettings: React.FC = () => {
     </div>
   );
 };
-

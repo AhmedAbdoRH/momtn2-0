@@ -19,7 +19,7 @@ const SettingsPage = () => {
   }, []);
 
   return (
-    <div className="container mx-auto p-4 min-h-screen">
+    <div className="container mx-auto p-4 min-h-screen" style={{ background: 'transparent' }}>
       <h1 className="text-3xl font-bold text-right mb-6">الإعدادات</h1>
       
       <Tabs defaultValue="general" dir="rtl" onValueChange={setActiveTab} className="w-full">
@@ -51,4 +51,3 @@ const SettingsPage = () => {
 };
 
 export default SettingsPage;
-
