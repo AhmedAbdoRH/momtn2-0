@@ -22,36 +22,15 @@ const gradientOptions: GradientOption[] = [
     gradient: "bg-gradient-to-br from-[#3B0A0A] via-[#5C1A1A] to-[#3D1F2C]",
     textColor: "text-white"
   },
-  {
-    id: "spectrum-blue",
-    name: "الأزرق السماوي",
-    gradient: "bg-gradient-to-br from-[#0D1B2A] via-[#1B263B] to-[#3D1F2C]",
-    textColor: "text-white"
-  },
+  
   {
     id: "spectrum-indigo",
     name: "النيلي الغامق",
     gradient: "bg-gradient-to-br from-[#1C1C3C] via-[#2E2E5E] to-[#3D1F2C]",
     textColor: "text-white"
   },
-  {
-    id: "spectrum-green",
-    name: "الأخضر الغامق",
-    gradient: "bg-gradient-to-br from-[#0F3D3E] via-[#1E5F5B] to-[#3D1F2C]",
-    textColor: "text-white"
-  },
-  {
-    id: "spectrum-yellow",
-    name: "الذهبي الدافئ",
-    gradient: "bg-gradient-to-br from-[#665C00] via-[#B79300] to-[#3D1F2C]",
-    textColor: "text-white"
-  },
-  {
-    id: "spectrum-orange",
-    name: "البرتقالي الغني",
-    gradient: "bg-gradient-to-br from-[#7B341E] via-[#C75B28] to-[#3D1F2C]",
-    textColor: "text-white"
-  }
+ 
+  
 ];
 
 const BACKGROUND_STORAGE_KEY = "app-background-gradient";
