@@ -23,6 +23,23 @@ export const useAuth = () => {
   return context;
 };
 
+// Helper function to load user's background preference
+const loadUserBackgroundPreference = async (userId: string) => {
+  try {
+    const savedGradient = localStorage.getItem(`user-background-${userId}`);
+    const gradientId = savedGradient || 'default';
+    
+    console.log(`Loading background preference for user ${userId}:`, gradientId);
+    
+    // Dispatch event to apply the user's background
+    window.dispatchEvent(new CustomEvent('apply-gradient', { 
+      detail: { gradientId, userId } 
+    }));
+  } catch (error) {
+    console.error('Error loading user background preference:', error);
+  }
+};
+
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
@@ -43,6 +60,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           setSession(newSession);
           setUser(newSession?.user ?? null);
           
+          // Load user's background preference when they sign in
+          if (newSession?.user?.id) {
+            await loadUserBackgroundPreference(newSession.user.id);
+          }
+          
           // Redirect to the home page if on auth page
           if (newSession && location.pathname === '/auth') {
             navigate('/');
@@ -51,6 +73,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           console.log("User signed out");
           setSession(null);
           setUser(null);
+          
+          // Apply default background when user signs out
+          window.dispatchEvent(new CustomEvent('apply-gradient', { 
+            detail: { gradientId: 'default', userId: null } 
+          }));
+          
           navigate('/auth');
         } else if (event === 'USER_UPDATED') {
           console.log("User updated");
@@ -83,6 +111,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         setSession(session);
         setUser(session?.user ?? null);
         
+        // Load user's background preference if user is logged in
+        if (session?.user?.id) {
+          await loadUserBackgroundPreference(session.user.id);
+        }
+        
         // Redirect if needed
         if (location.pathname === '/auth' && session) {
           navigate('/');
@@ -110,6 +143,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       if (!error && data.user) {
         setUser(data.user);
         setSession(data.session);
+        
+        // Load default background for new user
+        if (data.user.id) {
+          await loadUserBackgroundPreference(data.user.id);
+        }
+        
         navigate('/');
       }
       
@@ -127,6 +166,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       console.log("Sign in result:", error ? `Error: ${error.message}` : "Success", data);
       
       if (!error && data.user) {
+        // Load user's background preference
+        if (data.user.id) {
+          await loadUserBackgroundPreference(data.user.id);
+        }
         navigate('/');
       }
       return { error };

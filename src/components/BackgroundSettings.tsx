@@ -103,11 +103,12 @@ export const applyGradientById = (gradientId: string) => {
   }
 };
 
-// استخدام localStorage بدلاً من Supabase مؤقتاً
+// حفظ إعدادات الخلفية الخاصة بالمستخدم
 const saveUserBackgroundPreference = async (userId: string, gradientId: string) => {
   try {
-    localStorage.setItem(`background-${userId}`, gradientId);
-    localStorage.setItem("app-background-gradient", gradientId);
+    // حفظ الإعدادات خاصة بالمستخدم فقط
+    localStorage.setItem(`user-background-${userId}`, gradientId);
+    console.log(`Saved background preference for user ${userId}:`, gradientId);
     return true;
   } catch (error) {
     console.error('Error saving background preference:', error);
@@ -115,10 +116,12 @@ const saveUserBackgroundPreference = async (userId: string, gradientId: string) 
   }
 };
 
+// جلب إعدادات الخلفية الخاصة بالمستخدم
 const getUserBackgroundPreference = async (userId: string): Promise<string | null> => {
   try {
-    const saved = localStorage.getItem(`background-${userId}`);
-    return saved || localStorage.getItem("app-background-gradient");
+    const saved = localStorage.getItem(`user-background-${userId}`);
+    console.log(`Got background preference for user ${userId}:`, saved);
+    return saved;
   } catch (error) {
     console.error('Error getting background preference:', error);
     return null;
@@ -133,6 +136,10 @@ export const BackgroundSettings: React.FC = () => {
   useEffect(() => {
     const loadBackgroundPreference = async () => {
       if (!user) {
+        // إذا لم يكن هناك مستخدم مسجل الدخول، استخدم الافتراضي
+        console.log("No user logged in, using default gradient");
+        setSelectedGradient('default');
+        applyGradientById('default');
         setIsLoading(false);
         return;
       }
@@ -142,9 +149,14 @@ export const BackgroundSettings: React.FC = () => {
         const savedGradientId = await getUserBackgroundPreference(user.id);
         const gradientId = savedGradientId || 'default';
         
-        console.log("Loading background preference:", gradientId);
+        console.log("Loading background preference for user:", user.id, gradientId);
         setSelectedGradient(gradientId);
         applyGradientById(gradientId);
+        
+        // إرسال حدث لتطبيق الخلفية الخاصة بالمستخدم
+        window.dispatchEvent(new CustomEvent('apply-gradient', { 
+          detail: { gradientId, userId: user.id } 
+        }));
       } catch (error) {
         console.error('Error loading background preference:', error);
         applyGradientById('default');
@@ -166,7 +178,7 @@ export const BackgroundSettings: React.FC = () => {
       return;
     }
 
-    console.log("Selecting gradient:", gradientId);
+    console.log("Selecting gradient for user:", user.id, gradientId);
     
     // تطبيق الخلفية فوراً
     setSelectedGradient(gradientId);
@@ -181,10 +193,10 @@ export const BackgroundSettings: React.FC = () => {
           description: `تم تطبيق خلفية "${selected?.name}" بنجاح.`
         });
         
-        // إرسال حدث لتطبيق الخلفية على جميع الصفحات
-        console.log("Dispatching gradient change event:", gradientId);
+        // إرسال حدث لتطبيق الخلفية الخاصة بالمستخدم على جميع الصفحات
+        console.log("Dispatching gradient change event for user:", user.id, gradientId);
         window.dispatchEvent(new CustomEvent('apply-gradient', { 
-          detail: { gradientId } 
+          detail: { gradientId, userId: user.id } 
         }));
         
         // إجبار إعادة تطبيق الخلفية بعد تأخير قصير
@@ -212,8 +224,16 @@ export const BackgroundSettings: React.FC = () => {
       </div>
 
       <p className="text-right text-gray-300 mb-6">
-        اختر إحدى الخلفيات المتاحة لتطبيقها على التطبيق.
+        اختر إحدى الخلفيات المتاحة لتطبيقها على التطبيق. سيتم حفظ اختيارك مع حسابك الشخصي.
       </p>
+
+      {!user && (
+        <div className="bg-yellow-500/20 border border-yellow-500/40 rounded-lg p-4 mb-6">
+          <p className="text-yellow-200 text-right">
+            يجب تسجيل الدخول لحفظ إعدادات الخلفية الخاصة بك.
+          </p>
+        </div>
+      )}
 
       {isLoading ? (
         <div className="flex justify-center items-center h-40">

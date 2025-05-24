@@ -17,30 +17,11 @@ import "./App.css";
 const queryClient = new QueryClient();
 
 function App() {
-  // Apply saved gradient when app initializes
+  // Apply user-specific gradient when app initializes
   useEffect(() => {
-    // Get the saved gradient ID from localStorage
-    const savedGradientId = localStorage.getItem("app-background-gradient");
-    
-    if (savedGradientId) {
-      // Apply the saved gradient
-      console.log("App: Applying saved gradient:", savedGradientId);
-      
-      // Use multiple timeouts to ensure the gradient is applied
-      setTimeout(() => {
-        applyGradientById(savedGradientId);
-      }, 100);
-      
-      setTimeout(() => {
-        applyGradientById(savedGradientId);
-      }, 500);
-    } else {
-      // Apply default gradient if no saved preference
-      console.log("App: No saved gradient found, applying default");
-      setTimeout(() => {
-        applyGradientById("default");
-      }, 100);
-    }
+    // Apply default gradient initially
+    console.log("App: Applying default gradient on load");
+    applyGradientById("default");
     
     // Ensure the body takes up the full viewport height and remove any background
     document.body.style.minHeight = "100vh";
@@ -51,11 +32,10 @@ function App() {
     
     // Listen for gradient changes from any part of the app
     const handleApplyGradient = (event: CustomEvent) => {
-      const { gradientId } = event.detail;
+      const { gradientId, userId } = event.detail;
       if (gradientId) {
-        console.log("App: Received gradient change event:", gradientId);
+        console.log("App: Received gradient change event for user:", userId, gradientId);
         applyGradientById(gradientId);
-        localStorage.setItem("app-background-gradient", gradientId);
         
         // Apply again after a short delay to ensure it sticks
         setTimeout(() => {
