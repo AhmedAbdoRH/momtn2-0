@@ -1,0 +1,111 @@
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 283 32% 15%;
+    --foreground: 0 0% 100%;
+    
+    --primary: 0 0% 100% / 0.15;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 0 0% 100% / 0.05;
+    --secondary-foreground: 0 0% 100%;
+
+    --muted: 270 20% 35%;
+    --muted-foreground: 0 0% 70%;
+
+    --accent: 275 30% 40%;
+    --accent-foreground: 0 0% 100%;
+
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 275 20% 45%;
+    --input: 275 20% 50%;
+    --ring: 283 32% 55%;
+
+    --sidebar: 280 30% 30%;
+
+    --radius: 1rem;
+  }
+
+  html, body {
+    @apply h-full w-full m-0 p-0;
+  }
+
+  body {
+    @apply text-foreground antialiased min-h-screen;
+    /* Remove the default gradient here */
+  }
+
+  img {
+    @apply select-none;
+  }
+
+  /* تعديل نمط الزر الأساسي لإضافة التأثير الزجاجي */
+  button {
+    /* تطبيق الخلفية الشفافة (--primary) */
+    /* إضافة تمويه الخلفية (backdrop-blur) وحدود خفيفة */
+    @apply bg-primary text-primary-foreground rounded-lg px-4 py-2 backdrop-blur-md border border-white/20 transition-colors;
+    /* تعديل حالة الـ hover لتتناسب مع التأثير الزجاجي */
+    /* هنا نزيد شفافية الخلفية قليلاً عند الـ hover */
+    @apply hover:bg-primary/90;
+  }
+
+  /* الأنماط الأخرى للأزرار تبقى كما هي، لكنها لن تكون زجاجية إلا إذا تم تعديلها */
+  .secondary-button {
+    @apply bg-secondary text-secondary-foreground rounded-lg px-4 py-2 hover:bg-secondary/80 transition-colors;
+  }
+
+  .muted-button {
+    @apply bg-muted text-muted-foreground rounded-lg px-4 py-2 cursor-not-allowed;
+  }
+
+  .accent-button {
+    @apply bg-accent text-accent-foreground rounded-lg px-4 py-2 hover:bg-accent/80 transition-colors;
+  }
+
+  .destructive-button {
+    @apply bg-destructive text-destructive-foreground rounded-lg px-4 py-2 hover:bg-destructive/80 transition-colors;
+  }
+
+  .circular-button {
+    @apply rounded-full p-4 w-12 h-12;
+  }
+
+  * {
+    color: white;
+  }
+}
+
+/* هذا النمط أصبح الآن مشابه جداً لنمط الزر الأساسي المعدل */
+.glass-effect {
+  /* يمكنك استخدام هذا النمط لعناصر أخرى غير الأزرار */
+  @apply backdrop-blur-lg bg-black/20 border border-border rounded-lg;
+}
+
+@keyframes pulse-slow {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 0.15;
+  }
+  50% {
+    transform: scale(1.4);
+    opacity: 0.05;
+  }
+}
+
+.animate-pulse-slow {
+  animation: pulse-slow 3s cubic-bezier(0.4, 0, 0.6, 0) infinite;
+}
+
+.suggestions-list {
+  @apply absolute bg-gray-900/90 backdrop-blur-md border border-gray-700 rounded-md shadow-lg w-full mt-1 max-h-40 overflow-y-auto z-50;
+}
+
+.suggestion-item {
+  @apply px-3 py-2 hover:bg-white/10 cursor-pointer text-sm text-right;
+}
