@@ -33,7 +33,9 @@ function App() {
     } else {
       // Apply default gradient if no saved preference
       console.log("App: No saved gradient found, applying default");
-      applyGradientById("default");
+      setTimeout(() => {
+        applyGradientById("default");
+      }, 100);
     }
     
     // Ensure the body takes up the full viewport height and remove any background

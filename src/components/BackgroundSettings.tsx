@@ -25,9 +25,21 @@ const gradientOptions: GradientOption[] = [
     textColor: "text-white"
   },
   {
-    id: "spectrum-indigo",
-    name: "النيلي الغامق",
-    gradient: "bg-gradient-to-br from-[#1C1C3C] via-[#2E2E5E] to-[#3D1F2C]",
+    id: "velvet-rose-darker",
+    name: "الورد المخملي الداكن",
+    gradient: "bg-gradient-to-br from-[#14090e] via-[#4a1e34] to-[#9c3d1a]",
+    textColor: "text-white"
+  },
+  {
+    id: "crimson-ember-ultra",
+    name: "جمرة قرمزية - مظلمة جداً",
+    gradient: "bg-gradient-to-br from-[#100707] via-[#4A1C17] to-[#7A2E26]",
+    textColor: "text-white"
+  },
+  {
+    id: "olive-obsidian",
+    name: "زيتون الأوبسيديان",
+    gradient: "bg-gradient-to-br from-[#0A0E0A] via-[#1F2D24] to-[#3B4A36]",
     textColor: "text-white"
   }
 ];
@@ -71,12 +83,17 @@ const applyGradientToBody = (selected: GradientOption) => {
       overflow-x: hidden !important;
     }
   `;
+
+  console.log("Applied gradient to body:", selected.name, selected.gradient);
 };
 
 export const applyGradientById = (gradientId: string) => {
   const selected = gradientOptions.find(option => option.id === gradientId);
   if (selected) {
+    console.log("Applying gradient by ID:", gradientId, selected.name);
     applyGradientToBody(selected);
+  } else {
+    console.warn("Gradient not found:", gradientId);
   }
 };
 
@@ -119,6 +136,7 @@ export const BackgroundSettings: React.FC = () => {
         const savedGradientId = await getUserBackgroundPreference(user.id);
         const gradientId = savedGradientId || 'default';
         
+        console.log("Loading background preference:", gradientId);
         setSelectedGradient(gradientId);
         applyGradientById(gradientId);
       } catch (error) {
@@ -142,6 +160,8 @@ export const BackgroundSettings: React.FC = () => {
       return;
     }
 
+    console.log("Selecting gradient:", gradientId);
+    
     // تطبيق الخلفية فوراً
     setSelectedGradient(gradientId);
     applyGradientById(gradientId);
@@ -156,6 +176,7 @@ export const BackgroundSettings: React.FC = () => {
         });
         
         // إرسال حدث لتطبيق الخلفية على الصفحة الرئيسية
+        console.log("Dispatching gradient change event:", gradientId);
         window.dispatchEvent(new CustomEvent('apply-gradient', { 
           detail: { gradientId } 
         }));
