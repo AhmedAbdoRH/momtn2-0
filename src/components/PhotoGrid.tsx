@@ -40,16 +40,35 @@ const PhotoGrid: React.FC<PhotoGridProps> = ({ closeSidebar }) => {
   const [showFirstTimeModal, setShowFirstTimeModal] = useState(false);
   const [hasShownFirstTimeModal, setHasShownFirstTimeModal] = useState(false);
   const [isFirstPhotoAdded, setIsFirstPhotoAdded] = useState(false);
+  // Use a ref to track if we've shown the first time modal
+  const hasShownFirstTimeModalRef = useRef(false);
+  const [dontShowAgain, setDontShowAgain] = useState(true);
+
+  // Check if user has chosen to not see the tutorial again
+  useEffect(() => {
+    if (user) {
+      const dontShowTutorial = localStorage.getItem(`dontShowTutorial_${user.id}`) === 'true';
+      if (dontShowTutorial) {
+        console.log('User has chosen to not see the tutorial again');
+        setHasShownFirstTimeModal(true);
+        hasShownFirstTimeModalRef.current = true;
+      }
+    }
+  }, [user]);
 
   useEffect(() => {
     const initialize = async () => {
       if (user) {
         const photosData = await fetchPhotos();
-        // If it's the first time loading and there's exactly one photo, show the modal
-        if (photosData && photosData.length === 1 && !hasShownFirstTimeModalRef.current) {
-          setShowFirstTimeModal(true);
-          setHasShownFirstTimeModal(true);
-          hasShownFirstTimeModalRef.current = true;
+        // Check if we should show the tutorial modal
+        if (photosData && photosData.length === 1) {
+          const dontShowTutorial = localStorage.getItem(`dontShowTutorial_${user.id}`) === 'true';
+          if (!dontShowTutorial && !hasShownFirstTimeModalRef.current) {
+            console.log('Showing first time tutorial modal');
+            setShowFirstTimeModal(true);
+            setHasShownFirstTimeModal(true);
+            hasShownFirstTimeModalRef.current = true;
+          }
         }
       } else {
         setLoadingInitialPhotos(false);
@@ -58,9 +77,6 @@ const PhotoGrid: React.FC<PhotoGridProps> = ({ closeSidebar }) => {
     
     initialize();
   }, [user]);
-
-  // Use a ref to track if we've shown the first time modal
-  const hasShownFirstTimeModalRef = useRef(false);
 
   useEffect(() => {
     const handlePhotoAdded = async () => {
@@ -217,6 +233,14 @@ const PhotoGrid: React.FC<PhotoGridProps> = ({ closeSidebar }) => {
       const isFirstPhoto = photos.length === 0;
       console.log('isFirstPhoto:', isFirstPhoto, 'photos.length:', photos.length);
       console.log('hasShownFirstTimeModal:', hasShownFirstTimeModal);
+      
+      // Don't show tutorial if user has chosen not to see it
+      const dontShowTutorial = localStorage.getItem(`dontShowTutorial_${user.id}`) === 'true';
+      if (dontShowTutorial) {
+        console.log('Skipping tutorial as user has chosen to not see it');
+        setHasShownFirstTimeModal(true);
+        hasShownFirstTimeModalRef.current = true;
+      }
       
       const { data, error } = await supabase
         .from('photos')
@@ -419,13 +443,32 @@ const PhotoGrid: React.FC<PhotoGridProps> = ({ closeSidebar }) => {
             </div>
           </DialogHeader>
           <DialogFooter className="sm:justify-center mt-6">
-            <Button 
-              type="button" 
-              onClick={() => setShowFirstTimeModal(false)}
-              className="bg-red-800 hover:bg-red-900 text-white px-8 py-2 text-lg transition-colors"
-            >
-              فهمت، شكراً لك
-            </Button>
+            <div className="w-full flex flex-col items-center space-y-4">
+              <div className="flex items-center justify-center gap-2">
+                <input
+                  type="checkbox"
+                  id="dontShowAgain"
+                  checked={dontShowAgain}
+                  onChange={(e) => setDontShowAgain(e.target.checked)}
+                  className="h-4 w-4 rounded border-gray-300 text-red-600 focus:ring-red-500"
+                />
+                <label htmlFor="dontShowAgain" className="text-sm text-gray-300 hover:cursor-pointer">
+                  لا تظهر لي مرة أخرى
+                </label>
+              </div>
+              <Button 
+                type="button" 
+                onClick={() => {
+                  if (dontShowAgain && user) {
+                    localStorage.setItem(`dontShowTutorial_${user.id}`, 'true');
+                  }
+                  setShowFirstTimeModal(false);
+                }}
+                className="bg-red-800 hover:bg-red-900 text-white px-8 py-2 text-lg transition-colors w-full max-w-xs"
+              >
+                فهمت، شكراً لك
+              </Button>
+            </div>
           </DialogFooter>
         </DialogContent>
       </Dialog>
