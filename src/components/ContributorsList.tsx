@@ -45,7 +45,7 @@ export const ContributorsList = () => {
         <CardHeader>
           <CardTitle className="text-2xl text-right">لائحة الشكر</CardTitle>
           <CardDescription className="text-right">
-            نود أن نشكر المساهم في تطوير تطبيق "ممتن"
+            المساهمون في تطوير تطبيق "ممتن"
           </CardDescription>
         </CardHeader>
         <CardContent>
