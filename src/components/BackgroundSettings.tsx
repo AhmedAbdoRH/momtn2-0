@@ -2,7 +2,6 @@
 import React, { useState, useEffect } from "react";
 import { Palette } from "lucide-react";
 import { toast } from "../hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "./AuthProvider";
 
 interface GradientOption {
@@ -20,33 +19,15 @@ const gradientOptions: GradientOption[] = [
     textColor: "text-white"
   },
   {
-    id: "midnight-blue",
-    name: "أزرق منتصف الليل",
-    gradient: "bg-gradient-to-br from-[#0C1B2E] via-[#1B2951] to-[#2A3B5C]",
+    id: "spectrum-red",
+    name: "الأحمر الهادئ",
+    gradient: "bg-gradient-to-br from-[#3B0A0A] via-[#5C1A1A] to-[#3D1F2C]",
     textColor: "text-white"
   },
   {
-    id: "emerald-depths",
-    name: "أعماق الزمرد",
-    gradient: "bg-gradient-to-br from-[#0A1F1A] via-[#1B3B2F] to-[#2C5A44]",
-    textColor: "text-white"
-  },
-  {
-    id: "royal-purple",
-    name: "البنفسجي الملكي",
-    gradient: "bg-gradient-to-br from-[#1A0B2E] via-[#341B5C] to-[#4E2A7A]",
-    textColor: "text-white"
-  },
-  {
-    id: "crimson-night",
-    name: "ليل قرمزي",
-    gradient: "bg-gradient-to-br from-[#2E0B1A] via-[#5C1B34] to-[#7A2A4E]",
-    textColor: "text-white"
-  },
-  {
-    id: "golden-dusk",
-    name: "غسق ذهبي",
-    gradient: "bg-gradient-to-br from-[#2E1B0B] via-[#5C3417] to-[#7A4E2A]",
+    id: "spectrum-indigo",
+    name: "النيلي الغامق",
+    gradient: "bg-gradient-to-br from-[#1C1C3C] via-[#2E2E5E] to-[#3D1F2C]",
     textColor: "text-white"
   }
 ];
@@ -99,20 +80,11 @@ export const applyGradientById = (gradientId: string) => {
   }
 };
 
+// استخدام localStorage بدلاً من Supabase مؤقتاً
 const saveUserBackgroundPreference = async (userId: string, gradientId: string) => {
   try {
-    const { error } = await supabase
-      .from('user_preferences')
-      .upsert(
-        { user_id: userId, background_id: gradientId },
-        { onConflict: 'user_id' }
-      );
-
-    if (error) {
-      console.error('Database error:', error);
-      throw error;
-    }
-
+    localStorage.setItem(`background-${userId}`, gradientId);
+    localStorage.setItem("app-background-gradient", gradientId);
     return true;
   } catch (error) {
     console.error('Error saving background preference:', error);
@@ -122,17 +94,8 @@ const saveUserBackgroundPreference = async (userId: string, gradientId: string) 
 
 const getUserBackgroundPreference = async (userId: string): Promise<string | null> => {
   try {
-    const { data, error } = await supabase
-      .from('user_preferences')
-      .select('background_id')
-      .eq('user_id', userId)
-      .single();
-
-    if (error && error.code !== 'PGRST116') {
-      throw error;
-    }
-
-    return data?.background_id || null;
+    const saved = localStorage.getItem(`background-${userId}`);
+    return saved || localStorage.getItem("app-background-gradient");
   } catch (error) {
     console.error('Error getting background preference:', error);
     return null;
@@ -191,6 +154,11 @@ export const BackgroundSettings: React.FC = () => {
           title: "تم تغيير الخلفية",
           description: `تم تطبيق خلفية "${selected?.name}" بنجاح.`
         });
+        
+        // إرسال حدث لتطبيق الخلفية على الصفحة الرئيسية
+        window.dispatchEvent(new CustomEvent('apply-gradient', { 
+          detail: { gradientId } 
+        }));
       } else {
         throw new Error('Failed to save preference');
       }
@@ -198,7 +166,7 @@ export const BackgroundSettings: React.FC = () => {
       console.error('Error saving background preference:', error);
       toast({
         title: "تحذير",
-        description: "تم تطبيق الخلفية ولكن لم يتم حفظها في قاعدة البيانات",
+        description: "تم تطبيق الخلفية ولكن لم يتم حفظها",
         variant: "destructive"
       });
     }
@@ -220,7 +188,7 @@ export const BackgroundSettings: React.FC = () => {
           <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-white"></div>
         </div>
       ) : (
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 mt-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mt-8">
           {gradientOptions.map((option) => (
             <div
               key={option.id}

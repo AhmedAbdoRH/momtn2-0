@@ -46,7 +46,9 @@ function App() {
     const handleApplyGradient = (event: CustomEvent) => {
       const { gradientId } = event.detail;
       if (gradientId) {
+        console.log("App: Received gradient change event:", gradientId);
         applyGradientById(gradientId);
+        localStorage.setItem("app-background-gradient", gradientId);
       }
     };
     
@@ -61,7 +63,6 @@ function App() {
     <Router>
       <QueryClientProvider client={queryClient}>
         <AuthProvider>
-          {/* Removed the permanent settings button from here */}
           <Routes>
             <Route
               path="/"
