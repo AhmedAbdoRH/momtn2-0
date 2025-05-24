@@ -52,6 +52,13 @@ const gradientOptions: GradientOption[] = [
 
 const BACKGROUND_STORAGE_KEY = (userId: string) => `app-bg-${userId}`;
 
+export const applyGradientById = (gradientId: string) => {
+  const selected = gradientOptions.find(option => option.id === gradientId);
+  if (selected) {
+    applyGradientToBody(selected);
+  }
+};
+
 const applyGradientToBody = (selected: GradientOption) => {
   document.body.classList.remove(...gradientOptions.flatMap(opt => opt.gradient.split(' ')));
   selected.gradient.split(' ').forEach(className => {
