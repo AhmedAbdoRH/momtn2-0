@@ -31,12 +31,6 @@ const gradientOptions: GradientOption[] = [
     textColor: "text-white"
   },
   {
-    id: "crimson-ember-ultra",
-    name: "جمرة قرمزية - مظلمة جداً",
-    gradient: "bg-gradient-to-br from-[#100707] via-[#4A1C17] to-[#7A2E26]",
-    textColor: "text-white"
-  },
-  {
     id: "olive-obsidian",
     name: "زيتون الأوبسيديان",
     gradient: "bg-gradient-to-br from-[#0A0E0A] via-[#1F2D24] to-[#3B4A36]",

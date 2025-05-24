@@ -51,6 +51,34 @@ const Index = () => {
   // خطاف سياق المصادقة
   const { signOut, user } = useAuth();
   const navigate = useNavigate();
+  
+  // State for greeting message with default value
+  const [greetingMessage, setGreetingMessage] = useState(
+    localStorage.getItem('userGreeting') || 'لحظاتك السعيدة، والنعم الجميلة في حياتك'
+  );
+  
+  // Load greeting message from localStorage when user changes
+  useEffect(() => {
+    if (user) {
+      const savedGreeting = localStorage.getItem(`userGreeting_${user.id}`) || 
+                         'لحظاتك السعيدة، والنعم الجميلة في حياتك';
+      setGreetingMessage(savedGreeting);
+      
+      // Listen for greeting updates from settings
+      const handleGreetingUpdate = () => {
+        const updatedGreeting = localStorage.getItem(`userGreeting_${user.id}`) || 
+                              'لحظاتك السعيدة، والنعم الجميلة في حياتك';
+        setGreetingMessage(updatedGreeting);
+      };
+      
+      window.addEventListener('greetingUpdated', handleGreetingUpdate);
+      
+      // Cleanup
+      return () => {
+        window.removeEventListener('greetingUpdated', handleGreetingUpdate);
+      };
+    }
+  }, [user]);
 
   /**
    * Handles opening the 'Create New' dialog and triggering button animation.
@@ -197,24 +225,21 @@ const Index = () => {
         {/* منطقة المحتوى الرئيسي */}
         <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 pt-20">
           <div className="text-center mb-8">
-            {/* Logo */}
-            {/* الشعار */}
             <div className="inline-block mb-6 w-40 h-40 sm:w-48 sm:h-48">
               <img
-                src="/lovable-Uploads/f39108e3-15cc-458c-bb92-7e6b18e100cc.png" // Logo source / مصدر الشعار
-                alt="Logo" // Alt text / نص بديل
-                className="w-full h-full object-contain animate-float" // Styling / تنسيق
-                 onError={(e) => { // Fallback image in case the logo fails to load / صورة احتياطية في حال فشل تحميل الشعار
-                   if (e.currentTarget instanceof HTMLImageElement) {
-                       e.currentTarget.src = 'https://placehold.co/192x192/f1f5f9/94a3b8?text=Logo'; // Placeholder image URL / رابط صورة مؤقتة
-                   }
-                 }}
+                src="/lovable-Uploads/f39108e3-15cc-458c-bb92-7e6b18e100cc.png"
+                alt="Logo"
+                className="w-full h-full object-contain animate-float"
+                onError={(e) => {
+                  if (e.currentTarget instanceof HTMLImageElement) {
+                    e.currentTarget.src = 'https://placehold.co/192x192/f1f5f9/94a3b8?text=Logo';
+                  }
+                }}
               />
             </div>
-            {/* Description Text */}
-            {/* نص الوصف */}
-            <p className="text-lg text-white-300 max-w-2xl mx-auto mb-6">
-              لحظاتك السعيدة، والنعم الجميلة في حياتك
+            {/* Greeting Message */}
+            <p className="text-2xl text-white font-medium mb-6 max-w-2xl mx-auto">
+              {greetingMessage}
             </p>
             {/* Main 'Add New' Button */}
             {/* زر "إضافة جديد" الرئيسي */}
@@ -222,7 +247,7 @@ const Index = () => {
               <Button
                 onClick={handleCreateNew}
                 className={`relative px-5 py-3 bg-[#d94550] hover:bg-[#d94550]/90 text-white shadow-lg rounded-lg mx-auto transition-all duration-300 overflow-hidden ${
-                  btnAnimation ? "scale-95 shadow-inner" : "hover:scale-105" // Conditional class for click animation / فئة شرطية لتحريك النقر
+                  btnAnimation ? "scale-95 shadow-inner" : "hover:scale-105"
                 }`}
               >
                 <span className="relative z-10 flex items-center">
