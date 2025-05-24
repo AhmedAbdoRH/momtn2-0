@@ -212,10 +212,7 @@ export const BackgroundSettings: React.FC = () => {
 
   return (
     <div className="bg-black/60 p-6 rounded-lg shadow backdrop-blur-md border border-white/20">
-      <div className="flex items-center justify-end mb-6">
-        <h2 className="text-2xl font-bold text-right ml-2 text-white">تغيير خلفية التطبيق</h2>
-        <Palette className="h-6 w-6 text-gray-300" />
-      </div>
+      <h2 className="text-2xl font-semibold mb-6 text-white text-right">تغيير خلفية التطبيق</h2>
 
       <p className="text-right text-gray-300 mb-6">
         اختر إحدى الخلفيات المتاحة لتطبيقها على التطبيق. سيتم حفظ اختيارك مع حسابك الشخصي.

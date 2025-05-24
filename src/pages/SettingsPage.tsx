@@ -103,10 +103,7 @@ const SettingsPage = () => {
               </div>
             </section>
 
-            <section className="bg-black/50 p-6 rounded-xl shadow-lg backdrop-blur-md border border-white/10">
-              <h2 className="text-2xl font-semibold mb-4 text-white text-right">خلفية التطبيق</h2>
-              <BackgroundSettings />
-            </section>
+            <BackgroundSettings />
           </TabsContent>
 
           <TabsContent value="contributors">
