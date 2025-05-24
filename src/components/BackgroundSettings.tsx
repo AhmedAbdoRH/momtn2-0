@@ -49,15 +49,17 @@ const applyGradientToBody = (selected: GradientOption) => {
   gradientOptions.forEach(option => {
     option.gradient.split(' ').forEach(className => {
       document.body.classList.remove(className);
+      document.documentElement.classList.remove(className);
     });
   });
 
-  // تطبيق الكلاسات الجديدة
+  // تطبيق الكلاسات الجديدة على body و html
   selected.gradient.split(' ').forEach(className => {
     document.body.classList.add(className);
+    document.documentElement.classList.add(className);
   });
 
-  // تطبيق الستايلات الإضافية
+  // تطبيق الستايلات الإضافية بقوة أكبر
   const styleId = "gradient-full-height-style";
   let styleElement = document.getElementById(styleId) as HTMLStyleElement;
 
@@ -81,6 +83,10 @@ const applyGradientToBody = (selected: GradientOption) => {
     }
     body {
       overflow-x: hidden !important;
+    }
+    /* Force background on all pages */
+    .container, .min-h-screen, [style*="background"] {
+      background: transparent !important;
     }
   `;
 
@@ -175,11 +181,16 @@ export const BackgroundSettings: React.FC = () => {
           description: `تم تطبيق خلفية "${selected?.name}" بنجاح.`
         });
         
-        // إرسال حدث لتطبيق الخلفية على الصفحة الرئيسية
+        // إرسال حدث لتطبيق الخلفية على جميع الصفحات
         console.log("Dispatching gradient change event:", gradientId);
         window.dispatchEvent(new CustomEvent('apply-gradient', { 
           detail: { gradientId } 
         }));
+        
+        // إجبار إعادة تطبيق الخلفية بعد تأخير قصير
+        setTimeout(() => {
+          applyGradientById(gradientId);
+        }, 200);
       } else {
         throw new Error('Failed to save preference');
       }

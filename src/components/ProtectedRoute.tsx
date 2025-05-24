@@ -11,7 +11,7 @@ const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-[#2D1F3D] via-[#1A1F2C] to-[#3D1F2C] flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center" style={{ background: 'transparent' }}>
         <div className="text-white text-xl">جاري التحميل...</div>
       </div>
     );
@@ -24,4 +24,4 @@ const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
   return <>{children}</>;
 };
 
-export default ProtectedRoute; // Make sure it's exported as default
+export default ProtectedRoute;

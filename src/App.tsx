@@ -26,10 +26,14 @@ function App() {
       // Apply the saved gradient
       console.log("App: Applying saved gradient:", savedGradientId);
       
-      // Use a timeout to ensure the DOM is fully loaded
+      // Use multiple timeouts to ensure the gradient is applied
       setTimeout(() => {
         applyGradientById(savedGradientId);
       }, 100);
+      
+      setTimeout(() => {
+        applyGradientById(savedGradientId);
+      }, 500);
     } else {
       // Apply default gradient if no saved preference
       console.log("App: No saved gradient found, applying default");
@@ -43,6 +47,7 @@ function App() {
     document.body.style.margin = "0";
     document.body.style.padding = "0";
     document.documentElement.style.height = "100%";
+    document.documentElement.style.minHeight = "100vh";
     
     // Listen for gradient changes from any part of the app
     const handleApplyGradient = (event: CustomEvent) => {
@@ -51,6 +56,11 @@ function App() {
         console.log("App: Received gradient change event:", gradientId);
         applyGradientById(gradientId);
         localStorage.setItem("app-background-gradient", gradientId);
+        
+        // Apply again after a short delay to ensure it sticks
+        setTimeout(() => {
+          applyGradientById(gradientId);
+        }, 100);
       }
     };
     
