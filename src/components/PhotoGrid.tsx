@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
@@ -38,38 +39,18 @@ const PhotoGrid: React.FC<PhotoGridProps> = ({ closeSidebar }) => {
   const [loadingInitialPhotos, setLoadingInitialPhotos] = useState(true);
   const [hasPhotosLoadedOnce, setHasPhotosLoadedOnce] = useState(false);
   const [showFirstTimeModal, setShowFirstTimeModal] = useState(false);
-  const [hasShownFirstTimeModal, setHasShownFirstTimeModal] = useState(false);
-  const [isFirstPhotoAdded, setIsFirstPhotoAdded] = useState(false);
-  // Use a ref to track if we've shown the first time modal
-  const hasShownFirstTimeModalRef = useRef(false);
-  const [dontShowAgain, setDontShowAgain] = useState(true);
+  const [dontShowAgain, setDontShowAgain] = useState(false);
 
-  // Check if user has chosen to not see the tutorial again
-  useEffect(() => {
-    if (user) {
-      const dontShowTutorial = localStorage.getItem(`dontShowTutorial_${user.id}`) === 'true';
-      if (dontShowTutorial) {
-        console.log('User has chosen to not see the tutorial again');
-        setHasShownFirstTimeModal(true);
-        hasShownFirstTimeModalRef.current = true;
-      }
-    }
-  }, [user]);
+  // Check if user has disabled the tutorial
+  const shouldShowTutorial = (userId: string) => {
+    const dontShowTutorial = localStorage.getItem(`dontShowTutorial_${userId}`) === 'true';
+    return !dontShowTutorial;
+  };
 
   useEffect(() => {
     const initialize = async () => {
       if (user) {
-        const photosData = await fetchPhotos();
-        // Check if we should show the tutorial modal
-        if (photosData && photosData.length === 1) {
-          const dontShowTutorial = localStorage.getItem(`dontShowTutorial_${user.id}`) === 'true';
-          if (!dontShowTutorial && !hasShownFirstTimeModalRef.current) {
-            console.log('Showing first time tutorial modal');
-            setShowFirstTimeModal(true);
-            setHasShownFirstTimeModal(true);
-            hasShownFirstTimeModalRef.current = true;
-          }
-        }
+        await fetchPhotos();
       } else {
         setLoadingInitialPhotos(false);
       }
@@ -80,13 +61,7 @@ const PhotoGrid: React.FC<PhotoGridProps> = ({ closeSidebar }) => {
 
   useEffect(() => {
     const handlePhotoAdded = async () => {
-      const newPhotos = await fetchPhotos();
-      // After fetching, check if this is the first photo and we haven't shown the modal yet
-      if (newPhotos && newPhotos.length === 1 && !hasShownFirstTimeModalRef.current) {
-        setShowFirstTimeModal(true);
-        setHasShownFirstTimeModal(true);
-        hasShownFirstTimeModalRef.current = true;
-      }
+      await fetchPhotos();
     };
     
     window.addEventListener('photo-added', handlePhotoAdded);
@@ -171,10 +146,10 @@ const PhotoGrid: React.FC<PhotoGridProps> = ({ closeSidebar }) => {
       setPhotos(photosData);
       setHasPhotosLoadedOnce(true);
       
-      // Check if this is the first photo being loaded
-      if (photosData.length === 1 && !hasShownFirstTimeModal) {
+      // Show tutorial modal only if this is the first photo and user hasn't disabled it
+      if (photosData.length === 1 && shouldShowTutorial(user.id)) {
+        console.log('Showing first time tutorial modal');
         setShowFirstTimeModal(true);
-        setHasShownFirstTimeModal(true);
       }
       
       return photosData;
@@ -232,15 +207,6 @@ const PhotoGrid: React.FC<PhotoGridProps> = ({ closeSidebar }) => {
     try {
       const isFirstPhoto = photos.length === 0;
       console.log('isFirstPhoto:', isFirstPhoto, 'photos.length:', photos.length);
-      console.log('hasShownFirstTimeModal:', hasShownFirstTimeModal);
-      
-      // Don't show tutorial if user has chosen not to see it
-      const dontShowTutorial = localStorage.getItem(`dontShowTutorial_${user.id}`) === 'true';
-      if (dontShowTutorial) {
-        console.log('Skipping tutorial as user has chosen to not see it');
-        setHasShownFirstTimeModal(true);
-        hasShownFirstTimeModalRef.current = true;
-      }
       
       const { data, error } = await supabase
         .from('photos')
@@ -263,12 +229,10 @@ const PhotoGrid: React.FC<PhotoGridProps> = ({ closeSidebar }) => {
         setPhotos(prev => [data[0], ...prev]);
         setHasPhotosLoadedOnce(true);
         
-        // Show first-time modal if it's the first photo and we haven't shown it before
-        console.log('Before showing modal - isFirstPhoto:', isFirstPhoto, '!hasShownFirstTimeModal:', !hasShownFirstTimeModal);
-        if (isFirstPhoto && !hasShownFirstTimeModal) {
-          console.log('Showing first time modal');
+        // Show first-time modal only if it's the first photo and user hasn't disabled tutorial
+        if (isFirstPhoto && shouldShowTutorial(user.id)) {
+          console.log('Showing first time modal after adding first photo');
           setShowFirstTimeModal(true);
-          setHasShownFirstTimeModal(true);
         }
         
         toast({ 
@@ -291,7 +255,7 @@ const PhotoGrid: React.FC<PhotoGridProps> = ({ closeSidebar }) => {
       // @ts-ignore
       delete window.addPhoto;
     };
-  }, [user]);
+  }, [user, photos]);
 
   const handleDelete = async (id: string, imageUrl: string) => {
     try {
@@ -344,6 +308,14 @@ const PhotoGrid: React.FC<PhotoGridProps> = ({ closeSidebar }) => {
     } catch {
       console.error('Exception updating caption');
     }
+  };
+
+  const handleTutorialClose = () => {
+    if (dontShowAgain && user) {
+      localStorage.setItem(`dontShowTutorial_${user.id}`, 'true');
+      console.log('Tutorial disabled for user:', user.id);
+    }
+    setShowFirstTimeModal(false);
   };
 
   const filteredPhotos = selectedHashtag
@@ -411,6 +383,7 @@ const PhotoGrid: React.FC<PhotoGridProps> = ({ closeSidebar }) => {
       <Dialog open={showFirstTimeModal} onOpenChange={setShowFirstTimeModal}>
         <DialogContent className="sm:max-w-[500px] bg-gradient-to-br from-green-900/40 to-blue-900/40 backdrop-blur-lg border border-white/20 shadow-2xl shadow-black/50 text-white">
           <DialogHeader>
+            <DialogTitle className="sr-only">دليل المستخدم الجديد</DialogTitle>
             <div className="space-y-6 text-right">
               <div className="text-center mb-4">
                 <p className="text-2xl font-bold text-green-400 mb-2">🎉 مبروك! 🎉</p>
@@ -435,7 +408,7 @@ const PhotoGrid: React.FC<PhotoGridProps> = ({ closeSidebar }) => {
                     <span>حذف الصورة</span>
                     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-red-400">
                       <path d="M3 6h18"></path>
-                      <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                      <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2 2h4a2 2 0 0 1 2 2v2"></path>
                     </svg>
                   </li>
                 </ul>
@@ -458,12 +431,7 @@ const PhotoGrid: React.FC<PhotoGridProps> = ({ closeSidebar }) => {
               </div>
               <Button 
                 type="button" 
-                onClick={() => {
-                  if (dontShowAgain && user) {
-                    localStorage.setItem(`dontShowTutorial_${user.id}`, 'true');
-                  }
-                  setShowFirstTimeModal(false);
-                }}
+                onClick={handleTutorialClose}
                 className="bg-red-800 hover:bg-red-900 text-white px-8 py-2 text-lg transition-colors w-full max-w-xs"
               >
                 فهمت، شكراً لك
