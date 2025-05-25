@@ -154,10 +154,6 @@ const PhotoCard = ({
                 <div className="absolute inset-0 animate-ping">
                   <Heart className="w-6 h-6 text-[#ea384c]/30" /> {/* أنيميشن ping للقلب */}
                 </div>
-                /* الإعدادات القديمة التي تحتوي على animate-pulse */
-                /* <div className="absolute inset-0 animate-pulse">
-                  <Heart className="w-6 h-6 text-[#ea384c]/20" /> // أنيميشن pulse (تم تعليقه)
-                </div> */
               )}
             </div>
           </button>
@@ -172,11 +168,12 @@ const PhotoCard = ({
           <div className={`absolute left-2 right-2 bottom-14 p-2 bg-black/50 backdrop-blur-md rounded-lg transition-opacity duration-300 ${
             isControlsVisible ? 'opacity-80' : 'opacity-0' // يظهر عند تفعيل الأزرار
           }`}>
-            {caption && <p className="text-white text-sm mb-1">{caption}</p>} {/* التعليق */}
+            {caption && <p className="text-white text-sm mb-1 text-right">{caption}</p>} {/* التعليق */}
             {hashtags.length > 0 && ( // الهاشتاجات
-              <div className="flex flex-wrap gap-1">
+              <div className="flex flex-wrap gap-1 justify-end">
                 {hashtags.map((tag) => (
-                  <span key={tag} className="text-xs text-white-300">
+                  <span key={tag} className="text-xs text-white/60 flex items-center">
+                    <span className="ml-1">•</span>
                     {tag}
                   </span>
                 ))}
@@ -196,9 +193,10 @@ const PhotoCard = ({
               <textarea
                 value={caption} // قيمة التعليق الحالية
                 onChange={(e) => setCaption(e.target.value)} // تحديث التعليق عند التغيير
-                className="w-full px-3 py-2 bg-white/10 backdrop-blur-sm rounded-md text-white"
+                className="w-full px-3 py-2 bg-white/10 backdrop-blur-sm rounded-md text-white text-right"
                 rows={3}
                 placeholder="أضف تعليقاً..."
+                dir="rtl"
               />
             </div>
             {/* حقل الهاشتاجات */}
@@ -208,7 +206,8 @@ const PhotoCard = ({
                 type="text"
                 value={hashtags.join(' ')} // عرض الهاشتاجات كسلسلة نصية
                 onChange={(e) => handleHashtagsChange(e.target.value)} // تحديث الهاشتاجات عند التغيير
-                className="w-full px-3 py-2 bg-white/10 backdrop-blur-sm rounded-md text-white"
+                className="w-full px-3 py-2 bg-white/10 backdrop-blur-sm rounded-md text-white text-right"
+                dir="rtl"
                 />
             </div>
             {/* أزرار الإلغاء والحفظ */}
