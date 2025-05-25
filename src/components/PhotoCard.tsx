@@ -168,12 +168,11 @@ const PhotoCard = ({
           <div className={`absolute left-2 right-2 bottom-14 p-2 bg-black/50 backdrop-blur-md rounded-lg transition-opacity duration-300 ${
             isControlsVisible ? 'opacity-80' : 'opacity-0' // يظهر عند تفعيل الأزرار
           }`}>
-            {caption && <p className="text-white text-sm mb-1 text-right">{caption}</p>} {/* التعليق */}
+            {caption && <p className="text-white text-sm mb-1 text-right" dir="rtl">{caption}</p>} {/* التعليق */}
             {hashtags.length > 0 && ( // الهاشتاجات
               <div className="flex flex-wrap gap-1 justify-end">
                 {hashtags.map((tag) => (
-                  <span key={tag} className="text-xs text-white/60 flex items-center">
-                    <span className="ml-1">•</span>
+                  <span key={tag} className="text-xs text-white/60" dir="rtl">
                     {tag}
                   </span>
                 ))}
