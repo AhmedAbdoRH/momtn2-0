@@ -65,9 +65,19 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             await loadUserBackgroundPreference(newSession.user.id);
           }
           
-          // Redirect to the home page if on auth page
-          if (newSession && location.pathname === '/auth') {
-            navigate('/');
+          // For Google OAuth and new users, always redirect to home
+          if (newSession) {
+            // Check if this is coming from OAuth callback or if on auth page
+            const isOAuthCallback = window.location.hash.includes('access_token') || 
+                                   window.location.search.includes('code');
+            const isOnAuthPage = location.pathname === '/auth';
+            
+            console.log("OAuth callback detected:", isOAuthCallback, "On auth page:", isOnAuthPage);
+            
+            if (isOAuthCallback || isOnAuthPage) {
+              console.log("Redirecting to home after successful authentication");
+              navigate('/', { replace: true });
+            }
           }
         } else if (event === 'SIGNED_OUT') {
           console.log("User signed out");
@@ -116,9 +126,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           await loadUserBackgroundPreference(session.user.id);
         }
         
-        // Redirect if needed
+        // Redirect if needed - but only if user is logged in and on auth page
         if (location.pathname === '/auth' && session) {
-          navigate('/');
+          console.log("User already logged in, redirecting from auth page to home");
+          navigate('/', { replace: true });
         }
       } catch (error) {
         console.error('Error getting session:', error);
@@ -149,7 +160,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           await loadUserBackgroundPreference(data.user.id);
         }
         
-        navigate('/');
+        navigate('/', { replace: true });
       }
       
       return { error };
@@ -170,7 +181,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         if (data.user.id) {
           await loadUserBackgroundPreference(data.user.id);
         }
-        navigate('/');
+        navigate('/', { replace: true });
       }
       return { error };
     } catch (error: any) {
