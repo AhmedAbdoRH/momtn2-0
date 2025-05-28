@@ -50,12 +50,33 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   useEffect(() => {
     console.log("Setting up auth listener...");
     
+    // Check if this is an OAuth callback
+    const isOAuthCallback = window.location.hash.includes('access_token') || 
+                           window.location.search.includes('code');
+    console.log("Initial OAuth callback check:", isOAuthCallback);
+    
     // First set up the auth listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, newSession) => {
         console.log("Auth state changed:", event, newSession?.user?.email);
         
-        if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+        if (event === 'INITIAL_SESSION') {
+          console.log("Initial session detected");
+          setSession(newSession);
+          setUser(newSession?.user ?? null);
+          
+          if (newSession?.user?.id) {
+            await loadUserBackgroundPreference(newSession.user.id);
+          }
+          
+          // For OAuth callback on initial session, redirect to home
+          if (newSession && isOAuthCallback) {
+            console.log("OAuth callback with session, redirecting to home");
+            setTimeout(() => {
+              navigate('/', { replace: true });
+            }, 100);
+          }
+        } else if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
           console.log("User signed in or token refreshed");
           setSession(newSession);
           setUser(newSession?.user ?? null);
@@ -68,15 +89,17 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           // For Google OAuth and new users, always redirect to home
           if (newSession) {
             // Check if this is coming from OAuth callback or if on auth page
-            const isOAuthCallback = window.location.hash.includes('access_token') || 
-                                   window.location.search.includes('code');
+            const currentIsOAuth = window.location.hash.includes('access_token') || 
+                                  window.location.search.includes('code');
             const isOnAuthPage = location.pathname === '/auth';
             
-            console.log("OAuth callback detected:", isOAuthCallback, "On auth page:", isOnAuthPage);
+            console.log("OAuth callback detected:", currentIsOAuth, "On auth page:", isOnAuthPage);
             
-            if (isOAuthCallback || isOnAuthPage) {
+            if (currentIsOAuth || isOnAuthPage) {
               console.log("Redirecting to home after successful authentication");
-              navigate('/', { replace: true });
+              setTimeout(() => {
+                navigate('/', { replace: true });
+              }, 100);
             }
           }
         } else if (event === 'SIGNED_OUT') {
