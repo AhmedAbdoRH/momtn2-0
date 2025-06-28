@@ -6,7 +6,7 @@ import CreateNewDialog from '@/components/CreateNewDialog';
 import { SettingsDropdown } from '@/components/SettingsDropdown';
 import GroupsDropdown from '@/components/GroupsDropdown';
 import { Button } from '@/components/ui/button';
-import { Sidebar, SidebarContent, SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar';
+import { Sidebar, SidebarContent, SidebarProvider } from '@/components/ui/sidebar';
 import { Menu, X, Users } from 'lucide-react';
 import { BackgroundSettings } from '@/components/BackgroundSettings';
 import { HeartSoundProvider } from '@/components/HeartSound';
@@ -35,17 +35,15 @@ const Index = () => {
           {/* Header */}
           <div className="relative z-30 flex items-center justify-between p-4 bg-black/20 backdrop-blur-sm">
             <div className="flex items-center gap-4">
-              <SidebarTrigger asChild>
-                <Button
-                  variant="ghost" 
-                  size="icon"
-                  onClick={() => setSidebarOpen(!sidebarOpen)}
-                  className="text-white hover:bg-white/20"
-                  aria-label="Toggle sidebar"
-                >
-                  {sidebarOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-                </Button>
-              </SidebarTrigger>
+              <Button
+                variant="ghost" 
+                size="icon"
+                onClick={() => setSidebarOpen(!sidebarOpen)}
+                className="text-white hover:bg-white/20"
+                aria-label="Toggle sidebar"
+              >
+                {sidebarOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+              </Button>
               
               {selectedGroupId ? (
                 <div className="flex items-center gap-2 text-white">
