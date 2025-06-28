@@ -94,7 +94,10 @@ const Index = () => {
             </Button>
           </div>
 
-          <PhotoGrid closeSidebar={() => setSidebarOpen(false)} />
+          <PhotoGrid 
+            closeSidebar={() => setSidebarOpen(false)} 
+            selectedGroupId={null}
+          />
           <CreateNewDialog 
             open={dialogOpen} 
             onOpenChange={setDialogOpen}
