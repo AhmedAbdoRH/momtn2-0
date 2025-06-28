@@ -8,7 +8,7 @@ import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Textarea } from './ui/textarea';
 import { Switch } from './ui/switch';
-import { Users, Plus, Settings } from 'lucide-react';
+import { Users, Plus, Loader2 } from 'lucide-react';
 
 interface Group {
   id: string;
@@ -27,18 +27,23 @@ interface GroupsDropdownProps {
 
 const GroupsDropdown: React.FC<GroupsDropdownProps> = ({ selectedGroupId, onGroupChange }) => {
   const [groups, setGroups] = useState<Group[]>([]);
+  const [loading, setLoading] = useState(true);
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [showJoinDialog, setShowJoinDialog] = useState(false);
   const [newGroupName, setNewGroupName] = useState('');
   const [newGroupDescription, setNewGroupDescription] = useState('');
   const [isPrivate, setIsPrivate] = useState(false);
   const [inviteCode, setInviteCode] = useState('');
+  const [creating, setCreating] = useState(false);
+  const [joining, setJoining] = useState(false);
   const { user } = useAuth();
   const { toast } = useToast();
 
   useEffect(() => {
     if (user) {
       fetchUserGroups();
+    } else {
+      setLoading(false);
     }
   }, [user]);
 
@@ -46,22 +51,36 @@ const GroupsDropdown: React.FC<GroupsDropdownProps> = ({ selectedGroupId, onGrou
     if (!user) return;
 
     try {
+      setLoading(true);
       const { data, error } = await supabase
         .from('groups')
         .select(`
           *,
           group_members!inner(user_id)
         `)
-        .eq('group_members.user_id', user.id);
+        .eq('group_members.user_id', user.id)
+        .order('created_at', { ascending: false });
 
       if (error) {
         console.error('Error fetching groups:', error);
+        toast({ 
+          title: "خطأ في التحميل", 
+          description: "لم نتمكن من تحميل المجموعات", 
+          variant: "destructive" 
+        });
         return;
       }
 
       setGroups(data || []);
     } catch (err) {
       console.error('Exception fetching groups:', err);
+      toast({ 
+        title: "خطأ غير متوقع", 
+        description: "حدث خطأ أثناء تحميل المجموعات", 
+        variant: "destructive" 
+      });
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -71,6 +90,7 @@ const GroupsDropdown: React.FC<GroupsDropdownProps> = ({ selectedGroupId, onGrou
       return;
     }
 
+    setCreating(true);
     try {
       const { data, error } = await supabase
         .from('groups')
@@ -84,6 +104,7 @@ const GroupsDropdown: React.FC<GroupsDropdownProps> = ({ selectedGroupId, onGrou
         .single();
 
       if (error) {
+        console.error('Error creating group:', error);
         toast({ title: "خطأ في الإنشاء", description: "لم نتمكن من إنشاء المجموعة", variant: "destructive" });
         return;
       }
@@ -95,12 +116,15 @@ const GroupsDropdown: React.FC<GroupsDropdownProps> = ({ selectedGroupId, onGrou
       setIsPrivate(false);
       
       toast({ 
-        title: "تم الإنشاء بنجاح", 
-        description: `تم إنشاء مجموعة "${data.name}" بنجاح${data.invite_code ? '. كود الدعوة: ' + data.invite_code : ''}` 
+        title: "تم الإنشاء بنجاح! 🎉", 
+        description: `تم إنشاء مجموعة "${data.name}" بنجاح${data.invite_code ? '. كود الدعوة: ' + data.invite_code : ''}`,
+        className: "border-green-400/50 bg-green-900/80"
       });
     } catch (err) {
       console.error('Exception creating group:', err);
       toast({ title: "خطأ غير متوقع", description: "حدث خطأ أثناء إنشاء المجموعة", variant: "destructive" });
+    } finally {
+      setCreating(false);
     }
   };
 
@@ -110,6 +134,7 @@ const GroupsDropdown: React.FC<GroupsDropdownProps> = ({ selectedGroupId, onGrou
       return;
     }
 
+    setJoining(true);
     try {
       // First, find the group by invite code
       const { data: groupData, error: groupError } = await supabase
@@ -132,7 +157,11 @@ const GroupsDropdown: React.FC<GroupsDropdownProps> = ({ selectedGroupId, onGrou
         .single();
 
       if (existingMember) {
-        toast({ title: "عضو بالفعل", description: "أنت عضو في هذه المجموعة بالفعل" });
+        toast({ 
+          title: "عضو بالفعل", 
+          description: "أنت عضو في هذه المجموعة بالفعل",
+          className: "border-blue-400/50 bg-blue-900/80"
+        });
         setShowJoinDialog(false);
         setInviteCode('');
         return;
@@ -148,6 +177,7 @@ const GroupsDropdown: React.FC<GroupsDropdownProps> = ({ selectedGroupId, onGrou
         });
 
       if (joinError) {
+        console.error('Error joining group:', joinError);
         toast({ title: "خطأ في الانضمام", description: "لم نتمكن من إضافتك للمجموعة", variant: "destructive" });
         return;
       }
@@ -157,14 +187,25 @@ const GroupsDropdown: React.FC<GroupsDropdownProps> = ({ selectedGroupId, onGrou
       setInviteCode('');
       
       toast({ 
-        title: "تم الانضمام بنجاح", 
-        description: `تم انضمامك لمجموعة "${groupData.name}" بنجاح` 
+        title: "تم الانضمام بنجاح! 🎉", 
+        description: `تم انضمامك لمجموعة "${groupData.name}" بنجاح`,
+        className: "border-blue-400/50 bg-blue-900/80"
       });
     } catch (err) {
       console.error('Exception joining group:', err);
       toast({ title: "خطأ غير متوقع", description: "حدث خطأ أثناء الانضمام للمجموعة", variant: "destructive" });
+    } finally {
+      setJoining(false);
     }
   };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center p-8">
+        <Loader2 className="w-6 h-6 animate-spin text-white" />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-4">
@@ -174,7 +215,7 @@ const GroupsDropdown: React.FC<GroupsDropdownProps> = ({ selectedGroupId, onGrou
           onClick={() => onGroupChange(null)}
           className={`flex items-center justify-between p-3 rounded-lg transition-colors ${
             selectedGroupId === null
-              ? 'bg-[#ea384c]/20 text-pink-200'
+              ? 'bg-[#ea384c]/20 text-pink-200 ring-2 ring-pink-400/50'
               : 'bg-white/10 text-white hover:bg-white/20'
           }`}
         >
@@ -188,18 +229,23 @@ const GroupsDropdown: React.FC<GroupsDropdownProps> = ({ selectedGroupId, onGrou
             onClick={() => onGroupChange(group.id)}
             className={`flex items-center justify-between p-3 rounded-lg transition-colors ${
               selectedGroupId === group.id
-                ? 'bg-[#ea384c]/20 text-pink-200'
+                ? 'bg-[#ea384c]/20 text-pink-200 ring-2 ring-pink-400/50'
                 : 'bg-white/10 text-white hover:bg-white/20'
             }`}
           >
-            <span>{group.name}</span>
-            <Users className="w-4 h-4" />
+            <div className="text-right">
+              <div className="font-medium">{group.name}</div>
+              {group.description && (
+                <div className="text-sm text-gray-300 mt-1">{group.description}</div>
+              )}
+            </div>
+            <Users className="w-4 h-4 flex-shrink-0" />
           </button>
         ))}
       </div>
 
       {/* Action Buttons */}
-      <div className="flex flex-col space-y-2">
+      <div className="flex flex-col space-y-2 pt-4 border-t border-white/20">
         <button
           onClick={() => setShowCreateDialog(true)}
           className="flex items-center gap-2 p-3 rounded-lg bg-green-600/20 text-green-200 hover:bg-green-600/30 transition-colors"
@@ -219,17 +265,17 @@ const GroupsDropdown: React.FC<GroupsDropdownProps> = ({ selectedGroupId, onGrou
 
       {/* Create Group Dialog */}
       <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
-        <DialogContent className="bg-gray-900/90 backdrop-blur-xl text-white border-0">
+        <DialogContent className="bg-gray-900/95 backdrop-blur-xl text-white border border-white/20">
           <DialogHeader>
-            <DialogTitle className="text-right">إنشاء مجموعة جديدة</DialogTitle>
+            <DialogTitle className="text-right text-xl">إنشاء مجموعة جديدة</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             <div>
-              <label className="block text-sm font-medium mb-2 text-right">اسم المجموعة</label>
+              <label className="block text-sm font-medium mb-2 text-right">اسم المجموعة *</label>
               <Input
                 value={newGroupName}
                 onChange={(e) => setNewGroupName(e.target.value)}
-                className="bg-white/10 backdrop-blur-sm text-white text-right"
+                className="bg-white/10 backdrop-blur-sm text-white text-right border-white/20"
                 placeholder="أدخل اسم المجموعة..."
                 dir="rtl"
               />
@@ -239,7 +285,7 @@ const GroupsDropdown: React.FC<GroupsDropdownProps> = ({ selectedGroupId, onGrou
               <Textarea
                 value={newGroupDescription}
                 onChange={(e) => setNewGroupDescription(e.target.value)}
-                className="bg-white/10 backdrop-blur-sm text-white text-right"
+                className="bg-white/10 backdrop-blur-sm text-white text-right border-white/20"
                 placeholder="وصف المجموعة..."
                 dir="rtl"
                 rows={3}
@@ -258,14 +304,23 @@ const GroupsDropdown: React.FC<GroupsDropdownProps> = ({ selectedGroupId, onGrou
               variant="outline"
               onClick={() => setShowCreateDialog(false)}
               className="bg-transparent border-white/20 text-white hover:bg-white/10"
+              disabled={creating}
             >
               إلغاء
             </Button>
             <Button
               onClick={handleCreateGroup}
               className="bg-green-600 hover:bg-green-700 text-white"
+              disabled={creating || !newGroupName.trim()}
             >
-              إنشاء المجموعة
+              {creating ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin ml-2" />
+                  جارٍ الإنشاء...
+                </>
+              ) : (
+                'إنشاء المجموعة'
+              )}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -273,17 +328,17 @@ const GroupsDropdown: React.FC<GroupsDropdownProps> = ({ selectedGroupId, onGrou
 
       {/* Join Group Dialog */}
       <Dialog open={showJoinDialog} onOpenChange={setShowJoinDialog}>
-        <DialogContent className="bg-gray-900/90 backdrop-blur-xl text-white border-0">
+        <DialogContent className="bg-gray-900/95 backdrop-blur-xl text-white border border-white/20">
           <DialogHeader>
-            <DialogTitle className="text-right">الانضمام لمجموعة</DialogTitle>
+            <DialogTitle className="text-right text-xl">الانضمام لمجموعة</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             <div>
-              <label className="block text-sm font-medium mb-2 text-right">كود الدعوة</label>
+              <label className="block text-sm font-medium mb-2 text-right">كود الدعوة *</label>
               <Input
                 value={inviteCode}
                 onChange={(e) => setInviteCode(e.target.value)}
-                className="bg-white/10 backdrop-blur-sm text-white text-center"
+                className="bg-white/10 backdrop-blur-sm text-white text-center border-white/20"
                 placeholder="أدخل كود الدعوة..."
               />
             </div>
@@ -293,14 +348,23 @@ const GroupsDropdown: React.FC<GroupsDropdownProps> = ({ selectedGroupId, onGrou
               variant="outline"
               onClick={() => setShowJoinDialog(false)}
               className="bg-transparent border-white/20 text-white hover:bg-white/10"
+              disabled={joining}
             >
               إلغاء
             </Button>
             <Button
               onClick={handleJoinGroup}
               className="bg-blue-600 hover:bg-blue-700 text-white"
+              disabled={joining || !inviteCode.trim()}
             >
-              انضمام
+              {joining ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin ml-2" />
+                  جارٍ الانضمام...
+                </>
+              ) : (
+                'انضمام'
+              )}
             </Button>
           </DialogFooter>
         </DialogContent>
