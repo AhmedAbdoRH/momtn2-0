@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
@@ -18,19 +17,21 @@ interface Photo {
   created_at: string;
   order?: number | null;
   user_id?: string;
+  group_id?: string | null;
 }
 
 interface PhotoGridProps {
   closeSidebar: () => void;
+  selectedGroupId: string | null;
 }
 
 declare global {
   interface Window {
-    addPhoto: (params: { imageUrl: string }) => Promise<boolean>;
+    addPhoto: (params: { imageUrl: string; groupId?: string | null }) => Promise<boolean>;
   }
 }
 
-const PhotoGrid: React.FC<PhotoGridProps> = ({ closeSidebar }) => {
+const PhotoGrid: React.FC<PhotoGridProps> = ({ closeSidebar, selectedGroupId }) => {
   const [photos, setPhotos] = useState<Photo[]>([]);
   const { toast } = useToast();
   const [selectedHashtag, setSelectedHashtag] = useState<string | null>(null);
@@ -57,7 +58,7 @@ const PhotoGrid: React.FC<PhotoGridProps> = ({ closeSidebar }) => {
     };
     
     initialize();
-  }, [user]);
+  }, [user, selectedGroupId]);
 
   useEffect(() => {
     const handlePhotoAdded = async () => {
@@ -129,10 +130,17 @@ const PhotoGrid: React.FC<PhotoGridProps> = ({ closeSidebar }) => {
     }
     setLoadingInitialPhotos(true);
     try {
-      const { data, error } = await supabase
+      let query = supabase
         .from('photos')
-        .select('*')
-        .eq('user_id', user.id)
+        .select('*');
+
+      if (selectedGroupId) {
+        query = query.eq('group_id', selectedGroupId);
+      } else {
+        query = query.eq('user_id', user.id).is('group_id', null);
+      }
+
+      const { data, error } = await query
         .order('order', { ascending: true })
         .order('created_at', { ascending: false });
 
@@ -147,7 +155,7 @@ const PhotoGrid: React.FC<PhotoGridProps> = ({ closeSidebar }) => {
       setHasPhotosLoadedOnce(true);
       
       // Show tutorial modal only if this is the first photo and user hasn't disabled it
-      if (photosData.length === 1 && shouldShowTutorial(user.id)) {
+      if (!selectedGroupId && photosData.length === 1 && shouldShowTutorial(user.id)) {
         console.log('Showing first time tutorial modal');
         setShowFirstTimeModal(true);
       }
@@ -198,7 +206,7 @@ const PhotoGrid: React.FC<PhotoGridProps> = ({ closeSidebar }) => {
     }
   };
 
-  const addPhoto = async (params: { imageUrl: string }): Promise<boolean> => {
+  const addPhoto = async (params: { imageUrl: string; groupId?: string | null }): Promise<boolean> => {
     console.log('addPhoto called with params:', params);
     if (!user) {
       toast({ title: "لم تسجل الدخول", description: "يجب تسجيل الدخول لإضافة صور", variant: "destructive" });
@@ -216,7 +224,8 @@ const PhotoGrid: React.FC<PhotoGridProps> = ({ closeSidebar }) => {
           caption: null,
           hashtags: [],
           user_id: user.id,
-          order: 0
+          order: 0,
+          group_id: params.groupId || selectedGroupId || null
         })
         .select();
 
@@ -230,7 +239,7 @@ const PhotoGrid: React.FC<PhotoGridProps> = ({ closeSidebar }) => {
         setHasPhotosLoadedOnce(true);
         
         // Show first-time modal only if it's the first photo and user hasn't disabled tutorial
-        if (isFirstPhoto && shouldShowTutorial(user.id)) {
+        if (!selectedGroupId && isFirstPhoto && shouldShowTutorial(user.id)) {
           console.log('Showing first time modal after adding first photo');
           setShowFirstTimeModal(true);
         }
@@ -255,7 +264,7 @@ const PhotoGrid: React.FC<PhotoGridProps> = ({ closeSidebar }) => {
       // @ts-ignore
       delete window.addPhoto;
     };
-  }, [user, photos]);
+  }, [user, photos, selectedGroupId]);
 
   const handleDelete = async (id: string, imageUrl: string) => {
     try {
