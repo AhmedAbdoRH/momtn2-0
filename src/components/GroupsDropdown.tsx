@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './AuthProvider';
@@ -8,7 +7,8 @@ import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Textarea } from './ui/textarea';
 import { Switch } from './ui/switch';
-import { Users, Plus, Loader2 } from 'lucide-react';
+import { Users, Plus, Loader2, Settings, Copy, UserPlus, Trash2, Crown, Shield, User, LogOut, Clipboard, Edit2 } from 'lucide-react';
+import { Badge } from './ui/badge';
 
 interface Group {
   id: string;
@@ -18,6 +18,18 @@ interface Group {
   is_private: boolean;
   invite_code: string | null;
   member_count?: number;
+  user_role?: string;
+}
+
+interface GroupMember {
+  id: string;
+  user_id: string;
+  role: string;
+  joined_at: string;
+  users: {
+    email: string;
+    full_name: string | null;
+  };
 }
 
 interface GroupsDropdownProps {
@@ -25,17 +37,26 @@ interface GroupsDropdownProps {
   onGroupChange: (groupId: string | null) => void;
 }
 
-const GroupsDropdown: React.FC<GroupsDropdownProps> = ({ selectedGroupId, onGroupChange }) => {
+export default function GroupsDropdown({ selectedGroupId, onGroupChange }: GroupsDropdownProps) {
   const [groups, setGroups] = useState<Group[]>([]);
   const [loading, setLoading] = useState(true);
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [showJoinDialog, setShowJoinDialog] = useState(false);
+  const [showSettingsDialog, setShowSettingsDialog] = useState(false);
+  const [selectedGroup, setSelectedGroup] = useState<Group | null>(null);
+  const [groupMembers, setGroupMembers] = useState<GroupMember[]>([]);
   const [newGroupName, setNewGroupName] = useState('');
   const [newGroupDescription, setNewGroupDescription] = useState('');
   const [isPrivate, setIsPrivate] = useState(false);
   const [inviteCode, setInviteCode] = useState('');
   const [creating, setCreating] = useState(false);
   const [joining, setJoining] = useState(false);
+  const [loadingMembers, setLoadingMembers] = useState(false);
+  
+  // States for editing group name
+  const [editingGroupId, setEditingGroupId] = useState<string | null>(null);
+  const [editingGroupName, setEditingGroupName] = useState('');
+  
   const { user } = useAuth();
   const { toast } = useToast();
 
@@ -52,17 +73,25 @@ const GroupsDropdown: React.FC<GroupsDropdownProps> = ({ selectedGroupId, onGrou
 
     try {
       setLoading(true);
-      const { data, error } = await supabase
-        .from('groups')
+      
+      // Fetch groups where user is a member
+      const { data: memberGroups, error: memberError } = await supabase
+        .from('group_members')
         .select(`
-          *,
-          group_members!inner(user_id)
+          groups!inner(
+            id,
+            name,
+            description,
+            created_by,
+            is_private,
+            invite_code
+          ),
+          role
         `)
-        .eq('group_members.user_id', user.id)
-        .order('created_at', { ascending: false });
+        .eq('user_id', user.id);
 
-      if (error) {
-        console.error('Error fetching groups:', error);
+      if (memberError) {
+        console.error('Error fetching member groups:', memberError);
         toast({ 
           title: "خطأ في التحميل", 
           description: "لم نتمكن من تحميل المجموعات", 
@@ -71,7 +100,28 @@ const GroupsDropdown: React.FC<GroupsDropdownProps> = ({ selectedGroupId, onGrou
         return;
       }
 
-      setGroups(data || []);
+      // Transform the data
+      const transformedGroups = memberGroups?.map(item => ({
+        ...item.groups,
+        user_role: item.role
+      })) || [];
+
+      // Get member counts for each group
+      const groupsWithCounts = await Promise.all(
+        transformedGroups.map(async (group) => {
+          const { count } = await supabase
+            .from('group_members')
+            .select('*', { count: 'exact', head: true })
+            .eq('group_id', group.id);
+          
+          return {
+            ...group,
+            member_count: count || 0
+          };
+        })
+      );
+
+      setGroups(groupsWithCounts);
     } catch (err) {
       console.error('Exception fetching groups:', err);
       toast({ 
@@ -81,6 +131,42 @@ const GroupsDropdown: React.FC<GroupsDropdownProps> = ({ selectedGroupId, onGrou
       });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchGroupMembers = async (groupId: string) => {
+    setLoadingMembers(true);
+    try {
+      const { data, error } = await supabase
+        .from('group_members')
+        .select(`
+          id,
+          user_id,
+          role,
+          joined_at,
+          users(
+            email,
+            full_name
+          )
+        `)
+        .eq('group_id', groupId)
+        .order('joined_at', { ascending: true });
+
+      if (error) {
+        console.error('Error fetching group members:', error);
+        toast({ 
+          title: "خطأ في التحميل", 
+          description: "لم نتمكن من تحميل أعضاء المجموعة", 
+          variant: "destructive" 
+        });
+        return;
+      }
+
+      setGroupMembers(data || []);
+    } catch (err) {
+      console.error('Exception fetching group members:', err);
+    } finally {
+      setLoadingMembers(false);
     }
   };
 
@@ -148,13 +234,13 @@ const GroupsDropdown: React.FC<GroupsDropdownProps> = ({ selectedGroupId, onGrou
         return;
       }
 
-      // Check if user is already a member
+      // Check if user is already a member - using maybeSingle() instead of single()
       const { data: existingMember } = await supabase
         .from('group_members')
         .select('id')
         .eq('group_id', groupData.id)
         .eq('user_id', user.id)
-        .single();
+        .maybeSingle();
 
       if (existingMember) {
         toast({ 
@@ -199,6 +285,208 @@ const GroupsDropdown: React.FC<GroupsDropdownProps> = ({ selectedGroupId, onGrou
     }
   };
 
+  const handleDeleteGroup = async (groupId: string) => {
+    if (!user) return;
+
+    try {
+      const { error } = await supabase
+        .from('groups')
+        .delete()
+        .eq('id', groupId)
+        .eq('created_by', user.id);
+
+      if (error) {
+        console.error('Error deleting group:', error);
+        toast({ title: "خطأ في الحذف", description: "لم نتمكن من حذف المجموعة", variant: "destructive" });
+        return;
+      }
+
+      await fetchUserGroups();
+      setShowSettingsDialog(false);
+      if (selectedGroupId === groupId) {
+        onGroupChange(null);
+      }
+      
+      toast({ 
+        title: "تم الحذف", 
+        description: "تم حذف المجموعة بنجاح",
+        className: "border-red-400/50 bg-red-900/80"
+      });
+    } catch (err) {
+      console.error('Exception deleting group:', err);
+      toast({ title: "خطأ غير متوقع", description: "حدث خطأ أثناء حذف المجموعة", variant: "destructive" });
+    }
+  };
+
+  const handleLeaveGroup = async (groupId: string) => {
+    if (!user) return;
+
+    try {
+      const { error } = await supabase
+        .from('group_members')
+        .delete()
+        .eq('group_id', groupId)
+        .eq('user_id', user.id);
+
+      if (error) {
+        console.error('Error leaving group:', error);
+        toast({ title: "خطأ في المغادرة", description: "لم نتمكن من مغادرة المجموعة", variant: "destructive" });
+        return;
+      }
+
+      await fetchUserGroups();
+      setShowSettingsDialog(false);
+      if (selectedGroupId === groupId) {
+        onGroupChange(null);
+      }
+      
+      toast({ 
+        title: "تم المغادرة", 
+        description: "تم مغادرة المجموعة بنجاح",
+        className: "border-yellow-400/50 bg-yellow-900/80"
+      });
+    } catch (err) {
+      console.error('Exception leaving group:', err);
+      toast({ title: "خطأ غير متوقع", description: "حدث خطأ أثناء مغادرة المجموعة", variant: "destructive" });
+    }
+  };
+
+  const handleRemoveMember = async (memberId: string, memberEmail: string) => {
+    try {
+      const { error } = await supabase
+        .from('group_members')
+        .delete()
+        .eq('id', memberId);
+
+      if (error) {
+        console.error('Error removing member:', error);
+        toast({ title: "خطأ في الإزالة", description: "لم نتمكن من إزالة العضو", variant: "destructive" });
+        return;
+      }
+
+      if (selectedGroup) {
+        await fetchGroupMembers(selectedGroup.id);
+      }
+      
+      toast({ 
+        title: "تم إزالة العضو", 
+        description: `تم إزالة ${memberEmail} من المجموعة`,
+        className: "border-orange-400/50 bg-orange-900/80"
+      });
+    } catch (err) {
+      console.error('Exception removing member:', err);
+      toast({ title: "خطأ غير متوقع", description: "حدث خطأ أثناء إزالة العضو", variant: "destructive" });
+    }
+  };
+
+  const copyInviteCode = (code: string) => {
+    navigator.clipboard.writeText(code);
+    toast({ 
+      title: "تم النسخ", 
+      description: "تم نسخ كود الدعوة إلى الحافظة",
+      className: "border-blue-400/50 bg-blue-900/80"
+    });
+  };
+
+  const pasteInviteCode = async () => {
+    try {
+      const text = await navigator.clipboard.readText();
+      setInviteCode(text.trim());
+      toast({ 
+        title: "تم اللصق", 
+        description: "تم لصق كود الدعوة من الحافظة",
+        className: "border-green-400/50 bg-green-900/80"
+      });
+    } catch (err) {
+      toast({ 
+        title: "خطأ في اللصق", 
+        description: "لم نتمكن من لصق النص من الحافظة", 
+        variant: "destructive" 
+      });
+    }
+  };
+
+  const openGroupSettings = (group: Group) => {
+    setSelectedGroup(group);
+    setShowSettingsDialog(true);
+    fetchGroupMembers(group.id);
+  };
+
+  // Handle inline group name editing
+  const startEditingGroupName = (groupId: string, currentName: string) => {
+    setEditingGroupId(groupId);
+    setEditingGroupName(currentName);
+  };
+
+  const saveGroupName = async (groupId: string) => {
+    if (!user || !editingGroupName.trim()) {
+      toast({ title: "خطأ", description: "يجب كتابة اسم المجموعة", variant: "destructive" });
+      return;
+    }
+
+    try {
+      const { error } = await supabase
+        .from('groups')
+        .update({ name: editingGroupName.trim() })
+        .eq('id', groupId)
+        .eq('created_by', user.id);
+
+      if (error) {
+        console.error('Error updating group name:', error);
+        toast({ title: "خطأ في التحديث", description: "لم نتمكن من تحديث اسم المجموعة", variant: "destructive" });
+        return;
+      }
+
+      await fetchUserGroups();
+      setEditingGroupId(null);
+      setEditingGroupName('');
+      
+      toast({ 
+        title: "تم التحديث", 
+        description: "تم تحديث اسم المجموعة بنجاح",
+        className: "border-green-400/50 bg-green-900/80"
+      });
+    } catch (err) {
+      console.error('Exception updating group name:', err);
+      toast({ title: "خطأ غير متوقع", description: "حدث خطأ أثناء تحديث اسم المجموعة", variant: "destructive" });
+    }
+  };
+
+  const cancelEditingGroupName = () => {
+    setEditingGroupId(null);
+    setEditingGroupName('');
+  };
+
+  const getRoleIcon = (role: string) => {
+    switch (role) {
+      case 'admin':
+        return <Crown className="w-4 h-4 text-yellow-500" />;
+      case 'moderator':
+        return <Shield className="w-4 h-4 text-blue-500" />;
+      default:
+        return <User className="w-4 h-4 text-gray-500" />;
+    }
+  };
+
+  const getRoleText = (role: string) => {
+    switch (role) {
+      case 'admin':
+        return 'مدير';
+      case 'moderator':
+        return 'مشرف';
+      default:
+        return 'عضو';
+    }
+  };
+
+  // Helper function to get display name
+  const getDisplayName = (member: GroupMember) => {
+    if (member.users.full_name && member.users.full_name.trim()) {
+      return member.users.full_name.trim();
+    }
+    return member.users.email.split('@')[0];
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center p-8">
@@ -209,38 +497,125 @@ const GroupsDropdown: React.FC<GroupsDropdownProps> = ({ selectedGroupId, onGrou
 
   return (
     <div className="space-y-4">
-      {/* Group Selection */}
-      <div className="flex flex-col space-y-2">
-        <button
-          onClick={() => onGroupChange(null)}
-          className={`flex items-center justify-between p-3 rounded-lg transition-colors ${
-            selectedGroupId === null
-              ? 'bg-[#ea384c]/20 text-pink-200 ring-2 ring-pink-400/50'
-              : 'bg-white/10 text-white hover:bg-white/20'
-          }`}
-        >
-          <span>صوري الشخصية</span>
-          <Users className="w-4 h-4" />
-        </button>
-
+      {/* Scrollable Group Selection */}
+      <div className="max-h-60 overflow-y-auto space-y-2 pr-2">
         {groups.map((group) => (
-          <button
-            key={group.id}
-            onClick={() => onGroupChange(group.id)}
-            className={`flex items-center justify-between p-3 rounded-lg transition-colors ${
-              selectedGroupId === group.id
-                ? 'bg-[#ea384c]/20 text-pink-200 ring-2 ring-pink-400/50'
-                : 'bg-white/10 text-white hover:bg-white/20'
-            }`}
-          >
-            <div className="text-right">
-              <div className="font-medium">{group.name}</div>
-              {group.description && (
-                <div className="text-sm text-gray-300 mt-1">{group.description}</div>
+          <div key={group.id} className="relative">
+            <button
+              onClick={() => onGroupChange(group.id)}
+              className={`flex items-center justify-between p-3 rounded-lg transition-colors w-full ${
+                selectedGroupId === group.id
+                  ? 'bg-[#ea384c]/20 text-pink-200 ring-2 ring-pink-400/50'
+                  : 'bg-white/10 text-white hover:bg-white/20'
+              }`}
+            >
+              <div className="text-right flex-1">
+                {editingGroupId === group.id ? (
+                  <div className="flex items-center gap-2 justify-end mb-2">
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        cancelEditingGroupName();
+                      }}
+                      className="text-xs px-2 py-1 bg-gray-600 hover:bg-gray-700 rounded text-white"
+                    >
+                      إلغاء
+                    </button>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        saveGroupName(group.id);
+                      }}
+                      className="text-xs px-2 py-1 bg-green-600 hover:bg-green-700 rounded text-white"
+                    >
+                      حفظ
+                    </button>
+                    <input
+                      type="text"
+                      value={editingGroupName}
+                      onChange={(e) => setEditingGroupName(e.target.value)}
+                      className="bg-white/20 border border-white/30 rounded px-2 py-1 text-sm text-white text-right"
+                      dir="rtl"
+                      autoFocus
+                      onClick={(e) => e.stopPropagation()}
+                      onKeyDown={(e) => {
+                        e.stopPropagation();
+                        if (e.key === 'Enter') {
+                          saveGroupName(group.id);
+                        } else if (e.key === 'Escape') {
+                          cancelEditingGroupName();
+                        }
+                      }}
+                    />
+                  </div>
+                ) : (
+                  <div className="font-medium flex items-center gap-2 justify-end">
+                    {group.name}
+                    {getRoleIcon(group.user_role || 'member')}
+                    {/* Edit button for group creators */}
+                    {group.created_by === user?.id && (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          startEditingGroupName(group.id, group.name);
+                        }}
+                        className="p-1 rounded-full hover:bg-white/20 transition-colors"
+                        title="تعديل اسم المجموعة"
+                      >
+                        <Edit2 className="w-3 h-3 text-white/70" />
+                      </button>
+                    )}
+                  </div>
+                )}
+                
+                {group.description && (
+                  <div className="text-sm text-gray-300 mt-1">{group.description}</div>
+                )}
+                <div className="flex items-center gap-2 justify-end mt-1">
+                  <Badge variant="secondary" className="text-xs">
+                    {group.member_count} عضو
+                  </Badge>
+                  {group.is_private && (
+                    <Badge variant="outline" className="text-xs">
+                      خاصة
+                    </Badge>
+                  )}
+                </div>
+              </div>
+              <Users className="w-4 h-4 flex-shrink-0 ml-2" />
+            </button>
+            
+            {/* Settings and Leave buttons */}
+            <div className="absolute top-2 left-2 flex gap-1">
+              {/* Settings button for group creators and admins */}
+              {(group.created_by === user?.id || group.user_role === 'admin') && (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    openGroupSettings(group);
+                  }}
+                  className="p-1 rounded-full bg-black/20 hover:bg-black/40 transition-colors"
+                  title="إعدادات المجموعة"
+                >
+                  <Settings className="w-3 h-3 text-white" />
+                </button>
+              )}
+              
+              {/* Leave button for non-creators */}
+              {group.created_by !== user?.id && (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleLeaveGroup(group.id);
+                  }}
+                  className="p-1 rounded-full bg-red-600/20 hover:bg-red-600/40 transition-colors"
+                  title="مغادرة المجموعة"
+                >
+                  <LogOut className="w-3 h-3 text-red-400" />
+                </button>
               )}
             </div>
-            <Users className="w-4 h-4 flex-shrink-0" />
-          </button>
+          </div>
         ))}
       </div>
 
@@ -258,7 +633,7 @@ const GroupsDropdown: React.FC<GroupsDropdownProps> = ({ selectedGroupId, onGrou
           onClick={() => setShowJoinDialog(true)}
           className="flex items-center gap-2 p-3 rounded-lg bg-blue-600/20 text-blue-200 hover:bg-blue-600/30 transition-colors"
         >
-          <Users className="w-4 h-4" />
+          <UserPlus className="w-4 h-4" />
           الانضمام لمجموعة
         </button>
       </div>
@@ -328,19 +703,33 @@ const GroupsDropdown: React.FC<GroupsDropdownProps> = ({ selectedGroupId, onGrou
 
       {/* Join Group Dialog */}
       <Dialog open={showJoinDialog} onOpenChange={setShowJoinDialog}>
-        <DialogContent className="bg-gray-900/95 backdrop-blur-xl text-white border border-white/20">
+        <DialogContent className="bg-gray-900/95 backdrop-blur-xl text-white border border-white/20 max-w-lg">
           <DialogHeader>
             <DialogTitle className="text-right text-xl">الانضمام لمجموعة</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             <div>
               <label className="block text-sm font-medium mb-2 text-right">كود الدعوة *</label>
-              <Input
-                value={inviteCode}
-                onChange={(e) => setInviteCode(e.target.value)}
-                className="bg-white/10 backdrop-blur-sm text-white text-center border-white/20"
-                placeholder="أدخل كود الدعوة..."
-              />
+              <div className="flex gap-2 items-center">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={pasteInviteCode}
+                  className="bg-white/10 border-white/20 text-white hover:bg-white/20 px-3 py-2 h-12"
+                  title="لصق من الحافظة"
+                >
+                  <Clipboard className="w-4 h-4" />
+                </Button>
+                <Input
+                  value={inviteCode}
+                  onChange={(e) => setInviteCode(e.target.value)}
+                  className="bg-white/10 backdrop-blur-sm text-white text-center border-white/20 h-12 text-lg font-mono tracking-wider flex-1"
+                  placeholder="أدخل كود الدعوة..."
+                />
+              </div>
+              <p className="text-xs text-gray-400 text-center mt-2">
+                اطلب كود الدعوة من مدير المجموعة أو استخدم زر اللصق
+              </p>
             </div>
           </div>
           <DialogFooter className="flex justify-end gap-2">
@@ -369,8 +758,119 @@ const GroupsDropdown: React.FC<GroupsDropdownProps> = ({ selectedGroupId, onGrou
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Group Settings Dialog */}
+      <Dialog open={showSettingsDialog} onOpenChange={setShowSettingsDialog}>
+        <DialogContent className="bg-gray-900/95 backdrop-blur-xl text-white border border-white/20 max-w-2xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="text-right text-xl">إعدادات المجموعة</DialogTitle>
+          </DialogHeader>
+          
+          {selectedGroup && (
+            <div className="space-y-6">
+              {/* Group Info */}
+              <div className="space-y-2">
+                <h3 className="text-lg font-semibold text-right">{selectedGroup.name}</h3>
+                {selectedGroup.description && (
+                  <p className="text-gray-300 text-right">{selectedGroup.description}</p>
+                )}
+                
+                {/* Invite Code */}
+                {selectedGroup.invite_code && (
+                  <div className="flex items-center gap-2 justify-end">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => copyInviteCode(selectedGroup.invite_code!)}
+                      className="bg-transparent border-white/20 text-white hover:bg-white/10"
+                    >
+                      <Copy className="w-4 h-4 ml-1" />
+                      نسخ
+                    </Button>
+                    <code className="bg-white/10 px-3 py-2 rounded text-sm font-mono tracking-wider">
+                      {selectedGroup.invite_code}
+                    </code>
+                    <span className="text-sm text-gray-300">كود الدعوة:</span>
+                  </div>
+                )}
+              </div>
+
+              {/* Members List */}
+              <div className="space-y-3">
+                <h4 className="text-md font-medium text-right">الأعضاء ({groupMembers.length})</h4>
+                
+                {loadingMembers ? (
+                  <div className="flex justify-center p-4">
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                  </div>
+                ) : (
+                  <div className="space-y-2 max-h-60 overflow-y-auto">
+                    {groupMembers.map((member) => (
+                      <div key={member.id} className="flex items-center justify-between p-2 bg-white/5 rounded-lg">
+                        <div className="flex items-center gap-2">
+                          {/* Remove button for admins (except themselves) */}
+                          {selectedGroup.created_by === user?.id && member.user_id !== user?.id && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleRemoveMember(member.id, member.users.email)}
+                              className="text-red-400 hover:text-red-300 hover:bg-red-900/20 p-1"
+                            >
+                              <Trash2 className="w-3 h-3" />
+                            </Button>
+                          )}
+                          <Badge variant="outline" className="text-xs">
+                            {getRoleText(member.role)}
+                          </Badge>
+                        </div>
+                        
+                        <div className="text-right">
+                          <div className="text-sm font-medium flex items-center gap-2">
+                            {getDisplayName(member)}
+                            {getRoleIcon(member.role)}
+                          </div>
+                          <div className="text-xs text-gray-400">{member.users.email}</div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex justify-end gap-2 pt-4 border-t border-white/20">
+                {selectedGroup.created_by === user?.id ? (
+                  <Button
+                    variant="destructive"
+                    onClick={() => handleDeleteGroup(selectedGroup.id)}
+                    className="bg-red-600 hover:bg-red-700"
+                  >
+                    <Trash2 className="w-4 h-4 ml-2" />
+                    حذف المجموعة
+                  </Button>
+                ) : (
+                  <Button
+                    variant="outline"
+                    onClick={() => handleLeaveGroup(selectedGroup.id)}
+                    className="bg-transparent border-yellow-500/50 text-yellow-400 hover:bg-yellow-900/20"
+                  >
+                    <LogOut className="w-4 h-4 ml-2" />
+                    مغادرة المجموعة
+                  </Button>
+                )}
+                
+                <Button
+                  variant="outline"
+                  onClick={() => setShowSettingsDialog(false)}
+                  className="bg-transparent border-white/20 text-white hover:bg-white/10"
+                >
+                  إغلاق
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
-};
-
-export default GroupsDropdown;
+}

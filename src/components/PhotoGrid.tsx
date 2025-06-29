@@ -18,6 +18,10 @@ interface Photo {
   order?: number | null;
   user_id?: string;
   group_id?: string | null;
+  users?: {
+    email: string;
+    full_name: string | null;
+  };
 }
 
 interface PhotoGridProps {
@@ -130,6 +134,7 @@ const PhotoGrid: React.FC<PhotoGridProps> = ({ closeSidebar, selectedGroupId }) 
     }
     setLoadingInitialPhotos(true);
     try {
+      // First, fetch photos without user join
       let query = supabase
         .from('photos')
         .select('*');
@@ -140,27 +145,53 @@ const PhotoGrid: React.FC<PhotoGridProps> = ({ closeSidebar, selectedGroupId }) 
         query = query.eq('user_id', user.id).is('group_id', null);
       }
 
-      const { data, error } = await query
+      const { data: photosData, error: photosError } = await query
         .order('order', { ascending: true })
         .order('created_at', { ascending: false });
 
-      if (error) {
-        console.error('Error fetching photos:', error);
+      if (photosError) {
+        console.error('Error fetching photos:', photosError);
         setLoadingInitialPhotos(false);
         return [];
       }
 
-      const photosData = data || [];
-      setPhotos(photosData);
+      if (!photosData || photosData.length === 0) {
+        setPhotos([]);
+        setHasPhotosLoadedOnce(true);
+        setLoadingInitialPhotos(false);
+        return [];
+      }
+
+      // Get unique user IDs from photos
+      const userIds = [...new Set(photosData.map(photo => photo.user_id))];
+
+      // Fetch user details separately
+      const { data: usersData, error: usersError } = await supabase
+        .from('users')
+        .select('id, email, full_name')
+        .in('id', userIds);
+
+      if (usersError) {
+        console.error('Error fetching users:', usersError);
+        // Continue without user data if users table query fails
+      }
+
+      // Merge user data with photos
+      const photosWithUsers = photosData.map(photo => ({
+        ...photo,
+        users: usersData?.find(userData => userData.id === photo.user_id) || null
+      }));
+
+      setPhotos(photosWithUsers);
       setHasPhotosLoadedOnce(true);
       
       // Show tutorial modal only if this is the first photo and user hasn't disabled it
-      if (!selectedGroupId && photosData.length === 1 && shouldShowTutorial(user.id)) {
+      if (!selectedGroupId && photosWithUsers.length === 1 && shouldShowTutorial(user.id)) {
         console.log('Showing first time tutorial modal');
         setShowFirstTimeModal(true);
       }
       
-      return photosData;
+      return photosWithUsers;
     } catch (err) {
       console.error('Exception fetching photos:', err);
     } finally {
@@ -227,7 +258,7 @@ const PhotoGrid: React.FC<PhotoGridProps> = ({ closeSidebar, selectedGroupId }) 
           order: 0,
           group_id: params.groupId || selectedGroupId || null
         })
-        .select();
+        .select('*');
 
       if (error) {
         toast({ title: "خطأ في الإضافة", description: "لم نتمكن من إضافة الصورة", variant: "destructive" });
@@ -235,7 +266,19 @@ const PhotoGrid: React.FC<PhotoGridProps> = ({ closeSidebar, selectedGroupId }) 
       }
 
       if (data && data.length > 0) {
-        setPhotos(prev => [data[0], ...prev]);
+        // Get user data for the new photo
+        const { data: userData } = await supabase
+          .from('users')
+          .select('id, email, full_name')
+          .eq('id', user.id)
+          .single();
+
+        const photoWithUser = {
+          ...data[0],
+          users: userData || null
+        };
+
+        setPhotos(prev => [photoWithUser, ...prev]);
         setHasPhotosLoadedOnce(true);
         
         // Show first-time modal only if it's the first photo and user hasn't disabled tutorial
@@ -376,6 +419,9 @@ const PhotoGrid: React.FC<PhotoGridProps> = ({ closeSidebar, selectedGroupId }) 
                           onDelete={() => handleDelete(photo.id, photo.image_url)}
                           dragHandleProps={provided.dragHandleProps}
                           onUpdateCaption={(caption, hashtags) => handleUpdateCaption(photo.id, caption, hashtags)}
+                          isGroupPhoto={!!selectedGroupId}
+                          userEmail={photo.users?.email}
+                          userDisplayName={photo.users?.full_name}
                         />
                       </div>
                     )}

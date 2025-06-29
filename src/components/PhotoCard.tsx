@@ -1,7 +1,7 @@
 import { useState } from "react"; // استيراد useState لإدارة الحالة في المكون
 import { GripVertical, Heart, MessageCircle, Trash2 } from "lucide-react"; // استيراد أيقونات من مكتبة lucide-react
 import { supabase } from "@/integrations/supabase/client"; // استيراد عميل supabase للتفاعل مع قاعدة البيانات
-import { Dialog, DialogContent } from "./ui/dialog"; // استيراد مكونات Dialog لعرض نافذة تحرير التعليق والهاشتاجات
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "./ui/dialog"; // استيراد مكونات Dialog لعرض نافذة تحرير التعليق والهاشتاجات
 
 // تعريف واجهة (interface) لتحديد خصائص المكون PhotoCard
 interface PhotoCardProps {
@@ -12,6 +12,9 @@ interface PhotoCardProps {
   onDelete?: () => void; // دالة لحذف الصورة (اختيارية)
   dragHandleProps?: any; // خصائص للسحب والإفلات (اختيارية)
   onUpdateCaption?: (caption: string, hashtags: string[]) => Promise<void>; // دالة لتحديث التعليق والهاشتاجات (اختيارية)
+  isGroupPhoto?: boolean; // هل هذه صورة في مجموعة
+  userEmail?: string; // إيميل المستخدم (للمجموعات)
+  userDisplayName?: string; // الاسم الشخصي للمستخدم (للمجموعات)
 }
 
 // تعريف المكون PhotoCard مع خصائصه
@@ -22,7 +25,10 @@ const PhotoCard = ({
   hashtags: initialHashtags = [], // قيمة افتراضية مصفوفة فارغة إذا لم تُحدد هاشتاجات
   onDelete,
   dragHandleProps,
-  onUpdateCaption 
+  onUpdateCaption,
+  isGroupPhoto = false, // افتراضي false
+  userEmail, // إيميل المستخدم
+  userDisplayName // الاسم الشخصي للمستخدم
 }: PhotoCardProps) => {
   // تعريف الحالات باستخدام useState
   const [isLoved, setIsLoved] = useState(false); // حالة لتتبع ما إذا تم الإعجاب بالصورة
@@ -75,6 +81,17 @@ const PhotoCard = ({
   // دالة لتبديل إظهار/إخفاء الأزرار
   const toggleControls = () => {
     setIsControlsVisible(!isControlsVisible); // تغيير الحالة بين الإظهار والإخفاء
+  };
+
+  // دالة للحصول على الاسم المعروض
+  const getDisplayName = () => {
+    if (userDisplayName && userDisplayName.trim()) {
+      return userDisplayName.trim();
+    }
+    if (userEmail) {
+      return userEmail.split('@')[0];
+    }
+    return '';
   };
 
   // العرض (render) للمكون
@@ -164,10 +181,16 @@ const PhotoCard = ({
         </div>
 
         {/* عرض التعليق والهاشتاجات إذا وجدت */}
-        {(caption || hashtags.length > 0) && (
+        {(caption || hashtags.length > 0 || (isGroupPhoto && getDisplayName())) && (
           <div className={`absolute left-2 right-2 bottom-14 p-2 bg-black/50 backdrop-blur-md rounded-lg transition-opacity duration-300 ${
             isControlsVisible ? 'opacity-80' : 'opacity-0' // يظهر عند تفعيل الأزرار
           }`}>
+            {/* عرض اسم المستخدم في المجموعات فقط */}
+            {isGroupPhoto && getDisplayName() && (
+              <p className="text-xs text-white/70 mb-1 text-right font-light" dir="rtl">
+                {getDisplayName()}
+              </p>
+            )}
             {caption && <p className="text-white text-sm mb-1 text-right" dir="rtl">{caption}</p>} {/* التعليق */}
             {hashtags.length > 0 && ( // الهاشتاجات
               <div className="flex flex-wrap gap-1 justify-end">
@@ -185,6 +208,9 @@ const PhotoCard = ({
       {/* نافذة التحرير (Dialog) */}
       <Dialog open={isEditing} onOpenChange={setIsEditing}>
         <DialogContent className="bg-gray-900/60 backdrop-blur-xl text-white border-0">
+          <DialogHeader>
+            <DialogTitle className="text-right text-xl">تعديل تفاصيل الصورة</DialogTitle>
+          </DialogHeader>
           <div className="space-y-4">
             {/* حقل التعليق */}
             <div>

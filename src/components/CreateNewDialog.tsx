@@ -10,9 +10,10 @@ interface CreateNewDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onPhotoAdded: () => void;
+  selectedGroupId?: string | null;
 }
 
-const CreateNewDialog = ({ open, onOpenChange, onPhotoAdded }: CreateNewDialogProps) => {
+const CreateNewDialog = ({ open, onOpenChange, onPhotoAdded, selectedGroupId }: CreateNewDialogProps) => {
   const [image, setImage] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string>("");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -47,10 +48,19 @@ const CreateNewDialog = ({ open, onOpenChange, onPhotoAdded }: CreateNewDialogPr
   const fetchAlbumSuggestions = async () => {
     if (!user) return;
     try {
-      const { data, error } = await supabase
+      let query = supabase
         .from("photos")
         .select("hashtags")
         .not("hashtags", "is", null);
+
+      // Filter by group if selectedGroupId is provided
+      if (selectedGroupId) {
+        query = query.eq("group_id", selectedGroupId);
+      } else {
+        query = query.eq("user_id", user.id).is("group_id", null);
+      }
+
+      const { data, error } = await query;
 
       if (error) throw error;
 
@@ -136,6 +146,7 @@ const CreateNewDialog = ({ open, onOpenChange, onPhotoAdded }: CreateNewDialogPr
           image_url: publicUrl,
           hashtags: albumDataForDB,
           user_id: user.id,
+          group_id: selectedGroupId || null,
         })
         .select()
         .single();
@@ -145,11 +156,17 @@ const CreateNewDialog = ({ open, onOpenChange, onPhotoAdded }: CreateNewDialogPr
         throw insertError;
       }
 
+      const isFirstPhoto = !selectedGroupId; // Only show tutorial for personal photos
+      
       toast({ 
         title: "🎉 تمت الإضافة بنجاح 🎉", 
-        description: "تهانينا! الصورة الأولى في ألبومك.\n\nإلمس الصورة لإضافة تعليق, التحريك أو الإزالة" 
+        description: isFirstPhoto 
+          ? "تهانينا! الصورة الأولى في ألبومك.\n\nإلمس الصورة لإضافة تعليق, التحريك أو الإزالة"
+          : selectedGroupId 
+            ? "تم إضافة الصورة إلى المجموعة بنجاح"
+            : "تم إضافة الصورة بنجاح"
       });
-      onPhotoAdded();
+      onPhotoAdded();
       onOpenChange(false);
     } catch (error: any) {
       toast({
@@ -179,9 +196,13 @@ const CreateNewDialog = ({ open, onOpenChange, onPhotoAdded }: CreateNewDialogPr
     >
       <DialogContent className="top-[45%] sm:max-w-[350px] max-h-[85vh] overflow-y-auto bg-gray-900/80 backdrop-blur-lg text-white border border-gray-700 shadow-xl rounded-lg">
         <DialogHeader>
-          <DialogTitle className="text-right text-white">إضافة صورة جديدة</DialogTitle>
+          <DialogTitle className="text-right text-white">
+            {selectedGroupId ? "إضافة صورة للمجموعة" : "إضافة صورة جديدة"}
+          </DialogTitle>
           <DialogDescription className="text-right text-gray-300">
-            قم بتحميل صورة وأضفها إلى ألبوم (اختياري).
+            {selectedGroupId 
+              ? "قم بتحميل صورة وأضفها إلى المجموعة المحددة."
+              : "قم بتحميل صورة وأضفها إلى ألبوم (اختياري)."}
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4 pt-2">
