@@ -126,6 +126,16 @@ const PhotoCard = ({
         {/* Design for Group Photos */}
         {isGroupPhoto ? (
           <>
+            {/* Drag Handle (Top Right) for Group Photos */}
+            <div 
+              {...dragHandleProps} // خصائص السحب والإفلات
+              className={`absolute top-2 right-2 p-2 rounded-full bg-black/20 backdrop-blur-sm transition-opacity duration-300 cursor-move ${
+                isControlsVisible ? 'opacity-50' : 'opacity-0' // يظهر عند تفعيل الأزرار
+              }`}
+            >
+              <GripVertical className="w-4 h-4 text-white" /> {/* أيقونة السحب */}
+            </div>
+
             {/* Options Button (Top Left) for Group Photos */}
             <div className={`absolute top-2 left-2 transition-opacity duration-300 ${
               isControlsVisible ? 'opacity-100' : 'opacity-0'
@@ -164,34 +174,29 @@ const PhotoCard = ({
               </DropdownMenu>
             </div>
 
-            {/* User Info and Comment Icon (Bottom Right) for Group Photos */}
+            {/* Comment Button (Bottom Right) for Group Photos */}
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                setIsEditing(true);
+              }}
+              className={`absolute bottom-2 right-2 p-2 rounded-full bg-black/20 backdrop-blur-sm transition-opacity duration-300 hover:bg-blue-500/50 ${
+                isControlsVisible ? 'opacity-50' : 'opacity-0'
+              } hover:opacity-100`}
+            >
+              <MessageCircle className="w-4 h-4 text-white" />
+            </button>
+
+            {/* User Info (Bottom Left) for Group Photos */}
             {getDisplayName() && (
-              <div className={`absolute bottom-2 right-2 flex items-center gap-2 transition-opacity duration-300 ${
+              <div className={`absolute bottom-2 left-2 transition-opacity duration-300 ${
                 isControlsVisible ? 'opacity-100' : 'opacity-0'
               }`}>
-                <div className="bg-black/50 backdrop-blur-md rounded-lg px-3 py-2 flex items-center gap-2">
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setIsEditing(true);
-                    }}
-                    className="text-white/80 hover:text-white transition-colors"
-                  >
-                    <MessageCircle className="w-4 h-4" />
-                  </button>
+                <div className="bg-black/50 backdrop-blur-md rounded-lg px-3 py-2">
                   <span className="text-white text-sm font-medium">{getDisplayName()}</span>
                 </div>
               </div>
             )}
-
-            {/* Logo (Top Right) for Group Photos */}
-            <div className="absolute top-2 right-2">
-              <img
-                src="/lovable-uploads/99ddbd0a-3c24-4138-92e9-2ed2b73e0681.png"
-                alt="Logo"
-                className="w-8 h-8 object-contain"
-              />
-            </div>
           </>
         ) : (
           <>
