@@ -39,13 +39,6 @@ export type Database = {
             referencedRelation: "groups"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "group_members_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "users"
-            referencedColumns: ["id"]
-          },
         ]
       }
       groups: {
@@ -79,15 +72,7 @@ export type Database = {
           name?: string
           updated_at?: string
         }
-        Relationships: [
-          {
-            foreignKeyName: "groups_created_by_fkey"
-            columns: ["created_by"]
-            isOneToOne: false
-            referencedRelation: "users"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       photos: {
         Row: {
@@ -131,46 +116,31 @@ export type Database = {
             referencedRelation: "groups"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "photos_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "users"
-            referencedColumns: ["id"]
-          },
         ]
       }
       users: {
         Row: {
-          created_at: string
+          created_at: string | null
           email: string
           full_name: string | null
           id: string
-          updated_at: string
+          updated_at: string | null
         }
         Insert: {
-          created_at?: string
+          created_at?: string | null
           email: string
           full_name?: string | null
           id: string
-          updated_at?: string
+          updated_at?: string | null
         }
         Update: {
-          created_at?: string
+          created_at?: string | null
           email?: string
           full_name?: string | null
           id?: string
-          updated_at?: string
+          updated_at?: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "users_id_fkey"
-            columns: ["id"]
-            isOneToOne: true
-            referencedRelation: "users"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
     }
     Views: {
