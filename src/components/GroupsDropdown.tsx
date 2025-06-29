@@ -62,83 +62,111 @@ export default function GroupsDropdown({ selectedGroupId, onGroupChange }: Group
 
   useEffect(() => {
     if (user) {
-      fetchGroups();
+      fetchUserGroups();
     } else {
       setLoading(false);
     }
   }, [user]);
 
-  const fetchGroups = async () => {
+  const fetchUserGroups = async () => {
     if (!user) return;
-    
-    try {
-      const { data: groupsData, error: groupsError } = await supabase
-        .from('groups')
-        .select(`
-          *,
-          group_members!inner(*)
-        `)
-        .eq('group_members.user_id', user.id)
-        .order('created_at', { ascending: false });
 
-      if (groupsError) {
-        console.error('Error fetching groups:', groupsError);
+    try {
+      setLoading(true);
+      
+      // Fetch groups where user is a member
+      const { data: memberGroups, error: memberError } = await supabase
+        .from('group_members')
+        .select(`
+          groups!inner(
+            id,
+            name,
+            description,
+            created_by,
+            is_private,
+            invite_code
+          ),
+          role
+        `)
+        .eq('user_id', user.id);
+
+      if (memberError) {
+        console.error('Error fetching member groups:', memberError);
+        toast({ 
+          title: "خطأ في التحميل", 
+          description: "لم نتمكن من تحميل المجموعات", 
+          variant: "destructive" 
+        });
         return;
       }
 
-      setGroups(groupsData || []);
-    } catch (error) {
-      console.error('Exception fetching groups:', error);
+      // Transform the data
+      const transformedGroups = memberGroups?.map(item => ({
+        ...item.groups,
+        user_role: item.role
+      })) || [];
+
+      // Get member counts for each group
+      const groupsWithCounts = await Promise.all(
+        transformedGroups.map(async (group) => {
+          const { count } = await supabase
+            .from('group_members')
+            .select('*', { count: 'exact', head: true })
+            .eq('group_id', group.id);
+          
+          return {
+            ...group,
+            member_count: count || 0
+          };
+        })
+      );
+
+      setGroups(groupsWithCounts);
+    } catch (err) {
+      console.error('Exception fetching groups:', err);
+      toast({ 
+        title: "خطأ غير متوقع", 
+        description: "حدث خطأ أثناء تحميل المجموعات", 
+        variant: "destructive" 
+      });
+    } finally {
+      setLoading(false);
     }
   };
 
   const fetchGroupMembers = async (groupId: string) => {
+    setLoadingMembers(true);
     try {
-      // Fetch group members separately without join to avoid the relation error
-      const { data: membersData, error: membersError } = await supabase
+      const { data, error } = await supabase
         .from('group_members')
-        .select('*')
-        .eq('group_id', groupId);
+        .select(`
+          id,
+          user_id,
+          role,
+          joined_at,
+          users(
+            email,
+            full_name
+          )
+        `)
+        .eq('group_id', groupId)
+        .order('joined_at', { ascending: true });
 
-      if (membersError) {
-        console.error('Error fetching group members:', membersError);
+      if (error) {
+        console.error('Error fetching group members:', error);
+        toast({ 
+          title: "خطأ في التحميل", 
+          description: "لم نتمكن من تحميل أعضاء المجموعة", 
+          variant: "destructive" 
+        });
         return;
       }
 
-      if (!membersData || membersData.length === 0) {
-        setGroupMembers([]);
-        return;
-      }
-
-      // Get unique user IDs
-      const userIds = [...new Set(membersData.map(member => member.user_id))];
-
-      // Fetch user details separately
-      const { data: usersData, error: usersError } = await supabase
-        .from('users')
-        .select('id, email, full_name')
-        .in('id', userIds);
-
-      if (usersError) {
-        console.error('Error fetching users:', usersError);
-        // Continue without user data if users table query fails
-        const membersWithoutUsers = membersData.map(member => ({
-          ...member,
-          users: { email: '', full_name: '' }
-        }));
-        setGroupMembers(membersWithoutUsers);
-        return;
-      }
-
-      // Merge user data with members
-      const membersWithUsers = membersData.map(member => ({
-        ...member,
-        users: usersData?.find(userData => userData.id === member.user_id) || { email: '', full_name: '' }
-      }));
-
-      setGroupMembers(membersWithUsers);
-    } catch (error) {
-      console.error('Exception fetching group members:', error);
+      setGroupMembers(data || []);
+    } catch (err) {
+      console.error('Exception fetching group members:', err);
+    } finally {
+      setLoadingMembers(false);
     }
   };
 
@@ -167,7 +195,7 @@ export default function GroupsDropdown({ selectedGroupId, onGroupChange }: Group
         return;
       }
 
-      await fetchGroups();
+      await fetchUserGroups();
       setShowCreateDialog(false);
       setNewGroupName('');
       setNewGroupDescription('');
@@ -240,7 +268,7 @@ export default function GroupsDropdown({ selectedGroupId, onGroupChange }: Group
         return;
       }
 
-      await fetchGroups();
+      await fetchUserGroups();
       setShowJoinDialog(false);
       setInviteCode('');
       
@@ -273,7 +301,7 @@ export default function GroupsDropdown({ selectedGroupId, onGroupChange }: Group
         return;
       }
 
-      await fetchGroups();
+      await fetchUserGroups();
       setShowSettingsDialog(false);
       if (selectedGroupId === groupId) {
         onGroupChange(null);
@@ -306,7 +334,7 @@ export default function GroupsDropdown({ selectedGroupId, onGroupChange }: Group
         return;
       }
 
-      await fetchGroups();
+      await fetchUserGroups();
       setShowSettingsDialog(false);
       if (selectedGroupId === groupId) {
         onGroupChange(null);
@@ -409,7 +437,7 @@ export default function GroupsDropdown({ selectedGroupId, onGroupChange }: Group
         return;
       }
 
-      await fetchGroups();
+      await fetchUserGroups();
       setEditingGroupId(null);
       setEditingGroupName('');
       
