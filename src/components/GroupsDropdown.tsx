@@ -29,7 +29,7 @@ interface GroupMember {
   users: {
     email: string;
     full_name: string | null;
-  };
+  } | null;
 }
 
 interface GroupsDropdownProps {
@@ -137,23 +137,15 @@ export default function GroupsDropdown({ selectedGroupId, onGroupChange }: Group
   const fetchGroupMembers = async (groupId: string) => {
     setLoadingMembers(true);
     try {
-      const { data, error } = await supabase
+      // First fetch group members
+      const { data: members, error: membersError } = await supabase
         .from('group_members')
-        .select(`
-          id,
-          user_id,
-          role,
-          joined_at,
-          users(
-            email,
-            full_name
-          )
-        `)
+        .select('id, user_id, role, joined_at')
         .eq('group_id', groupId)
         .order('joined_at', { ascending: true });
 
-      if (error) {
-        console.error('Error fetching group members:', error);
+      if (membersError) {
+        console.error('Error fetching group members:', membersError);
         toast({ 
           title: "خطأ في التحميل", 
           description: "لم نتمكن من تحميل أعضاء المجموعة", 
@@ -162,7 +154,27 @@ export default function GroupsDropdown({ selectedGroupId, onGroupChange }: Group
         return;
       }
 
-      setGroupMembers(data || []);
+      // Then fetch user details for each member
+      const membersWithUsers: GroupMember[] = [];
+      
+      for (const member of members || []) {
+        const { data: userData, error: userError } = await supabase
+          .from('users')
+          .select('email, full_name')
+          .eq('id', member.user_id)
+          .maybeSingle();
+
+        if (userError) {
+          console.error('Error fetching user data:', userError);
+        }
+
+        membersWithUsers.push({
+          ...member,
+          users: userData || null
+        });
+      }
+
+      setGroupMembers(membersWithUsers);
     } catch (err) {
       console.error('Exception fetching group members:', err);
     } finally {
@@ -481,6 +493,9 @@ export default function GroupsDropdown({ selectedGroupId, onGroupChange }: Group
 
   // Helper function to get display name
   const getDisplayName = (member: GroupMember) => {
+    if (!member.users) {
+      return 'مستخدم غير معروف';
+    }
     if (member.users.full_name && member.users.full_name.trim()) {
       return member.users.full_name.trim();
     }
@@ -813,7 +828,7 @@ export default function GroupsDropdown({ selectedGroupId, onGroupChange }: Group
                             <Button
                               variant="ghost"
                               size="sm"
-                              onClick={() => handleRemoveMember(member.id, member.users.email)}
+                              onClick={() => handleRemoveMember(member.id, member.users?.email || 'مستخدم غير معروف')}
                               className="text-red-400 hover:text-red-300 hover:bg-red-900/20 p-1"
                             >
                               <Trash2 className="w-3 h-3" />
@@ -829,7 +844,7 @@ export default function GroupsDropdown({ selectedGroupId, onGroupChange }: Group
                             {getDisplayName(member)}
                             {getRoleIcon(member.role)}
                           </div>
-                          <div className="text-xs text-gray-400">{member.users.email}</div>
+                          <div className="text-xs text-gray-400">{member.users?.email || 'بريد غير معروف'}</div>
                         </div>
                       </div>
                     ))}
