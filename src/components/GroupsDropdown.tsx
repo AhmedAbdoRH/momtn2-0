@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './AuthProvider';
@@ -7,7 +8,7 @@ import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Textarea } from './ui/textarea';
 import { Switch } from './ui/switch';
-import { Users, Plus, Loader2, Settings, Copy, UserPlus, Trash2, Crown, Shield, User, LogOut, Clipboard, Edit2 } from 'lucide-react';
+import { Users, Plus, Loader2, Settings, Copy, UserPlus, Trash2, Crown, Shield, User, LogOut, Clipboard } from 'lucide-react';
 import { Badge } from './ui/badge';
 
 interface Group {
@@ -52,10 +53,6 @@ export default function GroupsDropdown({ selectedGroupId, onGroupChange }: Group
   const [creating, setCreating] = useState(false);
   const [joining, setJoining] = useState(false);
   const [loadingMembers, setLoadingMembers] = useState(false);
-  
-  // States for editing group name
-  const [editingGroupId, setEditingGroupId] = useState<string | null>(null);
-  const [editingGroupName, setEditingGroupName] = useState('');
   
   const { user } = useAuth();
   const { toast } = useToast();
@@ -424,51 +421,6 @@ export default function GroupsDropdown({ selectedGroupId, onGroupChange }: Group
     fetchGroupMembers(group.id);
   };
 
-  // Handle inline group name editing
-  const startEditingGroupName = (groupId: string, currentName: string) => {
-    setEditingGroupId(groupId);
-    setEditingGroupName(currentName);
-  };
-
-  const saveGroupName = async (groupId: string) => {
-    if (!user || !editingGroupName.trim()) {
-      toast({ title: "خطأ", description: "يجب كتابة اسم المجموعة", variant: "destructive" });
-      return;
-    }
-
-    try {
-      const { error } = await supabase
-        .from('groups')
-        .update({ name: editingGroupName.trim() })
-        .eq('id', groupId)
-        .eq('created_by', user.id);
-
-      if (error) {
-        console.error('Error updating group name:', error);
-        toast({ title: "خطأ في التحديث", description: "لم نتمكن من تحديث اسم المجموعة", variant: "destructive" });
-        return;
-      }
-
-      await fetchUserGroups();
-      setEditingGroupId(null);
-      setEditingGroupName('');
-      
-      toast({ 
-        title: "تم التحديث", 
-        description: "تم تحديث اسم المجموعة بنجاح",
-        className: "border-green-400/50 bg-green-900/80"
-      });
-    } catch (err) {
-      console.error('Exception updating group name:', err);
-      toast({ title: "خطأ غير متوقع", description: "حدث خطأ أثناء تحديث اسم المجموعة", variant: "destructive" });
-    }
-  };
-
-  const cancelEditingGroupName = () => {
-    setEditingGroupId(null);
-    setEditingGroupName('');
-  };
-
   const getRoleIcon = (role: string) => {
     switch (role) {
       case 'admin':
@@ -512,6 +464,22 @@ export default function GroupsDropdown({ selectedGroupId, onGroupChange }: Group
 
   return (
     <div className="space-y-4">
+      {/* Shared Space Header with Group Icon */}
+      {selectedGroupId && (
+        <div className="mb-6">
+          <div className="bg-black/30 backdrop-blur-md rounded-xl p-4 border border-white/10">
+            <div className="flex items-center justify-center gap-3">
+              <div className="bg-white/10 backdrop-blur-sm rounded-full p-3 border border-white/20">
+                <Users className="w-6 h-6 text-yellow-100" />
+              </div>
+              <h2 className="text-xl font-bold text-yellow-100">
+                {groups.find(g => g.id === selectedGroupId)?.name || 'مساحة مشتركة'}
+              </h2>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Scrollable Group Selection */}
       <div className="max-h-60 overflow-y-auto space-y-2 pr-2">
         {groups.map((group) => (
@@ -525,63 +493,10 @@ export default function GroupsDropdown({ selectedGroupId, onGroupChange }: Group
               }`}
             >
               <div className="text-right flex-1">
-                {editingGroupId === group.id ? (
-                  <div className="flex items-center gap-2 justify-end mb-2">
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        cancelEditingGroupName();
-                      }}
-                      className="text-xs px-2 py-1 bg-gray-600 hover:bg-gray-700 rounded text-white"
-                    >
-                      إلغاء
-                    </button>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        saveGroupName(group.id);
-                      }}
-                      className="text-xs px-2 py-1 bg-green-600 hover:bg-green-700 rounded text-white"
-                    >
-                      حفظ
-                    </button>
-                    <input
-                      type="text"
-                      value={editingGroupName}
-                      onChange={(e) => setEditingGroupName(e.target.value)}
-                      className="bg-white/20 border border-white/30 rounded px-2 py-1 text-sm text-white text-right"
-                      dir="rtl"
-                      autoFocus
-                      onClick={(e) => e.stopPropagation()}
-                      onKeyDown={(e) => {
-                        e.stopPropagation();
-                        if (e.key === 'Enter') {
-                          saveGroupName(group.id);
-                        } else if (e.key === 'Escape') {
-                          cancelEditingGroupName();
-                        }
-                      }}
-                    />
-                  </div>
-                ) : (
-                  <div className="font-medium flex items-center gap-2 justify-end">
-                    {group.name}
-                    {getRoleIcon(group.user_role || 'member')}
-                    {/* Edit button for group creators */}
-                    {group.created_by === user?.id && (
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          startEditingGroupName(group.id, group.name);
-                        }}
-                        className="p-1 rounded-full hover:bg-white/20 transition-colors"
-                        title="تعديل اسم المجموعة"
-                      >
-                        <Edit2 className="w-3 h-3 text-white/70" />
-                      </button>
-                    )}
-                  </div>
-                )}
+                <div className="font-medium flex items-center gap-2 justify-end">
+                  {group.name}
+                  {getRoleIcon(group.user_role || 'member')}
+                </div>
                 
                 {group.description && (
                   <div className="text-sm text-gray-300 mt-1">{group.description}</div>
