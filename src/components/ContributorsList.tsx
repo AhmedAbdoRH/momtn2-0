@@ -15,7 +15,7 @@ const contributors: Contributor[] = [
     id: 1,
     name: "أحمد عبده",
     role: "مطور التطبيق",
-    avatarUrl: "/lovable-uploads/f39108e3-15cc-458c-bb92-7e6b18e100cc.png",
+    avatarUrl: "/musin-logo.png",
   },
   // تم إزالة المساهمين الآخرين
   // {

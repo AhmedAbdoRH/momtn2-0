@@ -74,7 +74,7 @@ const Index = () => {
           <div className="text-center mb-8">
             <div className="inline-block mb-6 w-40 h-40 sm:w-48 sm:h-48">
               <img 
-                src="/lovable-uploads/f39108e3-15cc-458c-bb92-7e6b18e100cc.png" 
+                src="/musin-logo.png"
                 alt="Logo"
                 className="w-full h-full object-contain animate-float"
               />

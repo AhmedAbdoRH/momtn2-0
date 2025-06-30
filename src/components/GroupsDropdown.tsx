@@ -464,21 +464,6 @@ export default function GroupsDropdown({ selectedGroupId, onGroupChange }: Group
 
   return (
     <div className="space-y-4">
-      {/* Shared Space Header with Group Icon */}
-      {selectedGroupId && (
-        <div className="mb-6">
-          <div className="bg-black/30 backdrop-blur-md rounded-xl p-4 border border-white/10">
-            <div className="flex items-center justify-center gap-3">
-              <div className="bg-white/10 backdrop-blur-sm rounded-full p-3 border border-white/20">
-                <Users className="w-6 h-6 text-yellow-100" />
-              </div>
-              <h2 className="text-xl font-bold text-yellow-100">
-                {groups.find(g => g.id === selectedGroupId)?.name || 'مساحة مشتركة'}
-              </h2>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* Scrollable Group Selection */}
       <div className="max-h-60 overflow-y-auto space-y-2 pr-2">
@@ -575,12 +560,12 @@ export default function GroupsDropdown({ selectedGroupId, onGroupChange }: Group
             <DialogTitle className="text-right text-xl">إنشاء مجموعة جديدة</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
-            <div>
+            <div className="w-full">
               <label className="block text-sm font-medium mb-2 text-right">اسم المجموعة *</label>
               <Input
                 value={newGroupName}
                 onChange={(e) => setNewGroupName(e.target.value)}
-                className="bg-white/10 backdrop-blur-sm text-white text-right border-white/20"
+                className="w-full bg-white/10 backdrop-blur-sm text-white text-right border-white/20"
                 placeholder="أدخل اسم المجموعة..."
                 dir="rtl"
               />
@@ -596,13 +581,7 @@ export default function GroupsDropdown({ selectedGroupId, onGroupChange }: Group
                 rows={3}
               />
             </div>
-            <div className="flex items-center justify-between">
-              <label className="text-sm font-medium">مجموعة خاصة</label>
-              <Switch
-                checked={isPrivate}
-                onCheckedChange={setIsPrivate}
-              />
-            </div>
+
           </div>
           <DialogFooter className="flex justify-end gap-2">
             <Button

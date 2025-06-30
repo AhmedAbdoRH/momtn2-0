@@ -117,7 +117,7 @@ const ResetPasswordPage = () => {
         <div className="text-center">
           <div className="inline-block mb-6 w-32 h-32">
             <img
-              src="/lovable-uploads/f39108e3-15cc-458c-bb92-7e6b18e100cc.png"
+              src="/musin-logo.png"
               alt="Logo"
               className="w-full h-full object-contain"
             />

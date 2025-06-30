@@ -19,7 +19,9 @@ const CreateNewDialog = ({ open, onOpenChange, onPhotoAdded, selectedGroupId }: 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [albumName, setAlbumName] = useState<string>("");
   const [suggestions, setSuggestions] = useState<string[]>([]);
-  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [showAlbumInput, setShowAlbumInput] = useState(false);
+  // Suggestions are always shown when there's an image
+  const [selectedAlbums, setSelectedAlbums] = useState<Set<string>>(new Set());
   const { toast } = useToast();
   const { user } = useAuth();
   // مرجع لعنصر label الخاص برفع الصور
@@ -76,7 +78,8 @@ const CreateNewDialog = ({ open, onOpenChange, onPhotoAdded, selectedGroupId }: 
     setImage(null);
     setPreviewUrl("");
     setAlbumName("");
-    setShowSuggestions(false);
+    setSelectedAlbums(new Set());
+    setShowAlbumInput(false);
     setIsSubmitting(false);
   };
 
@@ -86,21 +89,35 @@ const CreateNewDialog = ({ open, onOpenChange, onPhotoAdded, selectedGroupId }: 
       setImage(file);
       const newUrl = URL.createObjectURL(file);
       setPreviewUrl(newUrl);
+      // Show suggestions automatically after selecting an image
+      if (suggestions.length > 0) {
+        setShowSuggestions(true);
+      }
     } else {
       setImage(null);
       setPreviewUrl("");
+      setShowSuggestions(false);
     }
   };
 
   const handleAlbumChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
     setAlbumName(value);
-    setShowSuggestions(suggestions.length > 0);
+    // Don't show suggestions while typing in the new album input
   };
 
   const handleSuggestionClick = (suggestion: string) => {
     setAlbumName(suggestion);
-    setShowSuggestions(false);
+    setSelectedAlbums(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(suggestion)) {
+        newSet.delete(suggestion);
+      } else {
+        newSet.add(suggestion);
+      }
+      return newSet;
+    });
+    setShowAlbumInput(false); // Hide input when selecting from suggestions
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -139,6 +156,11 @@ const CreateNewDialog = ({ open, onOpenChange, onPhotoAdded, selectedGroupId }: 
 
       const finalAlbumName = albumName.trim();
       const albumDataForDB = finalAlbumName ? [finalAlbumName] : null;
+
+      // Add new album to suggestions if it doesn't exist
+      if (finalAlbumName && !suggestions.includes(finalAlbumName)) {
+        setSuggestions(prev => [...prev, finalAlbumName]);
+      }
 
       const { data: insertData, error: insertError } = await supabase
         .from("photos")
@@ -231,43 +253,54 @@ const CreateNewDialog = ({ open, onOpenChange, onPhotoAdded, selectedGroupId }: 
             />
 
             <div className="w-full relative">
-              <label htmlFor="albumName" className="block text-sm font-medium text-gray-300 mb-1 text-right">
-                اسم الألبوم (اختياري)
-              </label>
-              <input
-                id="albumName"
-                type="text"
-                value={albumName}
-                onChange={handleAlbumChange}
-                onFocus={() => setShowSuggestions(suggestions.length > 0)}
-                onBlur={() => setTimeout(() => setShowSuggestions(false), 150)}
-                placeholder="مثال: رحلات الصيف"
-                className="w-full px-3 py-2 bg-gray-800/60 border border-gray-600 rounded-md text-right placeholder:text-gray-500 text-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none"
-                autoComplete="off"
-                aria-haspopup="listbox"
-                aria-expanded={showSuggestions && filteredSuggestions.length > 0}
-              />
-              {showSuggestions && filteredSuggestions.length > 0 && (
-                <div
-                  role="listbox"
-                  id="suggestions-list"
-                  aria-label="Album suggestions"
-                  className="absolute z-10 w-full mt-1 max-h-48 overflow-y-auto bg-gray-800 border border-gray-700 rounded-md shadow-lg text-right suggestions-list"
-                >
-                  {filteredSuggestions.map((suggestion, index) => (
-                    <div
-                      key={index}
-                      role="option"
-                      aria-selected="false"
-                      className="px-3 py-2 cursor-pointer hover:bg-gray-700 suggestion-item"
-                      onMouseDown={(e) => {
+              {showAlbumInput && (
+                <input
+                  id="albumName"
+                  type="text"
+                  value={albumName}
+                  onChange={handleAlbumChange}
+
+                  onBlur={() => setTimeout(() => setShowAlbumInput(false), 200)}
+                  placeholder="اكتب اسم الألبوم الجديد"
+                  className="w-full px-4 py-3 text-right text-white bg-gray-800/90 border border-gray-700 rounded-lg text-base focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-colors mb-2"
+                  autoComplete="off"
+                  autoFocus
+                />
+              )}
+              {image && (
+                <div className="mt-3">
+                  <p className="text-sm text-gray-300 mb-2 text-right">اختر ألبوماً لإضافته للصورة:</p>
+                  <div className="flex flex-wrap gap-3 justify-end">
+                    <button
+                      type="button"
+                      className="px-4 py-2 bg-gray-500/50 hover:bg-gray-500/70 rounded-lg text-white font-medium text-sm flex items-center gap-1 transition-colors shadow-sm"
+                      onClick={(e) => {
                         e.preventDefault();
-                        handleSuggestionClick(suggestion);
+                        setShowAlbumInput(true);
+                      setAlbumName('');
                       }}
                     >
-                      {suggestion}
-                    </div>
-                  ))}
+                      <span>ألبوم جديد</span>
+                      <span className="text-base">+</span>
+                    </button>
+                    {filteredSuggestions.map((suggestion, index) => (
+                      <button
+                        key={index}
+                        type="button"
+                        className={`px-4 py-2 rounded-lg font-medium text-sm transition-colors border shadow-sm ${
+                          selectedAlbums.has(suggestion)
+                            ? 'bg-indigo-600/80 border-indigo-500 text-white'
+                            : 'bg-gray-700/70 hover:bg-gray-600/80 border-gray-600 text-white'
+                        }`}
+                        onClick={(e) => {
+                          e.preventDefault();
+                          handleSuggestionClick(suggestion);
+                        }}
+                      >
+                        {suggestion}
+                      </button>
+                    ))}
+                  </div>
                 </div>
               )}
             </div>
