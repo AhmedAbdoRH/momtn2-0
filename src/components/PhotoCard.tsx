@@ -123,124 +123,80 @@ const PhotoCard = ({
           }`} />
         </div>
         
-        {/* Design for Group Photos */}
-        {isGroupPhoto ? (
-          <>
-            {/* Drag Handle (Top Right) for Group Photos */}
-            <div 
-              {...dragHandleProps} // خصائص السحب والإفلات
-              className={`absolute top-2 right-2 p-2 rounded-full bg-black/20 backdrop-blur-sm transition-opacity duration-300 cursor-move ${
-                isControlsVisible ? 'opacity-50' : 'opacity-0' // يظهر عند تفعيل الأزرار
-              }`}
-            >
-              <GripVertical className="w-4 h-4 text-white" /> {/* أيقونة السحب */}
+        {/* زر السحب (drag handle) - موحد لجميع الصور */}
+        <div 
+          {...dragHandleProps} // خصائص السحب والإفلات
+          className={`absolute top-2 right-2 p-2 rounded-full bg-black/20 backdrop-blur-sm transition-opacity duration-300 cursor-move ${
+            isControlsVisible ? 'opacity-50' : 'opacity-0' // يظهر عند تفعيل الأزرار
+          }`}
+        >
+          <GripVertical className="w-4 h-4 text-white" /> {/* أيقونة السحب */}
+        </div>
+
+        {/* زر الخيارات - موحد لجميع الصور */}
+        <div className={`absolute top-2 left-2 transition-opacity duration-300 ${
+          isControlsVisible ? 'opacity-100' : 'opacity-0'
+        }`}>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button
+                onClick={(e) => e.stopPropagation()}
+                className="p-2 rounded-full bg-black/20 backdrop-blur-sm hover:bg-black/40 transition-colors"
+              >
+                <MoreVertical className="w-4 h-4 text-white" />
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start" className="bg-black/90 backdrop-blur-xl border border-white/20">
+              <DropdownMenuItem
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setIsEditing(true);
+                }}
+                className="text-white hover:bg-white/20 cursor-pointer"
+              >
+                <Plus className="w-4 h-4 ml-2" />
+                <span>{isGroupPhoto ? "إضافة تعليق" : "إضافة إلى ألبوم"}</span>
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onDelete?.();
+                }}
+                className="text-red-400 hover:bg-red-500/20 cursor-pointer"
+              >
+                <Trash2 className="w-4 h-4 ml-2" />
+                <span>حذف</span>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+
+        {/* زر التعليق - موحد لجميع الصور */}
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            setIsEditing(true);
+          }}
+          className={`absolute bottom-2 right-2 p-2 rounded-full bg-black/20 backdrop-blur-sm transition-opacity duration-300 hover:bg-blue-500/50 ${
+            isControlsVisible ? 'opacity-50' : 'opacity-0'
+          } hover:opacity-100`}
+        >
+          <MessageCircle className="w-4 h-4 text-white" />
+        </button>
+
+        {/* معلومات المستخدم (للمجموعات فقط) */}
+        {isGroupPhoto && getDisplayName() && (
+          <div className={`absolute bottom-2 left-2 transition-opacity duration-300 ${
+            isControlsVisible ? 'opacity-100' : 'opacity-0'
+          }`}>
+            <div className="bg-black/50 backdrop-blur-md rounded-lg px-3 py-2">
+              <span className="text-white text-sm font-medium">{getDisplayName()}</span>
             </div>
-
-            {/* Options Button (Top Left) for Group Photos */}
-            <div className={`absolute top-2 left-2 transition-opacity duration-300 ${
-              isControlsVisible ? 'opacity-100' : 'opacity-0'
-            }`}>
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <button
-                    onClick={(e) => e.stopPropagation()}
-                    className="p-2 rounded-full bg-black/20 backdrop-blur-sm hover:bg-black/40 transition-colors"
-                  >
-                    <MoreVertical className="w-4 h-4 text-white" />
-                  </button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="start" className="bg-black/90 backdrop-blur-xl border border-white/20">
-                  <DropdownMenuItem
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setIsEditing(true);
-                    }}
-                    className="text-white hover:bg-white/20 cursor-pointer"
-                  >
-                    <Plus className="w-4 h-4 ml-2" />
-                    <span>إضافة إلى ألبوم</span>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onDelete?.();
-                    }}
-                    className="text-red-400 hover:bg-red-500/20 cursor-pointer"
-                  >
-                    <Trash2 className="w-4 h-4 ml-2" />
-                    <span>حذف</span>
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </div>
-
-            {/* Comment Button (Bottom Right) for Group Photos */}
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                setIsEditing(true);
-              }}
-              className={`absolute bottom-2 right-2 p-2 rounded-full bg-black/20 backdrop-blur-sm transition-opacity duration-300 hover:bg-blue-500/50 ${
-                isControlsVisible ? 'opacity-50' : 'opacity-0'
-              } hover:opacity-100`}
-            >
-              <MessageCircle className="w-4 h-4 text-white" />
-            </button>
-
-            {/* User Info (Bottom Left) for Group Photos */}
-            {getDisplayName() && (
-              <div className={`absolute bottom-2 left-2 transition-opacity duration-300 ${
-                isControlsVisible ? 'opacity-100' : 'opacity-0'
-              }`}>
-                <div className="bg-black/50 backdrop-blur-md rounded-lg px-3 py-2">
-                  <span className="text-white text-sm font-medium">{getDisplayName()}</span>
-                </div>
-              </div>
-            )}
-          </>
-        ) : (
-          <>
-            {/* Original Design for Personal Photos */}
-            {/* زر السحب (drag handle) */}
-            <div 
-              {...dragHandleProps} // خصائص السحب والإفلات
-              className={`absolute top-2 right-2 p-2 rounded-full bg-black/20 backdrop-blur-sm transition-opacity duration-300 cursor-move ${
-                isControlsVisible ? 'opacity-50' : 'opacity-0' // يظهر عند تفعيل الأزرار
-              }`}
-            >
-              <GripVertical className="w-4 h-4 text-white" /> {/* أيقونة السحب */}
-            </div>
-
-            {/* زر التحرير (تعليق وهاشتاجات) */}
-            <button
-              onClick={(e) => {
-                e.stopPropagation(); // منع النقر من التأثير على الحاوية الرئيسية
-                setIsEditing(true); // فتح وضع التحرير
-              }}
-              className={`absolute top-2 left-2 p-2 rounded-full bg-black/20 backdrop-blur-sm transition-opacity duration-300 hover:opacity-100 ${
-                isControlsVisible ? 'opacity-50' : 'opacity-0' // يظهر عند تفعيل الأزرار
-              }`}
-            >
-              <MessageCircle className="w-4 h-4 text-white" /> {/* أيقونة التعليق */}
-            </button>
-
-            {/* زر الحذف */}
-            <button
-              onClick={(e) => {
-                e.stopPropagation(); // منع النقر من التأثير على الحاوية الرئيسية
-                onDelete?.(); // استدعاء دالة الحذف إذا كانت موجودة
-              }}
-              className={`absolute bottom-2 right-2 p-2 rounded-full bg-black/20 backdrop-blur-sm transition-opacity duration-300 hover:bg-red-500/50 ${
-                isControlsVisible ? 'opacity-50' : 'opacity-0' // يظهر عند تفعيل الأزرار
-              } hover:opacity-100`}
-            >
-              <Trash2 className="w-4 h-4 text-white" /> {/* أيقونة الحذف */}
-            </button>
-          </>
+          </div>
         )}
 
-        {/* قسم الإعجابات */}
-        <div className="absolute bottom-2 left-2 flex items-center gap-1">
+        {/* قسم الإعجابات - موحد لجميع الصور */}
+        <div className={`absolute ${isGroupPhoto && getDisplayName() ? 'bottom-16 left-2' : 'bottom-2 left-2'} flex items-center gap-1`}>
           <button
             onClick={(e) => {
               e.stopPropagation(); // منع النقر من التأثير على الحاوية الرئيسية
@@ -269,7 +225,7 @@ const PhotoCard = ({
 
         {/* عرض التعليق والهاشتاجات إذا وجدت */}
         {(caption || hashtags.length > 0) && (
-          <div className={`absolute left-2 right-2 ${isGroupPhoto ? 'bottom-16' : 'bottom-14'} p-2 bg-black/50 backdrop-blur-md rounded-lg transition-opacity duration-300 ${
+          <div className={`absolute left-2 right-2 ${isGroupPhoto && getDisplayName() ? 'bottom-20' : 'bottom-14'} p-2 bg-black/50 backdrop-blur-md rounded-lg transition-opacity duration-300 ${
             isControlsVisible ? 'opacity-80' : 'opacity-0' // يظهر عند تفعيل الأزرار
           }`}>
             {caption && <p className="text-white text-sm mb-1 text-right" dir="rtl">{caption}</p>} {/* التعليق */}
