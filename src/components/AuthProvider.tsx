@@ -7,10 +7,12 @@ import { Session, User } from '@supabase/supabase-js';
 interface AuthContextType {
   session: Session | null;
   user: User | null;
+  userDisplayName: string | null;
   signUp: (email: string, password: string) => Promise<{ error: any }>;
   signIn: (email: string, password: string) => Promise<{ error: any }>;
   signOut: () => Promise<void>;
   loading: boolean;
+  refreshUserDisplayName: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -40,12 +42,58 @@ const loadUserBackgroundPreference = async (userId: string) => {
   }
 };
 
+// Helper function to get display name from database or email
+const getDisplayNameFromUser = async (user: User): Promise<string> => {
+  if (!user) return '';
+  
+  try {
+    const { data, error } = await supabase
+      .from('users')
+      .select('full_name')
+      .eq('id', user.id)
+      .single();
+
+    if (error || !data?.full_name) {
+      // Return email prefix as default
+      return user.email?.split('@')[0] || '';
+    }
+
+    return data.full_name;
+  } catch (err) {
+    console.error('Error loading display name:', err);
+    return user.email?.split('@')[0] || '';
+  }
+};
+
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
+  const [userDisplayName, setUserDisplayName] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
   const location = useLocation();
+
+  // Function to refresh user display name
+  const refreshUserDisplayName = async () => {
+    if (user) {
+      const displayName = await getDisplayNameFromUser(user);
+      setUserDisplayName(displayName);
+    }
+  };
+
+  // Listen for display name updates
+  useEffect(() => {
+    const handleDisplayNameUpdate = (event: CustomEvent) => {
+      const { displayName } = event.detail;
+      setUserDisplayName(displayName);
+    };
+
+    window.addEventListener('displayNameUpdated', handleDisplayNameUpdate as EventListener);
+    
+    return () => {
+      window.removeEventListener('displayNameUpdated', handleDisplayNameUpdate as EventListener);
+    };
+  }, []);
 
   useEffect(() => {
     console.log("Setting up auth listener...");
@@ -65,8 +113,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           setSession(newSession);
           setUser(newSession?.user ?? null);
           
-          if (newSession?.user?.id) {
+          if (newSession?.user) {
             await loadUserBackgroundPreference(newSession.user.id);
+            const displayName = await getDisplayNameFromUser(newSession.user);
+            setUserDisplayName(displayName);
           }
           
           // For OAuth callback on initial session, redirect to home
@@ -82,8 +132,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           setUser(newSession?.user ?? null);
           
           // Load user's background preference when they sign in
-          if (newSession?.user?.id) {
+          if (newSession?.user) {
             await loadUserBackgroundPreference(newSession.user.id);
+            const displayName = await getDisplayNameFromUser(newSession.user);
+            setUserDisplayName(displayName);
           }
           
           // For Google OAuth and new users, always redirect to home
@@ -106,6 +158,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           console.log("User signed out");
           setSession(null);
           setUser(null);
+          setUserDisplayName(null);
           
           // Apply default background when user signs out
           window.dispatchEvent(new CustomEvent('apply-gradient', { 
@@ -117,6 +170,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           console.log("User updated");
           setSession(newSession);
           setUser(newSession?.user ?? null);
+          
+          if (newSession?.user) {
+            const displayName = await getDisplayNameFromUser(newSession.user);
+            setUserDisplayName(displayName);
+          }
         } else if (event === 'PASSWORD_RECOVERY') {
           console.log("Password recovery event detected");
           // The recovery token is already in the URL in hash parameters
@@ -144,9 +202,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         setSession(session);
         setUser(session?.user ?? null);
         
-        // Load user's background preference if user is logged in
-        if (session?.user?.id) {
+        // Load user's background preference and display name if user is logged in
+        if (session?.user) {
           await loadUserBackgroundPreference(session.user.id);
+          const displayName = await getDisplayNameFromUser(session.user);
+          setUserDisplayName(displayName);
         }
         
         // Redirect if needed - but only if user is logged in and on auth page
@@ -178,9 +238,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         setUser(data.user);
         setSession(data.session);
         
-        // Load default background for new user
+        // Load default background for new user and set display name
         if (data.user.id) {
           await loadUserBackgroundPreference(data.user.id);
+          const displayName = await getDisplayNameFromUser(data.user);
+          setUserDisplayName(displayName);
         }
         
         navigate('/', { replace: true });
@@ -200,9 +262,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       console.log("Sign in result:", error ? `Error: ${error.message}` : "Success", data);
       
       if (!error && data.user) {
-        // Load user's background preference
+        // Load user's background preference and display name
         if (data.user.id) {
           await loadUserBackgroundPreference(data.user.id);
+          const displayName = await getDisplayNameFromUser(data.user);
+          setUserDisplayName(displayName);
         }
         navigate('/', { replace: true });
       }
@@ -226,10 +290,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const value = {
     session,
     user,
+    userDisplayName,
     signUp,
     signIn,
     signOut,
-    loading
+    loading,
+    refreshUserDisplayName
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
