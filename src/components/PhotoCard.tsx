@@ -155,7 +155,7 @@ const PhotoCard = ({
                 className="text-white hover:bg-white/20 cursor-pointer"
               >
                 <Plus className="w-4 h-4 ml-2" />
-                <span>{isGroupPhoto ? "إضافة تعليق" : "إضافة إلى ألبوم"}</span>
+                <span>إضافة إلى ألبوم</span>
               </DropdownMenuItem>
               <DropdownMenuItem
                 onClick={(e) => {
@@ -184,19 +184,8 @@ const PhotoCard = ({
           <MessageCircle className="w-4 h-4 text-white" />
         </button>
 
-        {/* معلومات المستخدم (للمجموعات فقط) */}
-        {isGroupPhoto && getDisplayName() && (
-          <div className={`absolute bottom-2 left-2 transition-opacity duration-300 ${
-            isControlsVisible ? 'opacity-100' : 'opacity-0'
-          }`}>
-            <div className="bg-black/50 backdrop-blur-md rounded-lg px-3 py-2">
-              <span className="text-white text-sm font-medium">{getDisplayName()}</span>
-            </div>
-          </div>
-        )}
-
-        {/* قسم الإعجابات - موحد لجميع الصور */}
-        <div className={`absolute ${isGroupPhoto && getDisplayName() ? 'bottom-16 left-2' : 'bottom-2 left-2'} flex items-center gap-1`}>
+        {/* قسم الإعجابات - في الموضع القديم */}
+        <div className="absolute bottom-2 left-2 flex items-center gap-1">
           <button
             onClick={(e) => {
               e.stopPropagation(); // منع النقر من التأثير على الحاوية الرئيسية
@@ -223,12 +212,21 @@ const PhotoCard = ({
           </span>
         </div>
 
-        {/* عرض التعليق والهاشتاجات إذا وجدت */}
+        {/* عرض التعليق والهاشتاجات مع اسم المستخدم بجانب التعليق */}
         {(caption || hashtags.length > 0) && (
-          <div className={`absolute left-2 right-2 ${isGroupPhoto && getDisplayName() ? 'bottom-20' : 'bottom-14'} p-2 bg-black/50 backdrop-blur-md rounded-lg transition-opacity duration-300 ${
+          <div className={`absolute left-2 right-2 bottom-14 p-2 bg-black/50 backdrop-blur-md rounded-lg transition-opacity duration-300 ${
             isControlsVisible ? 'opacity-80' : 'opacity-0' // يظهر عند تفعيل الأزرار
           }`}>
-            {caption && <p className="text-white text-sm mb-1 text-right" dir="rtl">{caption}</p>} {/* التعليق */}
+            {caption && (
+              <div className="flex items-start gap-2 mb-1 text-right" dir="rtl">
+                <p className="text-white text-sm flex-1">{caption}</p>
+                {isGroupPhoto && getDisplayName() && (
+                  <span className="text-yellow-100 text-xs font-medium bg-black/30 px-2 py-1 rounded whitespace-nowrap">
+                    {getDisplayName()}
+                  </span>
+                )}
+              </div>
+            )}
             {hashtags.length > 0 && ( // الهاشتاجات
               <div className="flex flex-wrap gap-1 justify-end">
                 {hashtags.map((tag) => (
