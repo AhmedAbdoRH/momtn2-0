@@ -103,21 +103,38 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
                            window.location.search.includes('code');
     console.log("Initial OAuth callback check:", isOAuthCallback);
     
-    // First set up the auth listener
+    let mounted = true;
+    
+    // Helper function to handle session updates
+    const handleSessionUpdate = async (newSession: Session | null) => {
+      if (!mounted) return;
+      
+      setSession(newSession);
+      setUser(newSession?.user ?? null);
+      
+      if (newSession?.user) {
+        try {
+          await loadUserBackgroundPreference(newSession.user.id);
+          const displayName = await getDisplayNameFromUser(newSession.user);
+          if (mounted) {
+            setUserDisplayName(displayName);
+          }
+        } catch (error) {
+          console.error('Error loading user data:', error);
+        }
+      } else {
+        setUserDisplayName(null);
+      }
+    };
+    
+    // Set up the auth listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, newSession) => {
         console.log("Auth state changed:", event, newSession?.user?.email);
         
         if (event === 'INITIAL_SESSION') {
           console.log("Initial session detected");
-          setSession(newSession);
-          setUser(newSession?.user ?? null);
-          
-          if (newSession?.user) {
-            await loadUserBackgroundPreference(newSession.user.id);
-            const displayName = await getDisplayNameFromUser(newSession.user);
-            setUserDisplayName(displayName);
-          }
+          await handleSessionUpdate(newSession);
           
           // For OAuth callback on initial session, redirect to home
           if (newSession && isOAuthCallback) {
@@ -128,15 +145,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           }
         } else if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
           console.log("User signed in or token refreshed");
-          setSession(newSession);
-          setUser(newSession?.user ?? null);
-          
-          // Load user's background preference when they sign in
-          if (newSession?.user) {
-            await loadUserBackgroundPreference(newSession.user.id);
-            const displayName = await getDisplayNameFromUser(newSession.user);
-            setUserDisplayName(displayName);
-          }
+          await handleSessionUpdate(newSession);
           
           // For Google OAuth and new users, always redirect to home
           if (newSession) {
@@ -156,9 +165,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           }
         } else if (event === 'SIGNED_OUT') {
           console.log("User signed out");
-          setSession(null);
-          setUser(null);
-          setUserDisplayName(null);
+          await handleSessionUpdate(null);
           
           // Apply default background when user signs out
           window.dispatchEvent(new CustomEvent('apply-gradient', { 
@@ -168,62 +175,60 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           navigate('/auth');
         } else if (event === 'USER_UPDATED') {
           console.log("User updated");
-          setSession(newSession);
-          setUser(newSession?.user ?? null);
-          
-          if (newSession?.user) {
-            const displayName = await getDisplayNameFromUser(newSession.user);
-            setUserDisplayName(displayName);
-          }
+          await handleSessionUpdate(newSession);
         } else if (event === 'PASSWORD_RECOVERY') {
           console.log("Password recovery event detected");
-          // The recovery token is already in the URL in hash parameters
-          // ResetPasswordPage will handle this token
           navigate('/reset-password');
         }
         
-        setLoading(false);
+        // Set loading to false after processing any auth event
+        if (mounted) {
+          setLoading(false);
+        }
       }
     );
 
-    // Then check for the current session
-    const getSession = async () => {
+    // Get initial session
+    const getInitialSession = async () => {
       try {
         console.log("Getting current session...");
-        setLoading(true);
         const { data: { session }, error } = await supabase.auth.getSession();
         
         if (error) {
           console.error('Error getting session:', error);
+          if (mounted) {
+            setLoading(false);
+          }
           return;
         }
         
         console.log("Current session:", session?.user?.email);
-        setSession(session);
-        setUser(session?.user ?? null);
         
-        // Load user's background preference and display name if user is logged in
-        if (session?.user) {
-          await loadUserBackgroundPreference(session.user.id);
-          const displayName = await getDisplayNameFromUser(session.user);
-          setUserDisplayName(displayName);
-        }
-        
-        // Redirect if needed - but only if user is logged in and on auth page
-        if (location.pathname === '/auth' && session) {
-          console.log("User already logged in, redirecting from auth page to home");
-          navigate('/', { replace: true });
+        if (mounted) {
+          await handleSessionUpdate(session);
+          
+          // Redirect if needed - but only if user is logged in and on auth page
+          if (location.pathname === '/auth' && session) {
+            console.log("User already logged in, redirecting from auth page to home");
+            navigate('/', { replace: true });
+          }
+          
+          setLoading(false);
         }
       } catch (error) {
         console.error('Error getting session:', error);
-      } finally {
-        setLoading(false);
+        if (mounted) {
+          setLoading(false);
+        }
       }
     };
 
-    getSession();
+    getInitialSession();
 
-    return () => subscription.unsubscribe();
+    return () => {
+      mounted = false;
+      subscription.unsubscribe();
+    };
   }, [navigate, location.pathname]);
 
   const signUp = async (email: string, password: string) => {
@@ -233,18 +238,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       
       console.log("Sign up result:", error ? `Error: ${error.message}` : "Success", data);
       
-      // Redirect to home page after successful signup
+      // Don't manually set states here - let the auth listener handle it
       if (!error && data.user) {
-        setUser(data.user);
-        setSession(data.session);
-        
-        // Load default background for new user and set display name
-        if (data.user.id) {
-          await loadUserBackgroundPreference(data.user.id);
-          const displayName = await getDisplayNameFromUser(data.user);
-          setUserDisplayName(displayName);
-        }
-        
         navigate('/', { replace: true });
       }
       
@@ -261,13 +256,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       const { data, error } = await supabase.auth.signInWithPassword({ email, password });
       console.log("Sign in result:", error ? `Error: ${error.message}` : "Success", data);
       
+      // Don't manually set states here - let the auth listener handle it
       if (!error && data.user) {
-        // Load user's background preference and display name
-        if (data.user.id) {
-          await loadUserBackgroundPreference(data.user.id);
-          const displayName = await getDisplayNameFromUser(data.user);
-          setUserDisplayName(displayName);
-        }
         navigate('/', { replace: true });
       }
       return { error };
@@ -281,6 +271,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     try {
       console.log("Signing out...");
       await supabase.auth.signOut();
+      // Don't manually set states here - let the auth listener handle it
       navigate('/auth');
     } catch (error) {
       console.error('Error signing out:', error);
