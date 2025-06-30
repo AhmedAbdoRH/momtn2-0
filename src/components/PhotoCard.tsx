@@ -1,3 +1,4 @@
+
 import { useState } from "react"; // استيراد useState لإدارة الحالة في المكون
 import { GripVertical, Heart, MessageCircle, Trash2, MoreVertical, Plus } from "lucide-react"; // استيراد أيقونات من مكتبة lucide-react
 import { supabase } from "@/integrations/supabase/client"; // استيراد عميل supabase للتفاعل مع قاعدة البيانات
@@ -8,7 +9,6 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "./ui/dropdown-menu";
-import { useAuth } from "./AuthProvider";
 
 // تعريف واجهة (interface) لتحديد خصائص المكون PhotoCard
 interface PhotoCardProps {
@@ -22,7 +22,6 @@ interface PhotoCardProps {
   isGroupPhoto?: boolean; // هل هذه صورة في مجموعة
   userEmail?: string; // إيميل المستخدم (للمجموعات)
   userDisplayName?: string; // الاسم الشخصي للمستخدم (للمجموعات)
-  photoUserId?: string; // معرف المستخدم صاحب الصورة (للمجموعات)
 }
 
 // تعريف المكون PhotoCard مع خصائصه
@@ -36,8 +35,7 @@ const PhotoCard = ({
   onUpdateCaption,
   isGroupPhoto = false, // افتراضي false
   userEmail, // إيميل المستخدم
-  userDisplayName, // الاسم الشخصي للمستخدم
-  photoUserId // معرف المستخدم صاحب الصورة
+  userDisplayName // الاسم الشخصي للمستخدم
 }: PhotoCardProps) => {
   // تعريف الحالات باستخدام useState
   const [isLoved, setIsLoved] = useState(false); // حالة لتتبع ما إذا تم الإعجاب بالصورة
@@ -47,9 +45,6 @@ const PhotoCard = ({
   const [hashtags, setHashtags] = useState(initialHashtags); // حالة لتتبع الهاشتاجات الحالية
   const [isControlsVisible, setIsControlsVisible] = useState(false); // حالة لإظهار/إخفاء الأزرار (مثل الحذف والتحرير)
   const [isHeartAnimating, setIsHeartAnimating] = useState(false); // حالة لتتبع تشغيل أنيميشن القلب
-  const [displayNameForUser, setDisplayNameForUser] = useState<string | null>(null);
-
-  const { userDisplayName: currentUserDisplayName } = useAuth();
 
   // دالة لمعالجة الإعجاب بالصورة
   const handleLike = async () => {
@@ -96,35 +91,14 @@ const PhotoCard = ({
   };
 
   // دالة للحصول على الاسم المعروض
-  const getDisplayName = async () => {
-    if (isGroupPhoto && photoUserId) {
-      // للصور في المجموعات، نحتاج للحصول على الاسم من قاعدة البيانات
-      if (!displayNameForUser) {
-        try {
-          const { data, error } = await supabase
-            .from('users')
-            .select('full_name, email')
-            .eq('id', photoUserId)
-            .single();
-
-          if (error) {
-            console.error('Error loading user display name:', error);
-            return userEmail?.split('@')[0] || '';
-          }
-
-          const name = data?.full_name || data?.email?.split('@')[0] || userEmail?.split('@')[0] || '';
-          setDisplayNameForUser(name);
-          return name;
-        } catch (err) {
-          console.error('Exception loading user display name:', err);
-          return userEmail?.split('@')[0] || '';
-        }
-      }
-      return displayNameForUser;
+  const getDisplayName = () => {
+    if (userDisplayName && userDisplayName.trim()) {
+      return userDisplayName.trim();
     }
-    
-    // للصور الشخصية، نستخدم الاسم من AuthProvider
-    return currentUserDisplayName || '';
+    if (userEmail) {
+      return userEmail.split('@')[0];
+    }
+    return '';
   };
 
   // العرض (render) للمكون
@@ -246,12 +220,10 @@ const PhotoCard = ({
             {caption && (
               <div className="flex items-start gap-2 mb-1 text-right" dir="rtl">
                 <p className="text-white text-sm flex-1">{caption}</p>
-                {isGroupPhoto && (
-                  <DisplayNameBadge 
-                    photoUserId={photoUserId} 
-                    userDisplayName={userDisplayName}
-                    userEmail={userEmail}
-                  />
+                {isGroupPhoto && getDisplayName() && (
+                  <span className="text-yellow-100 text-xs font-medium bg-black/30 px-2 py-1 rounded whitespace-nowrap">
+                    {getDisplayName()}
+                  </span>
                 )}
               </div>
             )}
@@ -321,57 +293,6 @@ const PhotoCard = ({
         </DialogContent>
       </Dialog>
     </>
-  );
-};
-
-// مكون منفصل لعرض اسم المستخدم
-const DisplayNameBadge = ({ 
-  photoUserId, 
-  userDisplayName, 
-  userEmail 
-}: { 
-  photoUserId?: string; 
-  userDisplayName?: string; 
-  userEmail?: string; 
-}) => {
-  const [displayName, setDisplayName] = useState<string>('');
-
-  useState(() => {
-    const loadDisplayName = async () => {
-      if (photoUserId) {
-        try {
-          const { data, error } = await supabase
-            .from('users')
-            .select('full_name, email')
-            .eq('id', photoUserId)
-            .single();
-
-          if (error) {
-            console.error('Error loading user display name:', error);
-            setDisplayName(userEmail?.split('@')[0] || '');
-            return;
-          }
-
-          const name = data?.full_name || data?.email?.split('@')[0] || userEmail?.split('@')[0] || '';
-          setDisplayName(name);
-        } catch (err) {
-          console.error('Exception loading user display name:', err);
-          setDisplayName(userEmail?.split('@')[0] || '');
-        }
-      } else {
-        setDisplayName(userDisplayName || userEmail?.split('@')[0] || '');
-      }
-    };
-
-    loadDisplayName();
-  });
-
-  if (!displayName) return null;
-
-  return (
-    <span className="text-yellow-100 text-xs font-medium bg-black/30 px-2 py-1 rounded whitespace-nowrap">
-      {displayName}
-    </span>
   );
 };
 
