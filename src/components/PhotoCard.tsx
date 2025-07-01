@@ -109,14 +109,15 @@ const PhotoCard = ({
   const [selectedAlbum, setSelectedAlbum] = useState<string | null>(null);
   const [showNewAlbumInput, setShowNewAlbumInput] = useState(false);
 
-  // جلب الألبومات المتاحة
+  // جلب الألبومات المشتركة فقط (التي تنتمي لمجموعات)
   useEffect(() => {
-    const fetchAlbums = async () => {
+    const fetchSharedAlbums = async () => {
       try {
         const { data, error } = await supabase
           .from('photos')
           .select('hashtags')
-          .not('hashtags', 'is', null);
+          .not('hashtags', 'is', null)
+          .not('group_id', 'is', null); // فقط الصور التي تنتمي لمجموعات
 
         if (error) throw error;
 
@@ -127,12 +128,12 @@ const PhotoCard = ({
         const uniqueAlbums = [...new Set(allAlbums)];
         setAlbums(uniqueAlbums);
       } catch (error) {
-        console.error('Error fetching albums:', error);
+        console.error('Error fetching shared albums:', error);
       }
     };
 
     if (showAlbumDialog) {
-      fetchAlbums();
+      fetchSharedAlbums();
     }
   }, [showAlbumDialog]);
 
@@ -357,7 +358,7 @@ const PhotoCard = ({
         </DialogContent>
       </Dialog>
 
-      {/* نافذة اختيار الألبوم */}
+      {/* نافذة اختيار الألبوم المشترك */}
       <Dialog open={showAlbumDialog} onOpenChange={(open) => {
         setShowAlbumDialog(open);
         if (!open) {
@@ -367,9 +368,16 @@ const PhotoCard = ({
       }}>
         <DialogContent className="bg-gray-900/95 backdrop-blur-xl text-white border-0 max-w-2xl p-4">
           <DialogHeader>
-            <DialogTitle className="text-right text-xl">اختر ألبوماً</DialogTitle>
+            <DialogTitle className="text-right text-xl">اختر ألبوم مشترك</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
+            {/* إشعار للمستخدم */}
+            <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-3 text-center">
+              <p className="text-blue-300 text-sm">
+                هذه الألبومات خاصة بالمساحة المشتركة فقط
+              </p>
+            </div>
+            
             {/* قائمة الألبومات */}
             <div className="max-h-96 overflow-y-auto p-2">
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
@@ -413,9 +421,10 @@ const PhotoCard = ({
                   </div>
                 ))}
                 
-                {albums.length === 0 && (
+                {albums.length === 0 && !showNewAlbumInput && (
                   <div className="col-span-3 py-8 text-center">
-                    <p className="text-white/50">لا توجد ألبومات متاحة</p>
+                    <p className="text-white/50">لا توجد ألبومات مشتركة متاحة</p>
+                    <p className="text-white/30 text-sm mt-2">يمكنك إنشاء ألبوم جديد للمساحة المشتركة</p>
                   </div>
                 )}
               </div>
@@ -431,7 +440,7 @@ const PhotoCard = ({
                     value={newAlbumName}
                     onChange={(e) => setNewAlbumName(e.target.value)}
                     onKeyDown={(e) => e.key === 'Enter' && newAlbumName.trim() && handleCreateAlbum()}
-                    placeholder="اكتب اسم الألبوم الجديد"
+                    placeholder="اكتب اسم الألبوم المشترك الجديد"
                     className="flex-1 px-3 py-2 bg-white/5 border border-emerald-500/30 rounded-lg text-white text-right focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all text-sm"
                     dir="rtl"
                     autoFocus
