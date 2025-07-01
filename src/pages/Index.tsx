@@ -252,7 +252,7 @@ const Index = () => {
    * This is still useful even without the explicit placeholder in this component,
    * as it might be used for other conditional logic in the future.
    * دالة رد نداء يتم تمريرها إلى PhotoGrid لتحديث حالة فراغ الشبكة.
-   * لا تزال هذه مفيدة حتى بدون الصورة المؤقتة الصريحة في هذا المكون،
+   * لا تزال هذه مفيدة حتى بدون الصورة المؤقتة الصريحة في هذا المكون，
    * حيث قد تستخدم لمنطق شرطي آخر في المستقبل.
    * @param {boolean} isEmpty - True if the grid is empty, false otherwise.
    */
@@ -384,7 +384,7 @@ const Index = () => {
           <div className="text-center mb-8">
             <div className="inline-block mb-6 w-40 h-40 sm:w-48 sm:h-48">
               <img
-                src="/musin-logo.png"
+                src="/lovable-uploads/2747e89b-5855-4294-9523-b5d3dd0527be.png"
                 alt="Logo"
                 className="w-full h-full object-contain animate-float"
                 onError={(e) => {
