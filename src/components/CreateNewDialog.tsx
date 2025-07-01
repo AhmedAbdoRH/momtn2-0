@@ -20,8 +20,9 @@ const CreateNewDialog = ({ open, onOpenChange, onPhotoAdded, selectedGroupId }: 
   const [albumName, setAlbumName] = useState<string>("");
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const [showAlbumInput, setShowAlbumInput] = useState(false);
-  // Suggestions are always shown when there's an image
+  // State for managing album selection and visibility
   const [selectedAlbums, setSelectedAlbums] = useState<Set<string>>(new Set());
+  const [showSuggestions, setShowSuggestions] = useState(true);
   const { toast } = useToast();
   const { user } = useAuth();
   // مرجع لعنصر label الخاص برفع الصور
@@ -50,27 +51,52 @@ const CreateNewDialog = ({ open, onOpenChange, onPhotoAdded, selectedGroupId }: 
   const fetchAlbumSuggestions = async () => {
     if (!user) return;
     try {
-      let query = supabase
-        .from("photos")
-        .select("hashtags")
-        .not("hashtags", "is", null);
-
-      // Filter by group if selectedGroupId is provided
+      // If it's a group, only show albums from this group
       if (selectedGroupId) {
-        query = query.eq("group_id", selectedGroupId);
+        const { data: groupPhotos, error: groupError } = await supabase
+          .from('photos')
+          .select('hashtags')
+          .eq('group_id', selectedGroupId);
+
+        if (groupError) throw groupError;
+
+        const groupTags = new Set<string>();
+        groupPhotos.forEach(photo => {
+          if (photo.hashtags && Array.isArray(photo.hashtags)) {
+            photo.hashtags.forEach((tag: string) => {
+              if (tag && typeof tag === 'string') {
+                groupTags.add(tag);
+              }
+            });
+          }
+        });
+        setSuggestions(Array.from(groupTags));
       } else {
-        query = query.eq("user_id", user.id).is("group_id", null);
+        // For personal photos, only show personal albums (photos without group_id)
+        const { data: personalPhotos, error: personalError } = await supabase
+          .from('photos')
+          .select('hashtags')
+          .eq('user_id', user.id)
+          .is('group_id', null);
+
+        if (personalError) throw personalError;
+
+        const personalTags = new Set<string>();
+        personalPhotos.forEach(photo => {
+          if (photo.hashtags && Array.isArray(photo.hashtags)) {
+            photo.hashtags.forEach((tag: string) => {
+              if (tag && typeof tag === 'string') {
+                personalTags.add(tag);
+              }
+            });
+          }
+        });
+        setSuggestions(Array.from(personalTags));
       }
-
-      const { data, error } = await query;
-
-      if (error) throw error;
-
-      const allAlbumNames = data.flatMap((item) => item.hashtags || []).filter(Boolean);
-      const uniqueAlbumNames = [...new Set(allAlbumNames)].sort();
-      setSuggestions(uniqueAlbumNames);
     } catch (error) {
-      console.error("Error fetching album suggestions:", error);
+      console.error('Error fetching album suggestions:', error);
+      // Fallback to empty array if there's an error
+      setSuggestions([]);
     }
   };
 
@@ -89,10 +115,8 @@ const CreateNewDialog = ({ open, onOpenChange, onPhotoAdded, selectedGroupId }: 
       setImage(file);
       const newUrl = URL.createObjectURL(file);
       setPreviewUrl(newUrl);
-      // Show suggestions automatically after selecting an image
-      if (suggestions.length > 0) {
-        setShowSuggestions(true);
-      }
+      // Always show suggestions when an image is selected
+      setShowSuggestions(true);
     } else {
       setImage(null);
       setPreviewUrl("");
@@ -103,11 +127,51 @@ const CreateNewDialog = ({ open, onOpenChange, onPhotoAdded, selectedGroupId }: 
   const handleAlbumChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
     setAlbumName(value);
-    // Don't show suggestions while typing in the new album input
+    // Keep suggestions visible while typing
+    setShowSuggestions(true);
+  };
+
+  // Function to add a new album
+  const addNewAlbum = () => {
+    const newAlbumName = albumName.trim();
+    if (!validateAlbumName(newAlbumName)) {
+      toast({
+        title: 'خطأ',
+        description: 'يرجى إدخال اسم ألبوم صالح',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    try {
+      // Update the UI immediately for better UX
+      setSelectedAlbums(prev => {
+        const newSet = new Set(prev);
+        newSet.add(newAlbumName);
+        return newSet;
+      });
+      
+      // Add to suggestions if not already present
+      if (!suggestions.includes(newAlbumName)) {
+        setSuggestions(prev => [...prev, newAlbumName]);
+      }
+      
+      setAlbumName('');
+      setShowAlbumInput(false);
+      
+    } catch (error) {
+      console.error('Error adding album:', error);
+      toast({
+        title: 'خطأ',
+        description: 'حدث خطأ أثناء إضافة الألبوم',
+        variant: 'destructive',
+      });
+    }
   };
 
   const handleSuggestionClick = (suggestion: string) => {
-    setAlbumName(suggestion);
+    // Don't update albumName to prevent filtering the suggestions
+    // Just update the selected albums
     setSelectedAlbums(prev => {
       const newSet = new Set(prev);
       if (newSet.has(suggestion)) {
@@ -117,12 +181,26 @@ const CreateNewDialog = ({ open, onOpenChange, onPhotoAdded, selectedGroupId }: 
       }
       return newSet;
     });
-    setShowAlbumInput(false); // Hide input when selecting from suggestions
+  };
+
+  // Function to validate album name (no longer needs to check database)
+  const validateAlbumName = (name: string): boolean => {
+    return name.trim().length > 0;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!image || isSubmitting || !user) return;
+    
+    // If no album is selected, show an error
+    if (selectedAlbums.size === 0) {
+      toast({
+        title: "خطأ في الإدخال",
+        description: "الرجاء اختيار ألبوم واحد على الأقل",
+        variant: "destructive",
+      });
+      return;
+    }
 
     setIsSubmitting(true);
 
@@ -154,21 +232,41 @@ const CreateNewDialog = ({ open, onOpenChange, onPhotoAdded, selectedGroupId }: 
         throw new Error("لم يتم العثور على الرابط العام للصورة بعد الرفع.");
       }
 
-      const finalAlbumName = albumName.trim();
-      const albumDataForDB = finalAlbumName ? [finalAlbumName] : null;
+      // Convert Set to array of album names
+      const selectedAlbumsArray = Array.from(selectedAlbums);
+      
+      // Add any new albums to suggestions
+      const newAlbums = selectedAlbumsArray.filter(album => 
+        album && typeof album === 'string' && !suggestions.includes(album)
+      );
+      
+      if (newAlbums.length > 0) {
+        setSuggestions(prev => [...new Set([...prev, ...newAlbums])]);
+      }
 
-      // Add new album to suggestions if it doesn't exist
-      if (finalAlbumName && !suggestions.includes(finalAlbumName)) {
-        setSuggestions(prev => [...prev, finalAlbumName]);
+      // For group photos, ensure the user is a member of the group
+      if (selectedGroupId) {
+        const { data: membership, error: membershipError } = await supabase
+          .from('group_members')
+          .select('*')
+          .eq('group_id', selectedGroupId)
+          .eq('user_id', user.id)
+          .single();
+
+        if (membershipError || !membership) {
+          throw new Error('ليس لديك صلاحية لإضافة صور إلى هذه المجموعة');
+        }
       }
 
       const { data: insertData, error: insertError } = await supabase
         .from("photos")
         .insert({
           image_url: publicUrl,
-          hashtags: albumDataForDB,
+          hashtags: selectedAlbumsArray,
           user_id: user.id,
-          group_id: selectedGroupId || null,
+          group_id: selectedGroupId || null, // Will be null for personal albums
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
         })
         .select()
         .single();
@@ -201,12 +299,10 @@ const CreateNewDialog = ({ open, onOpenChange, onPhotoAdded, selectedGroupId }: 
     }
   };
 
-  const filteredSuggestions = albumName
-    ? suggestions.filter((suggestion) =>
-        typeof suggestion === "string" &&
-        suggestion.toLowerCase().includes(albumName.toLowerCase())
-      )
-    : suggestions;
+  // Show all suggestions when needed, sorted alphabetically
+  const filteredSuggestions = showSuggestions 
+    ? [...suggestions].sort((a, b) => a.localeCompare(b))
+    : [];
 
   return (
     <Dialog
@@ -254,42 +350,64 @@ const CreateNewDialog = ({ open, onOpenChange, onPhotoAdded, selectedGroupId }: 
 
             <div className="w-full relative">
               {showAlbumInput && (
-                <input
-                  id="albumName"
-                  type="text"
-                  value={albumName}
-                  onChange={handleAlbumChange}
-
-                  onBlur={() => setTimeout(() => setShowAlbumInput(false), 200)}
-                  placeholder="اكتب اسم الألبوم الجديد"
-                  className="w-full px-4 py-3 text-right text-white bg-gray-800/90 border border-gray-700 rounded-lg text-base focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-colors mb-2"
-                  autoComplete="off"
-                  autoFocus
-                />
+                <div className="w-full mb-2">
+                  <div className="space-y-2">
+                    <div className="relative">
+                      <input
+                        id="albumName"
+                        type="text"
+                        value={albumName}
+                        onChange={handleAlbumChange}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            e.preventDefault();
+                            addNewAlbum();
+                          }
+                        }}
+                        placeholder="اكتب اسم الألبوم الجديد"
+                        className="w-full px-4 py-3 text-right text-white bg-gray-800/90 border border-gray-700 rounded-lg text-base focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-colors"
+                        autoComplete="off"
+                        autoFocus
+                      />
+                    </div>
+                    <div className="flex gap-2">
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          addNewAlbum();
+                        }}
+                        disabled={!albumName.trim()}
+                        className={`flex-1 py-2 rounded-lg transition-colors text-sm ${
+                          albumName.trim()
+                            ? 'bg-blue-600 hover:bg-blue-700 text-white'
+                            : 'bg-gray-500/50 text-gray-400 cursor-not-allowed'
+                        }`}
+                      >
+                        إضافة
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setShowAlbumInput(false)}
+                        className="flex-1 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-lg transition-colors text-sm"
+                      >
+                        إلغاء
+                      </button>
+                    </div>
+                  </div>
+                </div>
               )}
               {image && (
                 <div className="mt-3">
-                  <p className="text-sm text-gray-300 mb-2 text-right">اختر ألبوماً لإضافته للصورة:</p>
-                  <div className="flex flex-wrap gap-3 justify-end">
-                    <button
-                      type="button"
-                      className="px-4 py-2 bg-gray-500/50 hover:bg-gray-500/70 rounded-lg text-white font-medium text-sm flex items-center gap-1 transition-colors shadow-sm"
-                      onClick={(e) => {
-                        e.preventDefault();
-                        setShowAlbumInput(true);
-                      setAlbumName('');
-                      }}
-                    >
-                      <span>ألبوم جديد</span>
-                      <span className="text-base">+</span>
-                    </button>
+                  <p className="text-sm text-gray-300 mb-2">اختر ألبوماً لإضافته للصورة:</p>
+                  <div className="flex flex-wrap gap-2 justify-end mb-3">
                     {filteredSuggestions.map((suggestion, index) => (
                       <button
                         key={index}
                         type="button"
-                        className={`px-4 py-2 rounded-lg font-medium text-sm transition-colors border shadow-sm ${
+                        className={`px-3 py-1.5 rounded-md font-medium text-xs transition-colors border shadow-sm ${
                           selectedAlbums.has(suggestion)
-                            ? 'bg-indigo-600/80 border-indigo-500 text-white'
+                            ? 'bg-green-600/80 border-green-500 text-white'
                             : 'bg-gray-700/70 hover:bg-gray-600/80 border-gray-600 text-white'
                         }`}
                         onClick={(e) => {
@@ -301,19 +419,29 @@ const CreateNewDialog = ({ open, onOpenChange, onPhotoAdded, selectedGroupId }: 
                       </button>
                     ))}
                   </div>
+                  <div className="flex justify-end">
+                    <button
+                      type="button"
+                      className="px-3 py-1.5 bg-transparent hover:bg-gray-800/30 rounded-lg text-indigo-300 hover:text-white font-medium text-sm flex items-center gap-1 transition-all border border-indigo-700/50 hover:border-indigo-500/70"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        setShowAlbumInput(true);
+                        setAlbumName('');
+                        setTimeout(() => {
+                          const input = document.getElementById('albumName');
+                          input?.focus();
+                        }, 100);
+                      }}
+                    >
+                      <span>ألبوم جديد</span>
+                      <span className="text-base">+</span>
+                    </button>
+                  </div>
                 </div>
               )}
             </div>
           </div>
-          <div className="flex justify-end gap-3 pt-4">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => onOpenChange(false)}
-              className="bg-transparent border-gray-600 text-gray-300 hover:bg-gray-700/50 focus:ring-gray-500"
-            >
-              إلغاء
-            </Button>
+          <div className="flex justify-start gap-3 pt-4">
             <Button
               type="submit"
               disabled={!image || isSubmitting}
@@ -339,6 +467,14 @@ const CreateNewDialog = ({ open, onOpenChange, onPhotoAdded, selectedGroupId }: 
               ) : (
                 "حفظ الصورة"
               )}
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => onOpenChange(false)}
+              className="bg-transparent border-gray-600 text-gray-300 hover:bg-gray-700/50 focus:ring-gray-500"
+            >
+              إغلاق
             </Button>
           </div>
         </form>
