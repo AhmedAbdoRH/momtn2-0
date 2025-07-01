@@ -21,6 +21,7 @@ interface PhotoCardProps {
   isGroupPhoto?: boolean; // هل هذه صورة في مجموعة
   userEmail?: string; // إيميل المستخدم (للمجموعات)
   userDisplayName?: string; // الاسم الشخصي للمستخدم (للمجموعات)
+  selectedGroupId?: string | null; // معرف المجموعة المحددة
 }
 
 // تعريف المكون PhotoCard مع خصائصه
@@ -34,7 +35,8 @@ const PhotoCard = ({
   onUpdateCaption,
   isGroupPhoto = false, // افتراضي false
   userEmail, // إيميل المستخدم
-  userDisplayName // الاسم الشخصي للمستخدم
+  userDisplayName, // الاسم الشخصي للمستخدم
+  selectedGroupId = null // معرف المجموعة المحددة
 }: PhotoCardProps) => {
   // تعريف الحالات باستخدام useState
   const [isLoved, setIsLoved] = useState(false); // حالة لتتبع ما إذا تم الإعجاب بالصورة
@@ -108,15 +110,29 @@ const PhotoCard = ({
   const [selectedAlbum, setSelectedAlbum] = useState<string | null>(null);
   const [showNewAlbumInput, setShowNewAlbumInput] = useState(false);
 
-  // جلب الألبومات بناءً على نوع الصورة (شخصية أو مشتركة)
+  // جلب الألبومات بنفس طريقة الشريط الجانبي
   useEffect(() => {
     const fetchAlbums = async () => {
       try {
-        const { data, error } = await supabase
+        let query = supabase
           .from('photos')
           .select('hashtags')
-          .not('hashtags', 'is', null)
-          .eq('group_id', isGroupPhoto ? (window.location.pathname !== '/' ? 'not_null' : null) : null);
+          .not('hashtags', 'is', null);
+
+        // إذا كنا في مجموعة محددة، نجلب ألبومات المجموعة
+        if (selectedGroupId) {
+          query = query.eq('group_id', selectedGroupId);
+        }
+        // إذا كنا في المساحة الشخصية، نجلب الألبومات الشخصية
+        else if (!isGroupPhoto) {
+          query = query.is('group_id', null);
+        }
+        // إذا كنا في المساحة المشتركة، نجلب جميع الألبومات المشتركة
+        else {
+          query = query.not('group_id', 'is', null);
+        }
+
+        const { data, error } = await query;
 
         if (error) throw error;
 
@@ -134,7 +150,7 @@ const PhotoCard = ({
     if (showAlbumDialog) {
       fetchAlbums();
     }
-  }, [showAlbumDialog, isGroupPhoto]);
+  }, [showAlbumDialog, selectedGroupId, isGroupPhoto]);
 
   // معالجة إضافة صورة إلى ألبوم
   const handleAddToAlbum = async () => {
@@ -226,7 +242,7 @@ const PhotoCard = ({
                 }}
                 className="text-white hover:bg-white/20 cursor-pointer"
               >
-<Plus className="w-4 h-4 ml-2" />
+                <Plus className="w-4 h-4 ml-2" />
                 <span>إضافة إلى ألبوم</span>
               </DropdownMenuItem>
               <DropdownMenuItem
@@ -337,7 +353,6 @@ const PhotoCard = ({
                 dir="rtl"
               />
             </div>
-            {/* حقل الهاشتاجات للصور الشخصية فقط - تمت إزالته حسب الطلب */}
             {/* أزرار الإلغاء والحفظ */}
             <div className="flex justify-end gap-2">
               <button
@@ -368,16 +383,19 @@ const PhotoCard = ({
         <DialogContent className="bg-gray-900/95 backdrop-blur-xl text-white border-0 max-w-2xl p-4">
           <DialogHeader>
             <DialogTitle className="text-right text-xl">
-              {isGroupPhoto ? 'اختر ألبوم مشترك' : 'اختر ألبوماً شخصياً'}
+              {selectedGroupId ? 'اختر ألبوم المجموعة' : (isGroupPhoto ? 'اختر ألبوم مشترك' : 'اختر ألبوماً شخصياً')}
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             {/* إشعار للمستخدم */}
-            <div className={`${isGroupPhoto ? 'bg-blue-500/10 border-blue-500/30' : 'bg-green-500/10 border-green-500/30'} border rounded-lg p-3 text-center`}>
-              <p className={`${isGroupPhoto ? 'text-blue-300' : 'text-green-300'} text-sm`}>
-                {isGroupPhoto 
-                  ? 'هذه الألبومات خاصة بالمساحة المشتركة فقط'
-                  : 'هذه الألبومات خاصة بمساحتك الشخصية فقط'
+            <div className={`${selectedGroupId ? 'bg-purple-500/10 border-purple-500/30' : (isGroupPhoto ? 'bg-blue-500/10 border-blue-500/30' : 'bg-green-500/10 border-green-500/30')} border rounded-lg p-3 text-center`}>
+              <p className={`${selectedGroupId ? 'text-purple-300' : (isGroupPhoto ? 'text-blue-300' : 'text-green-300')} text-sm`}>
+                {selectedGroupId 
+                  ? 'هذه الألبومات خاصة بهذه المجموعة فقط'
+                  : (isGroupPhoto 
+                    ? 'هذه الألبومات خاصة بالمساحة المشتركة فقط'
+                    : 'هذه الألبومات خاصة بمساحتك الشخصية فقط'
+                  )
                 }
               </p>
             </div>
@@ -428,15 +446,21 @@ const PhotoCard = ({
                 {albums.length === 0 && !showNewAlbumInput && (
                   <div className="col-span-3 py-8 text-center">
                     <p className="text-white/50">
-                      {isGroupPhoto 
-                        ? 'لا توجد ألبومات مشتركة متاحة'
-                        : 'لا توجد ألبومات شخصية متاحة'
+                      {selectedGroupId 
+                        ? 'لا توجد ألبومات متاحة لهذه المجموعة'
+                        : (isGroupPhoto 
+                          ? 'لا توجد ألبومات مشتركة متاحة'
+                          : 'لا توجد ألبومات شخصية متاحة'
+                        )
                       }
                     </p>
                     <p className="text-white/30 text-sm mt-2">
-                      {isGroupPhoto
-                        ? 'يمكنك إنشاء ألبوم جديد للمساحة المشتركة'
-                        : 'يمكنك إنشاء ألبوم جديد لمساحتك الشخصية'
+                      {selectedGroupId
+                        ? 'يمكنك إنشاء ألبوم جديد لهذه المجموعة'
+                        : (isGroupPhoto
+                          ? 'يمكنك إنشاء ألبوم جديد للمساحة المشتركة'
+                          : 'يمكنك إنشاء ألبوم جديد لمساحتك الشخصية'
+                        )
                       }
                     </p>
                   </div>
@@ -454,9 +478,12 @@ const PhotoCard = ({
                     value={newAlbumName}
                     onChange={(e) => setNewAlbumName(e.target.value)}
                     onKeyDown={(e) => e.key === 'Enter' && newAlbumName.trim() && handleCreateAlbum()}
-                    placeholder={isGroupPhoto 
-                      ? "اكتب اسم الألبوم المشترك الجديد"
-                      : "اكتب اسم الألبوم الشخصي الجديد"
+                    placeholder={selectedGroupId 
+                      ? "اكتب اسم ألبوم المجموعة الجديد"
+                      : (isGroupPhoto 
+                        ? "اكتب اسم الألبوم المشترك الجديد"
+                        : "اكتب اسم الألبوم الشخصي الجديد"
+                      )
                     }
                     className="flex-1 px-3 py-2 bg-white/5 border border-emerald-500/30 rounded-lg text-white text-right focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all text-sm"
                     dir="rtl"

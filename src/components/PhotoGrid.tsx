@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
@@ -423,6 +422,7 @@ const PhotoGrid: React.FC<PhotoGridProps> = ({ closeSidebar, selectedGroupId }) 
                           isGroupPhoto={!!selectedGroupId}
                           userEmail={photo.users?.email}
                           userDisplayName={photo.users?.full_name}
+                          selectedGroupId={selectedGroupId}
                         />
                       </div>
                     )}
