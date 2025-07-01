@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react"; // استيراد useState و useEffect لإدارة الحالة في المكون
 import { GripVertical, Heart, MessageCircle, Trash2, MoreVertical, Plus } from "lucide-react"; // استيراد أيقونات من مكتبة lucide-react
 import { supabase } from "@/integrations/supabase/client"; // استيراد عميل supabase للتفاعل مع قاعدة البيانات
@@ -109,15 +108,15 @@ const PhotoCard = ({
   const [selectedAlbum, setSelectedAlbum] = useState<string | null>(null);
   const [showNewAlbumInput, setShowNewAlbumInput] = useState(false);
 
-  // جلب الألبومات المشتركة فقط (التي تنتمي لمجموعات)
+  // جلب الألبومات بناءً على نوع الصورة (شخصية أو مشتركة)
   useEffect(() => {
-    const fetchSharedAlbums = async () => {
+    const fetchAlbums = async () => {
       try {
         const { data, error } = await supabase
           .from('photos')
           .select('hashtags')
           .not('hashtags', 'is', null)
-          .not('group_id', 'is', null); // فقط الصور التي تنتمي لمجموعات
+          .eq('group_id', isGroupPhoto ? (window.location.pathname !== '/' ? 'not_null' : null) : null);
 
         if (error) throw error;
 
@@ -128,14 +127,14 @@ const PhotoCard = ({
         const uniqueAlbums = [...new Set(allAlbums)];
         setAlbums(uniqueAlbums);
       } catch (error) {
-        console.error('Error fetching shared albums:', error);
+        console.error('Error fetching albums:', error);
       }
     };
 
     if (showAlbumDialog) {
-      fetchSharedAlbums();
+      fetchAlbums();
     }
-  }, [showAlbumDialog]);
+  }, [showAlbumDialog, isGroupPhoto]);
 
   // معالجة إضافة صورة إلى ألبوم
   const handleAddToAlbum = async () => {
@@ -368,13 +367,18 @@ const PhotoCard = ({
       }}>
         <DialogContent className="bg-gray-900/95 backdrop-blur-xl text-white border-0 max-w-2xl p-4">
           <DialogHeader>
-            <DialogTitle className="text-right text-xl">اختر ألبوم مشترك</DialogTitle>
+            <DialogTitle className="text-right text-xl">
+              {isGroupPhoto ? 'اختر ألبوم مشترك' : 'اختر ألبوماً شخصياً'}
+            </DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             {/* إشعار للمستخدم */}
-            <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-3 text-center">
-              <p className="text-blue-300 text-sm">
-                هذه الألبومات خاصة بالمساحة المشتركة فقط
+            <div className={`${isGroupPhoto ? 'bg-blue-500/10 border-blue-500/30' : 'bg-green-500/10 border-green-500/30'} border rounded-lg p-3 text-center`}>
+              <p className={`${isGroupPhoto ? 'text-blue-300' : 'text-green-300'} text-sm`}>
+                {isGroupPhoto 
+                  ? 'هذه الألبومات خاصة بالمساحة المشتركة فقط'
+                  : 'هذه الألبومات خاصة بمساحتك الشخصية فقط'
+                }
               </p>
             </div>
             
@@ -423,8 +427,18 @@ const PhotoCard = ({
                 
                 {albums.length === 0 && !showNewAlbumInput && (
                   <div className="col-span-3 py-8 text-center">
-                    <p className="text-white/50">لا توجد ألبومات مشتركة متاحة</p>
-                    <p className="text-white/30 text-sm mt-2">يمكنك إنشاء ألبوم جديد للمساحة المشتركة</p>
+                    <p className="text-white/50">
+                      {isGroupPhoto 
+                        ? 'لا توجد ألبومات مشتركة متاحة'
+                        : 'لا توجد ألبومات شخصية متاحة'
+                      }
+                    </p>
+                    <p className="text-white/30 text-sm mt-2">
+                      {isGroupPhoto
+                        ? 'يمكنك إنشاء ألبوم جديد للمساحة المشتركة'
+                        : 'يمكنك إنشاء ألبوم جديد لمساحتك الشخصية'
+                      }
+                    </p>
                   </div>
                 )}
               </div>
@@ -440,7 +454,10 @@ const PhotoCard = ({
                     value={newAlbumName}
                     onChange={(e) => setNewAlbumName(e.target.value)}
                     onKeyDown={(e) => e.key === 'Enter' && newAlbumName.trim() && handleCreateAlbum()}
-                    placeholder="اكتب اسم الألبوم المشترك الجديد"
+                    placeholder={isGroupPhoto 
+                      ? "اكتب اسم الألبوم المشترك الجديد"
+                      : "اكتب اسم الألبوم الشخصي الجديد"
+                    }
                     className="flex-1 px-3 py-2 bg-white/5 border border-emerald-500/30 rounded-lg text-white text-right focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all text-sm"
                     dir="rtl"
                     autoFocus
