@@ -98,13 +98,14 @@ const Index = () => {
     }
   }, [user]);
 
-  // Update selected group when switching tabs
-  useEffect(() => {
-    if (activeTab === 'personal') {
-      setSelectedGroupId(null);
-      setSelectedGroupName('');
-    }
-  }, [activeTab]);
+  // Update selected group when switching tabs (only if user manually switches)
+  // Don't auto-reset when activeTab changes programmatically
+  // useEffect(() => {
+  //   if (activeTab === 'personal') {
+  //     setSelectedGroupId(null);
+  //     setSelectedGroupName('');
+  //   }
+  // }, [activeTab]);
 
   // Fetch group name when selectedGroupId changes
   useEffect(() => {
