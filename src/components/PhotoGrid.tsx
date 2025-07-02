@@ -69,9 +69,15 @@ const PhotoGrid: React.FC<PhotoGridProps> = ({ closeSidebar, selectedGroupId }) 
       await fetchPhotos();
     };
     
+    const handleDisplayNameUpdated = async () => {
+      await fetchPhotos();
+    };
+    
     window.addEventListener('photo-added', handlePhotoAdded);
+    window.addEventListener('displayNameUpdated', handleDisplayNameUpdated);
     return () => {
       window.removeEventListener('photo-added', handlePhotoAdded);
+      window.removeEventListener('displayNameUpdated', handleDisplayNameUpdated);
     };
   }, [selectedGroupId]); // Add selectedGroupId dependency to ensure it uses current value
 

@@ -65,6 +65,20 @@ export default function GroupsDropdown({ selectedGroupId, onGroupChange }: Group
     }
   }, [user]);
 
+  // Listen for display name updates to refresh group member data
+  useEffect(() => {
+    const handleDisplayNameUpdated = () => {
+      if (user) {
+        fetchUserGroups();
+      }
+    };
+    
+    window.addEventListener('displayNameUpdated', handleDisplayNameUpdated);
+    return () => {
+      window.removeEventListener('displayNameUpdated', handleDisplayNameUpdated);
+    };
+  }, [user]);
+
   const fetchUserGroups = async () => {
     if (!user) return;
 
