@@ -1,12 +1,34 @@
-import React, { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, FC } from "react";
 import { createPortal } from "react-dom";
-import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
+import { DragDropContext, Droppable, Draggable, DropResult } from "@hello-pangea/dnd";
 import PhotoCard from "./PhotoCard";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "./AuthProvider";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "./ui/dialog";
 import { Button } from "./ui/button";
+import { PostgrestError } from "@supabase/supabase-js";
+
+interface CommentUser {
+  email: string;
+  full_name: string | null;
+}
+
+interface Comment {
+  id: string;
+  photo_id: string;
+  user_id: string;
+  content: string;
+  created_at: string;
+  updated_at: string;
+  user: CommentUser;
+}
+
+interface PhotoUser {
+  id?: string;
+  email: string;
+  full_name: string | null;
+}
 
 interface Photo {
   id: string;
@@ -14,14 +36,12 @@ interface Photo {
   likes: number;
   caption?: string | null;
   hashtags?: string[] | null;
+  comments?: Comment[];
   created_at: string;
   order?: number | null;
   user_id?: string;
   group_id?: string | null;
-  users?: {
-    email: string;
-    full_name: string | null;
-  };
+  users?: PhotoUser;
 }
 
 interface PhotoGridProps {
@@ -35,7 +55,7 @@ declare global {
   }
 }
 
-const PhotoGrid: React.FC<PhotoGridProps> = ({ closeSidebar, selectedGroupId }) => {
+const PhotoGrid: FC<PhotoGridProps> = ({ closeSidebar, selectedGroupId }): JSX.Element => {
   const [photos, setPhotos] = useState<Photo[]>([]);
   const { toast } = useToast();
   const [selectedHashtag, setSelectedHashtag] = useState<string | null>(null);
@@ -47,7 +67,8 @@ const PhotoGrid: React.FC<PhotoGridProps> = ({ closeSidebar, selectedGroupId }) 
   const [dontShowAgain, setDontShowAgain] = useState(false);
 
   // Check if user has disabled the tutorial
-  const shouldShowTutorial = (userId: string) => {
+  const shouldShowTutorial = (userId: string): boolean => {
+    if (typeof window === 'undefined') return true;
     const dontShowTutorial = localStorage.getItem(`dontShowTutorial_${userId}`) === 'true';
     return !dontShowTutorial;
   };
@@ -55,14 +76,24 @@ const PhotoGrid: React.FC<PhotoGridProps> = ({ closeSidebar, selectedGroupId }) 
   useEffect(() => {
     const initialize = async () => {
       if (user) {
-        await fetchPhotos();
+        try {
+          await fetchPhotos();
+          
+          // Check if we should show the first-time modal
+          if (shouldShowTutorial(user.id) && !hasPhotosLoadedOnce) {
+            setShowFirstTimeModal(true);
+          }
+        } catch (error) {
+          console.error('Error initializing photos:', error);
+          setLoadingInitialPhotos(false);
+        }
       } else {
         setLoadingInitialPhotos(false);
       }
     };
     
     initialize();
-  }, [user, selectedGroupId]);
+  }, [user, selectedGroupId, hasPhotosLoadedOnce]);
 
   useEffect(() => {
     const handlePhotoAdded = async () => {
@@ -114,10 +145,7 @@ const PhotoGrid: React.FC<PhotoGridProps> = ({ closeSidebar, selectedGroupId }) 
           {Array.from(allHashtags).map(tag => (
             <button
               key={tag}
-              onClick={() => {
-                setSelectedHashtag(prevTag => tag === prevTag ? null : tag);
-                closeSidebar();
-              }}
+              onClick={() => handleHashtagClick(tag)}
               className={`px-3 py-2 rounded-lg transition-colors w-full text-right ${
                 tag === selectedHashtag
                   ? 'bg-[#ea384c]/20 text-pink-200'
@@ -133,80 +161,368 @@ const PhotoGrid: React.FC<PhotoGridProps> = ({ closeSidebar, selectedGroupId }) 
     );
   };
 
-  const fetchPhotos = async () => {
+  const handleHashtagClick = (hashtag: string): void => {
+    setSelectedHashtag(selectedHashtag === hashtag ? null : hashtag);
+  };
+
+  const fetchPhotos = async (): Promise<Photo[]> => {
     if (!user) {
       setLoadingInitialPhotos(false);
       return [];
     }
+    
     setLoadingInitialPhotos(true);
+    
     try {
-      // First, fetch photos without user join
+      // Build the base query
       let query = supabase
         .from('photos')
         .select('*');
 
+      // Apply group filter
       if (selectedGroupId) {
         query = query.eq('group_id', selectedGroupId);
       } else {
-        query = query.eq('user_id', user.id).is('group_id', null);
+        query = query.is('group_id', null);
       }
 
+      // Execute the query
       const { data: photosData, error: photosError } = await query
         .order('order', { ascending: true })
         .order('created_at', { ascending: false });
 
-      if (photosError) {
-        console.error('Error fetching photos:', photosError);
-        setLoadingInitialPhotos(false);
-        return [];
-      }
-
+      if (photosError) throw photosError;
       if (!photosData || photosData.length === 0) {
         setPhotos([]);
         setHasPhotosLoadedOnce(true);
-        setLoadingInitialPhotos(false);
         return [];
       }
 
       // Get unique user IDs from photos
-      const userIds = [...new Set(photosData.map(photo => photo.user_id))];
+      const userIds = [...new Set(photosData.map(photo => photo.user_id).filter(Boolean))] as string[];
+      
+      let usersMap = new Map<string, { id: string; email: string; full_name: string | null }>();
+      
+      if (userIds.length > 0) {
+        // Fetch user data in a single query only if we have user IDs
+        const { data: usersData, error: usersError } = await supabase
+          .from('users')
+          .select('id, email, full_name')
+          .in('id', userIds);
 
-      // Fetch user details separately
-      const { data: usersData, error: usersError } = await supabase
-        .from('users')
-        .select('id, email, full_name')
-        .in('id', userIds);
-
-      if (usersError) {
-        console.error('Error fetching users:', usersError);
-        // Continue without user data if users table query fails
+        if (usersError) {
+          console.error('Error fetching users:', usersError);
+        } else if (usersData) {
+          usersMap = new Map(usersData.map(user => [user.id, user]));
+        }
       }
 
-      // Merge user data with photos
-      const photosWithUsers = photosData.map(photo => ({
+      // Combine photos with user data
+      const photosWithUsers: Photo[] = photosData.map(photo => ({
         ...photo,
-        users: usersData?.find(userData => userData.id === photo.user_id) || null
+        users: usersMap.get(photo.user_id || '') || { 
+          email: 'unknown@example.com', 
+          full_name: null 
+        }
       }));
 
       setPhotos(photosWithUsers);
       setHasPhotosLoadedOnce(true);
       
-      // Show tutorial modal only if this is the first photo and user hasn't disabled it
-      if (!selectedGroupId && photosWithUsers.length === 1 && shouldShowTutorial(user.id)) {
-        console.log('Showing first time tutorial modal');
-        setShowFirstTimeModal(true);
-      }
+      // Fetch comments for each photo
+      await Promise.all(photosWithUsers.map(photo => fetchComments(photo.id)));
       
       return photosWithUsers;
-    } catch (err) {
-      console.error('Exception fetching photos:', err);
+    } catch (error) {
+      console.error('Error fetching photos:', error);
+      toast({
+        title: 'خطأ',
+        description: 'حدث خطأ أثناء جلب الصور',
+        variant: 'destructive',
+      });
     } finally {
       setLoadingInitialPhotos(false);
     }
   };
 
-  const handleDragEnd = async (result: any) => {
+  const handleUpdateCaption = async (photoId: string, caption: string, hashtags: string[]): Promise<void> => {
+    try {
+      const { error } = await supabase
+        .from('photos')
+        .update({ caption, hashtags })
+        .eq('id', photoId);
+
+      if (error) throw error;
+
+      // تحديث الحالة المحلية
+      setPhotos(prev => prev.map(photo => 
+        photo.id === photoId 
+          ? { ...photo, caption, hashtags } 
+          : photo
+      ));
+
+      toast({
+        title: 'تم التحديث',
+        description: 'تم تحديث التعليق والهاشتاجات بنجاح',
+      });
+    } catch (error) {
+      console.error('Error updating caption:', error);
+      toast({
+        title: 'خطأ',
+        description: 'حدث خطأ أثناء تحديث التعليق',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const handleAddComment = async (photoId: string, content: string): Promise<void> => {
+    if (!user?.id) {
+      console.error('No user ID available');
+      throw new Error('يجب تسجيل الدخول لإضافة تعليق');
+    }
+
+    console.log('Starting to add comment...');
+    console.log('User ID:', user.id);
+    console.log('Photo ID:', photoId);
+    console.log('Content:', content);
+    
+    const tempId = `temp-${Date.now()}`;
+    const userDisplayName = user.user_metadata?.full_name || user.email?.split('@')[0] || 'مستخدم';
+    
+    // Create temporary comment for optimistic update
+    const tempComment: Comment = {
+      id: tempId,
+      photo_id: photoId,
+      user_id: user.id,
+      content,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+      user: {
+        email: user.email || '',
+        full_name: userDisplayName
+      }
+    };
+
+    // Update local state first for optimistic UI
+    setPhotos(prev => {
+      const updated = prev.map(photo => ({
+        ...photo,
+        comments: photo.id === photoId 
+          ? [tempComment, ...(photo.comments || [])]
+          : photo.comments
+      }));
+      console.log('Optimistic UI update completed');
+      return updated;
+    });
+
+    try {
+      console.log('Checking if user exists in public.users...');
+      
+      // Check if user exists in public.users
+      const { data: existingUser, error: userCheckError } = await supabase
+        .from('users')
+        .select('id')
+        .eq('id', user.id)
+        .single();
+
+      if (userCheckError && userCheckError.code !== 'PGRST116') { // PGRST116 = not found
+        console.error('Error checking user:', userCheckError);
+        throw userCheckError;
+      }
+
+      // If user doesn't exist, create them
+      if (!existingUser) {
+        console.log('User not found in public.users, creating...');
+        const { error: userUpsertError } = await supabase
+          .from('users')
+          .insert({
+            id: user.id,
+            email: user.email,
+            full_name: userDisplayName,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+          });
+
+        if (userUpsertError) {
+          console.error('Error creating user:', userUpsertError);
+          throw userUpsertError;
+        }
+        console.log('User created successfully');
+      } else {
+        console.log('User exists in public.users');
+      }
+
+      // Insert the comment
+      console.log('Inserting comment...');
+      const { data: savedComment, error: insertError } = await supabase
+        .from('comments')
+        .insert({
+          photo_id: photoId,
+          content,
+          user_id: user.id,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        })
+        .select()
+        .single();
+
+      if (insertError) {
+        console.error('Error inserting comment:', insertError);
+        throw insertError;
+      }
+
+      console.log('Comment inserted successfully:', savedComment);
+
+      // Fetch the comment with user data
+      console.log('Fetching comment with user data...');
+      const { data: fullComment, error: fetchError } = await supabase
+        .from('comments')
+        .select(`
+          *,
+          user:user_id (id, email, full_name)
+        `)
+        .eq('id', savedComment.id)
+        .single();
+
+      if (fetchError) {
+        console.error('Error fetching comment with user data:', fetchError);
+        throw fetchError;
+      }
+
+      console.log('Fetched comment with user data:', fullComment);
+
+      // Update with the real comment from server
+      setPhotos(prev => {
+        const updated = prev.map(photo => ({
+          ...photo,
+          comments: photo.id === photoId
+            ? (photo.comments || []).map(c => 
+                c.id === tempId 
+                  ? {
+                      ...fullComment,
+                      user: fullComment.user || tempComment.user
+                    }
+                  : c
+              )
+            : photo.comments
+        }));
+        console.log('UI updated with server response');
+        return updated;
+      });
+
+      toast({
+        title: 'تمت الإضافة',
+        description: 'تم إضافة تعليقك بنجاح',
+      });
+
+    } catch (error) {
+      console.error('Error in handleAddComment:', error);
+      
+      // Remove the temporary comment on error
+      setPhotos(prev => {
+        const updated = prev.map(photo => ({
+          ...photo,
+          comments: photo.id === photoId
+            ? (photo.comments || []).filter(c => c.id !== tempId)
+            : photo.comments
+        }));
+        console.log('Reverted optimistic update due to error');
+        return updated;
+      });
+      
+      // Show error message to user
+      toast({
+        title: 'خطأ',
+        description: 'حدث خطأ أثناء إضافة التعليق. يرجى المحاولة مرة أخرى.',
+        variant: 'destructive',
+      });
+      
+      throw error;
+    }
+  };
+
+  const handleLike = async (photoId: string): Promise<void> => {
+    if (!user?.id) return;
+    
+    try {
+      const { error } = await supabase
+        .from('photos')
+        .update({ likes: { increment: 1 } })
+        .eq('id', photoId);
+
+      if (error) throw error;
+
+      // Update local state
+      setPhotos(prev => 
+        prev.map(photo => 
+          photo.id === photoId 
+            ? { ...photo, likes: photo.likes + 1 } 
+            : photo
+        )
+      );
+
+      toast({
+        title: 'تم الإعجاب',
+        description: 'تم الإعجاب بالصورة',
+      });
+    } catch (error) {
+      console.error('Error liking photo:', error);
+      toast({
+        title: 'خطأ',
+        description: 'حدث خطأ أثناء الإعجاب بالصورة',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const fetchComments = async (photoId: string): Promise<Comment[]> => {
+    try {
+      const { data: comments, error } = await supabase
+        .from('comments')
+        .select('*')
+        .eq('photo_id', photoId)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      if (!comments || comments.length === 0) return [];
+
+      // Get user data for comments
+      const userIds = [...new Set(comments.map(comment => comment.user_id))];
+      const { data: users } = await supabase
+        .from('users')
+        .select('id, email, full_name')
+        .in('id', userIds);
+
+      const usersMap = new Map(users?.map(u => [u.id, u]));
+
+      const commentsWithUsers: Comment[] = comments.map(comment => ({
+        ...comment,
+        user: {
+          email: usersMap.get(comment.user_id)?.email || 'unknown@example.com',
+          full_name: usersMap.get(comment.user_id)?.full_name || null
+        }
+      }));
+
+      // Update local state
+      setPhotos(prev => 
+        prev.map(photo => ({
+          ...photo,
+          comments: photo.id === photoId ? commentsWithUsers : photo.comments
+        }))
+      );
+
+      return commentsWithUsers;
+    } catch (error) {
+      console.error('Error fetching comments:', error);
+      return [];
+    }
+  };
+
+  const handleDragEnd = async (result: DropResult) => {
     if (!result.destination) return;
+    
+    const { source, destination } = result;
+    if (!destination || source.index === destination.index) return;
 
     const items = Array.from(photos);
     const [reorderedItem] = items.splice(result.source.index, 1);
@@ -219,10 +535,14 @@ const PhotoGrid: React.FC<PhotoGridProps> = ({ closeSidebar, selectedGroupId }) 
     setPhotos(updatedItems);
 
     try {
+      const currentTime = new Date().toISOString();
       for (let i = 0; i < updatedItems.length; i++) {
         const { error } = await supabase
           .from('photos')
-          .update({ order: i })
+          .update({ 
+            order: i,
+            created_at: i === 0 ? currentTime : updatedItems[i].created_at // Update created_at for the first item
+          })
           .eq('id', updatedItems[i].id);
         if (error) {
           toast({
@@ -344,36 +664,11 @@ const PhotoGrid: React.FC<PhotoGridProps> = ({ closeSidebar, selectedGroupId }) 
     }
   };
 
-  const handleUpdateCaption = async (id: string, caption: string, hashtags: string[]) => {
-    try {
-      const cleaned = hashtags.map(t => t.trim()).filter(t => t);
-      const { error } = await supabase
-        .from('photos')
-        .update({ caption, hashtags: cleaned })
-        .eq('id', id)
-        .eq('user_id', user?.id);
-
-      if (error) {
-        toast({ title: "خطأ في التحديث", description: "لم نتمكن من تحديث التعليق", variant: "destructive" });
-        return;
-      }
-
-      setPhotos(prev =>
-        prev.map(photo => photo.id === id ? { ...photo, caption, hashtags: cleaned } : photo)
-      );
-
-      toast({ title: "تم التحديث بنجاح", description: "تم تحديث التعليق والهاشتاجات" });
-    } catch {
-      console.error('Exception updating caption');
-    }
-  };
-
-  const handleTutorialClose = () => {
-    if (dontShowAgain && user) {
-      localStorage.setItem(`dontShowTutorial_${user.id}`, 'true');
-      console.log('Tutorial disabled for user:', user.id);
-    }
+  const handleTutorialClose = (): void => {
     setShowFirstTimeModal(false);
+    if (dontShowAgain && user?.id && typeof window !== 'undefined') {
+      localStorage.setItem(`dontShowTutorial_${user.id}`, 'true');
+    }
   };
 
   const filteredPhotos = selectedHashtag
@@ -418,17 +713,26 @@ const PhotoGrid: React.FC<PhotoGridProps> = ({ closeSidebar, selectedGroupId }) 
                         className="relative group"
                       >
                         <PhotoCard
+                          key={photo.id}
+                          id={photo.id}
+                          photoId={photo.id}
                           imageUrl={photo.image_url}
                           likes={photo.likes}
                           caption={photo.caption || ''}
                           hashtags={photo.hashtags || []}
+                          comments={photo.comments || []}
+                          onLike={() => handleLike(photo.id)}
                           onDelete={() => handleDelete(photo.id, photo.image_url)}
                           dragHandleProps={provided.dragHandleProps}
-                          onUpdateCaption={(caption, hashtags) => handleUpdateCaption(photo.id, caption, hashtags)}
+                          onUpdateCaption={(caption, hashtags) => 
+                            handleUpdateCaption(photo.id, caption, hashtags)
+                          }
+                          onAddComment={(content) => handleAddComment(photo.id, content)}
                           isGroupPhoto={!!selectedGroupId}
                           userEmail={photo.users?.email}
                           userDisplayName={photo.users?.full_name}
                           selectedGroupId={selectedGroupId}
+                          currentUserId={user?.id || ''}
                         />
                       </div>
                     )}

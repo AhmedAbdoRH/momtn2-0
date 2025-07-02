@@ -169,9 +169,32 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const signUp = async (email: string, password: string) => {
     try {
       console.log("Attempting to sign up:", email);
-      const { data, error } = await supabase.auth.signUp({ email, password });
+      const displayName = email.split('@')[0];
+      
+      // Sign up the user with display name in metadata
+      const { data, error } = await supabase.auth.signUp({ 
+        email, 
+        password,
+        options: {
+          data: {
+            full_name: displayName
+          }
+        }
+      });
       
       console.log("Sign up result:", error ? `Error: ${error.message}` : "Success", data);
+      
+      // Save user to public.users table
+      if (data.user) {
+        await supabase
+          .from('users')
+          .upsert({
+            id: data.user.id,
+            email: email,
+            full_name: displayName,
+            created_at: new Date().toISOString()
+          });
+      }
       
       // Redirect to home page after successful signup
       if (!error && data.user) {
@@ -197,6 +220,23 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     try {
       console.log("Attempting to sign in:", email);
       const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+      
+      // Ensure user exists in public.users table
+      if (data.user) {
+        const displayName = data.user.user_metadata?.full_name || email.split('@')[0];
+        
+        await supabase
+          .from('users')
+          .upsert({
+            id: data.user.id,
+            email: email,
+            full_name: displayName,
+            updated_at: new Date().toISOString()
+          }, {
+            onConflict: 'id'
+          });
+      }
+      
       console.log("Sign in result:", error ? `Error: ${error.message}` : "Success", data);
       
       if (!error && data.user) {

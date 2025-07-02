@@ -2,6 +2,7 @@ import { useState, useEffect } from "react"; // استيراد useState و useEf
 import { GripVertical, Heart, MessageCircle, Trash2, MoreVertical, Plus } from "lucide-react"; // استيراد أيقونات من مكتبة lucide-react
 import { supabase } from "@/integrations/supabase/client"; // استيراد عميل supabase للتفاعل مع قاعدة البيانات
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "./ui/dialog"; // استيراد مكونات Dialog لعرض نافذة تحرير التعليق والهاشتاجات
+import { toast } from "@/hooks/use-toast"; // استيراد دالة toast لعرض الإشعارات
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -10,34 +11,63 @@ import {
 } from "./ui/dropdown-menu";
 
 // تعريف واجهة (interface) لتحديد خصائص المكون PhotoCard
+interface CommentUser {
+  email: string;
+  full_name: string | null;
+}
+
+interface Comment {
+  id: string;
+  photo_id: string;
+  user_id: string;
+  content: string;
+  created_at: string;
+  updated_at: string;
+  user: CommentUser;
+}
+
 interface PhotoCardProps {
+  id: string; // معرف الصورة
   imageUrl: string; // رابط الصورة
   likes: number; // عدد الإعجابات الأولية
   caption?: string; // التعليق (اختياري)
   hashtags?: string[]; // الهاشتاجات (اختيارية)
-  onDelete?: () => void; // دالة لحذف الصورة (اختيارية)
-  dragHandleProps?: any; // خصائص للسحب والإفلات (اختيارية)
-  onUpdateCaption?: (caption: string, hashtags: string[]) => Promise<void>; // دالة لتحديث التعليق والهاشتاجات (اختيارية)
-  isGroupPhoto?: boolean; // هل هذه صورة في مجموعة
-  userEmail?: string; // إيميل المستخدم (للمجموعات)
-  userDisplayName?: string; // الاسم الشخصي للمستخدم (للمجموعات)
+  comments?: Comment[]; // التعليقات على الصورة
+  onLike: () => void; // دالة للإعجاب بالصورة
+  onDelete: () => void; // دالة لحذف الصورة
+  onUpdateCaption: (caption: string, hashtags: string[]) => Promise<void>; // دالة لتحديث التعليق والهاشتاجات
+  onAddComment: (content: string) => Promise<void>; // دالة لإضافة تعليق جديد
+  currentUserId: string; // معرف المستخدم الحالي
+  photoId: string; // معرف الصورة (مرادف لـ id للتوافق مع المكونات الأخرى)
+  dragHandleProps?: any; // خصائص السحب والإفلات
+  isGroupPhoto?: boolean; // هل الصورة في مجموعة
   selectedGroupId?: string | null; // معرف المجموعة المحددة
+  userEmail?: string; // بريد المستخدم
+  userDisplayName?: string | null; // اسم المستخدم المعروض
 }
 
 // تعريف المكون PhotoCard مع خصائصه
-const PhotoCard = ({ 
-  imageUrl, 
-  likes: initialLikes, 
-  caption: initialCaption = '', // قيمة افتراضية فارغة إذا لم يُحدد تعليق
-  hashtags: initialHashtags = [], // قيمة افتراضية مصفوفة فارغة إذا لم تُحدد هاشتاجات
+const PhotoCard: React.FC<PhotoCardProps> = ({
+  id,
+  imageUrl,
+  likes: initialLikes,
+  caption: initialCaption = '',
+  hashtags: initialHashtags = [],
+  comments: initialComments = [],
+  onLike,
   onDelete,
-  dragHandleProps,
   onUpdateCaption,
-  isGroupPhoto = false, // افتراضي false
-  userEmail, // إيميل المستخدم
-  userDisplayName, // الاسم الشخصي للمستخدم
-  selectedGroupId = null // معرف المجموعة المحددة
-}: PhotoCardProps) => {
+  onAddComment,
+  currentUserId,
+  photoId: propPhotoId,
+  dragHandleProps,
+  isGroupPhoto = false,
+  selectedGroupId = null,
+  userEmail = '',
+  userDisplayName = null,
+}) => {
+  const photoId = id || propPhotoId; // استخدام id أو photoId أيهما متاح
+
   // تعريف الحالات باستخدام useState
   const [isLoved, setIsLoved] = useState(false); // حالة لتتبع ما إذا تم الإعجاب بالصورة
   const [likes, setLikes] = useState(initialLikes); // حالة لتتبع عدد الإعجابات
@@ -46,6 +76,11 @@ const PhotoCard = ({
   const [hashtags, setHashtags] = useState(initialHashtags); // حالة لتتبع الهاشتاجات الحالية
   const [isControlsVisible, setIsControlsVisible] = useState(false); // حالة لإظهار/إخفاء الأزرار (مثل الحذف والتحرير)
   const [isHeartAnimating, setIsHeartAnimating] = useState(false); // حالة لتتبع تشغيل أنيميشن القلب
+  const [newComment, setNewComment] = useState(''); // حالة لتتبع نص التعليق الجديد
+  const [isCommenting, setIsCommenting] = useState(false); // حالة لتتبع ما إذا كان حقل التعليق مفتوحاً
+  const [comments, setComments] = useState<Comment[]>(initialComments); // حالة لتخزين التعليقات
+  const [showComments, setShowComments] = useState(false); // حالة لإظهار/إخفاء التعليقات
+  const [isCommentLoading, setIsCommentLoading] = useState(false); // حالة لتحميل التعليقات
 
   // دالة لمعالجة الإعجاب بالصورة
   const handleLike = async () => {
@@ -91,16 +126,18 @@ const PhotoCard = ({
     setIsControlsVisible(!isControlsVisible); // تغيير الحالة بين الإظهار والإخفاء
   };
 
-  // الحصول على الاسم المعروض (الجزء الأول من الإيميل كقيمة افتراضية إذا لم يتم تحديد اسم)
-  const getDisplayName = () => {
-    // إذا كان هناك إيميل، نستخدم الجزء الأول منه كاسم افتراضي
-    if (userEmail) {
-      const emailUsername = userEmail.split('@')[0];
-      // إذا كان هناك اسم معرّف، نستخدمه، وإلا نستخدم اسم المستخدم من الإيميل
-      return (userDisplayName && userDisplayName.trim()) ? userDisplayName.trim() : emailUsername;
+  // الحصول على الاسم المعروض
+  const getDisplayName = (userId: string, userEmail?: string, userFullName?: string | null) => {
+    // إذا كان هناك اسم كامل، نستخدمه
+    if (userFullName && userFullName.trim()) {
+      return userFullName.trim();
     }
-    // إذا لم يكن هناك إيميل، نستخدم الاسم المعرّف إن وجد
-    return (userDisplayName && userDisplayName.trim()) ? userDisplayName.trim() : '';
+    // إذا كان هناك إيميل، نستخدم الجزء الأول منه
+    if (userEmail) {
+      return userEmail.split('@')[0];
+    }
+    // إذا لم يكن هناك اسم أو إيميل، نستخدم معرف المستخدم
+    return `User ${userId.substring(0, 6)}`;
   };
 
   // حالة لحفظ قائمة الألبومات
@@ -110,7 +147,7 @@ const PhotoCard = ({
   const [selectedAlbum, setSelectedAlbum] = useState<string | null>(null);
   const [showNewAlbumInput, setShowNewAlbumInput] = useState(false);
 
-  // جلب الألبومات بنفس طريقة الشريط الجانبي
+  // جلب الألبومات
   useEffect(() => {
     const fetchAlbums = async () => {
       try {
@@ -150,7 +187,7 @@ const PhotoCard = ({
     if (showAlbumDialog) {
       fetchAlbums();
     }
-  }, [showAlbumDialog, selectedGroupId, isGroupPhoto]);
+  }, [showAlbumDialog]);
 
   // معالجة إضافة صورة إلى ألبوم
   const handleAddToAlbum = async () => {
@@ -186,6 +223,56 @@ const PhotoCard = ({
     if (!showNewAlbumInput) {
       setSelectedAlbum(null);
       setTimeout(() => document.getElementById('newAlbumInput')?.focus(), 100);
+    }
+  };
+
+  // No duplicate state declarations here - they've been moved to the top of the component
+
+  // معالجة إضافة تعليق جديد
+  const handleAddComment = async (content: string) => {
+    if (!content.trim() || !onAddComment) return;
+    
+    setIsCommentLoading(true);
+    const tempId = `temp-${Date.now()}`;
+    
+    try {
+      // إنشاء تعليق مؤقت
+      const tempComment: Comment = {
+        id: tempId,
+        photo_id: photoId,
+        user_id: currentUserId,
+        content,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        user: {
+          email: userEmail || '',
+          full_name: userDisplayName || userEmail?.split('@')[0] || 'مستخدم'
+        }
+      };
+      
+      // إضافة التعليق محلياً أولاً
+      setComments(prev => [tempComment, ...(prev || [])]);
+      setNewComment('');
+      
+      // إرسال التعليق للخادم من خلال الدالة الأب
+      await onAddComment(content);
+      
+      // نجاح - لا حاجة لفعل أي شيء إضافي لأن useEffect سيتعامل مع التحديث
+      
+    } catch (error) {
+      console.error('Error adding comment:', error);
+      
+      // إزالة التعليق المؤقت في حالة الخطأ
+      setComments(prev => prev.filter(c => c.id !== tempId));
+      
+      // إظهار رسالة خطأ للمستخدم
+      toast({
+        title: 'خطأ',
+        description: 'حدث خطأ أثناء إضافة التعليق. يرجى المحاولة مرة أخرى.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsCommentLoading(false);
     }
   };
 
@@ -259,17 +346,20 @@ const PhotoCard = ({
           </DropdownMenu>
         </div>
 
-        {/* زر التعليق - موحد لجميع الصور */}
+        {/* زر عرض/إخفاء التعليقات */}
         <button
           onClick={(e) => {
             e.stopPropagation();
-            setIsEditing(true);
+            setShowComments(!showComments);
+            if (!showComments) {
+              setIsCommenting(false);
+            }
           }}
-          className={`absolute bottom-2 right-2 p-2 rounded-full bg-black/20 backdrop-blur-sm transition-opacity duration-300 hover:bg-blue-500/50 ${
-            isControlsVisible ? 'opacity-50' : 'opacity-0'
-          } hover:opacity-100`}
+          className={`absolute bottom-2 right-2 p-2 rounded-full bg-black/20 backdrop-blur-sm transition-all duration-300 ${
+            isControlsVisible ? 'opacity-100' : 'opacity-0'
+          } hover:bg-blue-500/50 hover:opacity-100`}
         >
-          <MessageCircle className="w-4 h-4 text-white" />
+          <MessageCircle className={`w-4 h-4 ${showComments ? 'text-blue-400' : 'text-white'}`} />
         </button>
 
         {/* قسم الإعجابات - في الموضع القديم */}
@@ -300,36 +390,91 @@ const PhotoCard = ({
           </span>
         </div>
 
-        {/* عرض التعليق والهاشتاجات مع اسم المستخدم بجانب التعليق */}
-        {(caption || hashtags.length > 0) && (
-          <div className={`absolute left-2 right-2 bottom-14 p-2 bg-black/50 backdrop-blur-md rounded-lg transition-opacity duration-300 ${
-            isControlsVisible ? 'opacity-80' : 'opacity-0' // يظهر عند تفعيل الأزرار
-          }`}>
-            {caption && (
-              <div className="flex items-start gap-2 mb-1 text-right" dir="rtl">
-                {isGroupPhoto && getDisplayName() ? (
-                  <div className="flex items-center gap-1">
-                    <span className="text-yellow-100 text-xs font-medium bg-black/30 px-2 py-1 rounded whitespace-nowrap">
-                      {getDisplayName()}:
-                    </span>
-                    <p className="text-white text-sm">{caption}</p>
-                  </div>
-                ) : (
-                  <p className="text-white text-sm">{caption}</p>
-                )}
-              </div>
-            )}
-            {hashtags.length > 0 && ( // الهاشتاجات
-              <div className="flex flex-wrap gap-1 justify-end">
-                {hashtags.map((tag) => (
-                  <span key={tag} className="text-xs text-white/60" dir="rtl">
-                    {tag}
+        {/* عرض التعليقات والهاشتاجات */}
+        <div className={`absolute left-2 right-2 bottom-14 space-y-2 transition-all duration-300 ${
+          (showComments || isControlsVisible) ? 'opacity-100' : 'opacity-0 pointer-events-none'
+        }`}>
+          {/* قسم إضافة تعليق جديد */}
+          {showComments && (
+            <div className="bg-black/50 backdrop-blur-md rounded-lg p-2 mb-2">
+              <div className="w-full">
+                <div className="text-right mb-1">
+                  <span className="text-yellow-100 text-[11px] font-medium opacity-80">
+                    {getDisplayName(currentUserId, userEmail, userDisplayName)}
                   </span>
-                ))}
+                </div>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={newComment}
+                    onChange={(e) => setNewComment(e.target.value)}
+                    placeholder="اكتب تعليقاً..."
+                    className="flex-1 bg-white/10 text-white placeholder-white/50 text-sm rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' && !e.shiftKey) {
+                        e.preventDefault();
+                        handleAddComment(newComment);
+                      }
+                    }}
+                  />
+                  <button
+                    onClick={() => handleAddComment(newComment)}
+                    disabled={!newComment.trim() || isCommentLoading}
+                    className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded text-sm disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
+                  >
+                    {isCommentLoading ? 'جاري الإرسال...' : 'إرسال'}
+                  </button>
+                </div>
               </div>
-            )}
-          </div>
-        )}
+            </div>
+          )}
+
+          {/* عرض التعليقات */}
+          {showComments && comments.length > 0 && (
+            <div className="max-h-40 overflow-y-auto bg-black/50 backdrop-blur-md rounded-lg p-2 space-y-3">
+              {comments.map((comment) => (
+                <div key={comment.id} className="bg-white/5 rounded-lg p-2">
+                  <div className="flex flex-col items-end gap-0">
+                    <div className="w-full text-right">
+                      <span className="text-yellow-100 text-[11px] font-medium opacity-80 block mb-1">
+                        {getDisplayName(comment.user_id, comment.user?.email, comment.user?.full_name)}
+                      </span>
+                      <p className="text-white text-sm text-right pr-1 mt-1">{comment.content}</p>
+                      <span className="text-[10px] text-white/50 block text-left mt-1">
+                        {new Date(comment.created_at).toLocaleString('ar-EG')}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* عرض الكابشن والهاشتاجات */}
+          {(caption || hashtags.length > 0) && (
+            <div className="bg-black/50 backdrop-blur-md rounded-lg p-2">
+              {caption && (
+                <div className="mb-1 text-right">
+                  <div className="text-right mb-1">
+                    <span className="text-yellow-100 text-[11px] font-medium opacity-80">
+                      {getDisplayName(currentUserId, userEmail, userDisplayName)}
+                    </span>
+                  </div>
+                  <p className="text-white text-sm pr-1">{caption}</p>
+                </div>
+              )}
+              {hashtags.length > 0 && (
+                <div className="flex flex-wrap gap-1 justify-end">
+                  {hashtags.map((tag) => (
+                    <span key={tag} className="text-xs text-white/60" dir="rtl">
+                      {tag}
+                    </span>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
       </div>
 
       {/* نافذة التحرير (Dialog) */}

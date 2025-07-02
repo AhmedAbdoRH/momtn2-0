@@ -27,6 +27,8 @@ interface GroupMember {
   user_id: string;
   role: string;
   joined_at: string;
+  email: string;
+  full_name: string | null;
   users: {
     email: string;
     full_name: string | null;
@@ -46,7 +48,7 @@ export default function GroupsDropdown({ selectedGroupId, onGroupChange }: Group
   const [showSettingsDialog, setShowSettingsDialog] = useState(false);
   const [selectedGroup, setSelectedGroup] = useState<Group | null>(null);
   const [groupMembers, setGroupMembers] = useState<GroupMember[]>([]);
-  const [newGroupName, setNewGroupName] = useState('');
+
   const [newGroupDescription, setNewGroupDescription] = useState('');
   const [isPrivate, setIsPrivate] = useState(false);
   const [inviteCode, setInviteCode] = useState('');
@@ -56,6 +58,16 @@ export default function GroupsDropdown({ selectedGroupId, onGroupChange }: Group
   
   const { user } = useAuth();
   const { toast } = useToast();
+  const [newGroupName, setNewGroupName] = useState('');
+
+  // Set default group name when user is available
+  useEffect(() => {
+    if (user?.email) {
+      // First try to get the display name from the user metadata
+      const displayName = user.user_metadata?.full_name || user.email.split('@')[0];
+      setNewGroupName(displayName);
+    }
+  }, [user]);
 
   useEffect(() => {
     if (user) {
@@ -148,46 +160,62 @@ export default function GroupsDropdown({ selectedGroupId, onGroupChange }: Group
   const fetchGroupMembers = async (groupId: string) => {
     setLoadingMembers(true);
     try {
-      // First fetch group members
-      const { data: members, error: membersError } = await supabase
+      // First, get all member IDs in this group
+      const { data: membersData, error: membersError } = await supabase
         .from('group_members')
         .select('id, user_id, role, joined_at')
         .eq('group_id', groupId)
         .order('joined_at', { ascending: true });
 
-      if (membersError) {
-        console.error('Error fetching group members:', membersError);
-        toast({ 
-          title: "خطأ في التحميل", 
-          description: "لم نتمكن من تحميل أعضاء المجموعة", 
-          variant: "destructive" 
-        });
+      if (membersError) throw membersError;
+
+      if (!membersData || membersData.length === 0) {
+        setGroupMembers([]);
         return;
       }
 
-      // Then fetch user details for each member
-      const membersWithUsers: GroupMember[] = [];
-      
-      for (const member of members || []) {
-        const { data: userData, error: userError } = await supabase
-          .from('users')
-          .select('email, full_name')
-          .eq('id', member.user_id)
-          .maybeSingle();
+      // Get all user IDs from the members list
+      const userIds = membersData.map(member => member.user_id);
 
-        if (userError) {
-          console.error('Error fetching user data:', userError);
-        }
+      // Fetch all users in a single query
+      const { data: usersData, error: usersError } = await supabase
+        .from('users')
+        .select('id, email, full_name')
+        .in('id', userIds);
 
-        membersWithUsers.push({
-          ...member,
-          users: userData || null
-        });
-      }
+      if (usersError) throw usersError;
 
-      setGroupMembers(membersWithUsers);
+      // Create a map of user_id to user data for quick lookup
+      const usersMap = new Map(usersData?.map(user => [user.id, user]) || []);
+
+      // Combine the data
+      const formattedMembers: GroupMember[] = membersData.map(member => {
+        const user = usersMap.get(member.user_id);
+        const email = user?.email || 'unknown@example.com';
+        const fullName = user?.full_name || email.split('@')[0] || 'مستخدم';
+        
+        return {
+          id: member.id,
+          user_id: member.user_id,
+          role: member.role,
+          joined_at: member.joined_at,
+          email: email,
+          full_name: fullName,
+          users: {
+            email: email,
+            full_name: fullName
+          }
+        };
+      });
+
+      setGroupMembers(formattedMembers);
     } catch (err) {
       console.error('Exception fetching group members:', err);
+      toast({ 
+        title: "خطأ", 
+        description: "حدث خطأ غير متوقع أثناء تحميل الأعضاء", 
+        variant: "destructive" 
+      });
     } finally {
       setLoadingMembers(false);
     }
@@ -220,7 +248,7 @@ export default function GroupsDropdown({ selectedGroupId, onGroupChange }: Group
 
       await fetchUserGroups();
       setShowCreateDialog(false);
-      setNewGroupName('');
+      setNewGroupName(user?.email?.split('@')[0] || '');
       setNewGroupDescription('');
       setIsPrivate(false);
       
@@ -459,13 +487,7 @@ export default function GroupsDropdown({ selectedGroupId, onGroupChange }: Group
 
   // Helper function to get display name
   const getDisplayName = (member: GroupMember) => {
-    if (!member.users) {
-      return 'مستخدم غير معروف';
-    }
-    if (member.users.full_name && member.users.full_name.trim()) {
-      return member.users.full_name.trim();
-    }
-    return member.users.email.split('@')[0];
+    return member.full_name?.trim() || member.email?.split('@')[0] || 'مستخدم غير معروف';
   };
 
   if (loading) {
@@ -736,7 +758,7 @@ export default function GroupsDropdown({ selectedGroupId, onGroupChange }: Group
                             <Button
                               variant="ghost"
                               size="sm"
-                              onClick={() => handleRemoveMember(member.id, member.users?.email || 'مستخدم غير معروف')}
+                              onClick={() => handleRemoveMember(member.id, member.email || 'مستخدم غير معروف')}
                               className="text-red-400 hover:text-red-300 hover:bg-red-900/20 p-1"
                             >
                               <Trash2 className="w-3 h-3" />
@@ -748,11 +770,11 @@ export default function GroupsDropdown({ selectedGroupId, onGroupChange }: Group
                         </div>
                         
                         <div className="text-right">
-                          <div className="text-sm font-medium flex items-center gap-2">
-                            {getDisplayName(member)}
+                          <div className="text-sm font-medium flex items-center gap-2 justify-end">
+                            {member.full_name || member.email?.split('@')[0] || 'مستخدم غير معروف'}
                             {getRoleIcon(member.role)}
                           </div>
-                          <div className="text-xs text-gray-400">{member.users?.email || 'بريد غير معروف'}</div>
+                          <div className="text-xs text-gray-400">{member.email || 'بريد غير معروف'}</div>
                         </div>
                       </div>
                     ))}

@@ -36,27 +36,67 @@ const SettingsPage = () => {
     if (!user) return;
     
     try {
+      // First try to get from user_metadata (from auth.users)
+      if (user.user_metadata?.full_name) {
+        setDisplayName(user.user_metadata.full_name);
+        return;
+      }
+      
+      // Fall back to public.users table
       const { data, error } = await supabase
         .from('users')
         .select('full_name')
         .eq('id', user.id)
         .single();
 
-      if (error) {
-        console.error('Error loading display name:', error);
+      if (error || !data?.full_name) {
         // If no record exists, use email prefix as default
         const emailPrefix = user.email?.split('@')[0] || '';
         setDisplayName(emailPrefix);
+        // Save this as the display name
+        await updateDisplayNameInDatabase(emailPrefix);
         return;
       }
 
-      // Use full_name if exists, otherwise use email prefix
-      const name = data?.full_name || user.email?.split('@')[0] || '';
-      setDisplayName(name);
+      setDisplayName(data.full_name);
+      // Also update auth.users to keep in sync
+      await updateUserMetadata(data.full_name);
     } catch (err) {
       console.error('Exception loading display name:', err);
       const emailPrefix = user.email?.split('@')[0] || '';
       setDisplayName(emailPrefix);
+    }
+  };
+  
+  const updateUserMetadata = async (fullName: string) => {
+    if (!user) return;
+    
+    try {
+      const { data, error } = await supabase.auth.updateUser({
+        data: { full_name: fullName }
+      });
+      
+      if (error) {
+        console.error('Error updating user metadata:', error);
+      }
+    } catch (err) {
+      console.error('Exception updating user metadata:', err);
+    }
+  };
+  
+  const updateDisplayNameInDatabase = async (fullName: string) => {
+    if (!user) return;
+    
+    try {
+      await supabase
+        .from('users')
+        .upsert({
+          id: user.id,
+          email: user.email || '',
+          full_name: fullName.trim()
+        });
+    } catch (err) {
+      console.error('Error updating display name in database:', err);
     }
   };
 
@@ -82,7 +122,10 @@ const SettingsPage = () => {
   };
 
   const saveDisplayName = async () => {
-    if (!user?.id || !displayName.trim()) {
+    if (!user?.id) return;
+    
+    const trimmedName = displayName.trim();
+    if (!trimmedName) {
       toast({
         title: "خطأ",
         description: "يجب كتابة الاسم",
@@ -93,28 +136,25 @@ const SettingsPage = () => {
 
     setIsUpdatingName(true);
     try {
-      // Update or insert user record
-      const { error } = await supabase
-        .from('users')
-        .upsert({
-          id: user.id,
-          email: user.email || '',
-          full_name: displayName.trim()
-        });
+      // Update in auth.users metadata
+      await updateUserMetadata(trimmedName);
+      
+      // Update in public.users table
+      await updateDisplayNameInDatabase(trimmedName);
 
-      if (error) {
-        console.error('Error updating display name:', error);
-        toast({
-          title: "خطأ في التحديث",
-          description: "لم نتمكن من تحديث الاسم",
-          variant: "destructive"
-        });
-        return;
-      }
+      // Update the user object in the current session
+      const { data: { user: updatedUser }, error: updateError } = await supabase.auth.updateUser({
+        data: { full_name: trimmedName }
+      });
 
+      if (updateError) throw updateError;
+
+      // Update local state
+      setDisplayName(trimmedName);
+      
       // Notify other components about the name update
       window.dispatchEvent(new CustomEvent('displayNameUpdated', { 
-        detail: { displayName: displayName.trim() } 
+        detail: { displayName: trimmedName } 
       }));
       
       toast({

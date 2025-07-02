@@ -192,16 +192,6 @@ const CreateNewDialog = ({ open, onOpenChange, onPhotoAdded, selectedGroupId }: 
     e.preventDefault();
     if (!image || isSubmitting || !user) return;
     
-    // If no album is selected, show an error
-    if (selectedAlbums.size === 0) {
-      toast({
-        title: "خطأ في الإدخال",
-        description: "الرجاء اختيار ألبوم واحد على الأقل",
-        variant: "destructive",
-      });
-      return;
-    }
-
     setIsSubmitting(true);
 
     try {
