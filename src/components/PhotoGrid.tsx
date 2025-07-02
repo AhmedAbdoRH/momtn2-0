@@ -73,7 +73,7 @@ const PhotoGrid: React.FC<PhotoGridProps> = ({ closeSidebar, selectedGroupId }) 
     return () => {
       window.removeEventListener('photo-added', handlePhotoAdded);
     };
-  }, []);
+  }, [selectedGroupId]); // Add selectedGroupId dependency to ensure it uses current value
 
   useEffect(() => {
     const tags = new Set<string>();
