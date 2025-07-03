@@ -9,7 +9,6 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "./ui/dropdown-menu";
-import { Comments } from "./Comments";
 
 // تعريف واجهة (interface) لتحديد خصائص المكون PhotoCard
 interface CommentUser {
@@ -347,22 +346,20 @@ const PhotoCard: React.FC<PhotoCardProps> = ({
           </DropdownMenu>
         </div>
 
-        {/* زر عرض التعليقات */}
+        {/* زر عرض/إخفاء التعليقات */}
         <button
           onClick={(e) => {
             e.stopPropagation();
             setShowComments(!showComments);
+            if (!showComments) {
+              setIsCommenting(false);
+            }
           }}
           className={`absolute bottom-2 right-2 p-2 rounded-full bg-black/20 backdrop-blur-sm transition-all duration-300 ${
             isControlsVisible ? 'opacity-100' : 'opacity-0'
           } hover:bg-blue-500/50 hover:opacity-100`}
         >
           <MessageCircle className={`w-4 h-4 ${showComments ? 'text-blue-400' : 'text-white'}`} />
-          {comments.length > 0 && (
-            <span className="absolute -top-1 -right-1 bg-blue-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
-              {comments.length}
-            </span>
-          )}
         </button>
 
         {/* قسم الإعجابات - في الموضع القديم */}
@@ -667,13 +664,6 @@ const PhotoCard: React.FC<PhotoCardProps> = ({
           </div>
         </DialogContent>
       </Dialog>
-
-      {/* مكون التعليقات */}
-      <Comments
-        photoId={photoId}
-        isVisible={showComments}
-        onClose={() => setShowComments(false)}
-      />
     </>
   );
 };

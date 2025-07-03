@@ -11,28 +11,28 @@ export type Database = {
     Tables: {
       comments: {
         Row: {
-          content: string
-          created_at: string | null
           id: string
           photo_id: string
-          updated_at: string | null
           user_id: string
+          content: string
+          created_at: string
+          updated_at: string
         }
         Insert: {
-          content: string
-          created_at?: string | null
           id?: string
           photo_id: string
-          updated_at?: string | null
           user_id: string
+          content: string
+          created_at?: string
+          updated_at?: string
         }
         Update: {
-          content?: string
-          created_at?: string | null
           id?: string
           photo_id?: string
-          updated_at?: string | null
           user_id?: string
+          content?: string
+          created_at?: string
+          updated_at?: string
         }
         Relationships: [
           {
@@ -48,7 +48,7 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "users"
             referencedColumns: ["id"]
-          },
+          }
         ]
       }
       group_members: {

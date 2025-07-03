@@ -445,12 +445,9 @@ const PhotoGrid: FC<PhotoGridProps> = ({ closeSidebar, selectedGroupId }): JSX.E
     if (!user?.id) return;
     
     try {
-      const photo = photos.find(p => p.id === photoId);
-      if (!photo) return;
-      
       const { error } = await supabase
         .from('photos')
-        .update({ likes: photo.likes + 1 })
+        .update({ likes: { increment: 1 } })
         .eq('id', photoId);
 
       if (error) throw error;

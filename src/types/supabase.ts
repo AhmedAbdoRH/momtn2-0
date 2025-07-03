@@ -35,67 +35,7 @@ export interface Database {
           updated_at?: string
         }
       }
-      photos: {
-        Row: {
-          id: string
-          image_url: string
-          caption: string | null
-          user_id: string
-          group_id: string | null
-          likes: number
-          hashtags: string[] | null
-          order: number | null
-          created_at: string
-          updated_at: string | null
-        }
-        Insert: {
-          id?: string
-          image_url: string
-          caption?: string | null
-          user_id: string
-          group_id?: string | null
-          likes?: number
-          hashtags?: string[] | null
-          order?: number | null
-          created_at?: string
-          updated_at?: string | null
-        }
-        Update: {
-          id?: string
-          image_url?: string
-          caption?: string | null
-          user_id?: string
-          group_id?: string | null
-          likes?: number
-          hashtags?: string[] | null
-          order?: number | null
-          created_at?: string
-          updated_at?: string | null
-        }
-      }
-      users: {
-        Row: {
-          id: string
-          email: string
-          full_name: string | null
-          created_at: string | null
-          updated_at: string | null
-        }
-        Insert: {
-          id: string
-          email: string
-          full_name?: string | null
-          created_at?: string | null
-          updated_at?: string | null
-        }
-        Update: {
-          id?: string
-          email?: string
-          full_name?: string | null
-          created_at?: string | null
-          updated_at?: string | null
-        }
-      }
+      // Add other tables as needed
     }
     Views: {
       [_ in never]: never
