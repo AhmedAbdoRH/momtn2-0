@@ -186,10 +186,10 @@ const PhotoGrid: FC<PhotoGridProps> = ({ closeSidebar, selectedGroupId }): JSX.E
         query = query.is('group_id', null);
       }
 
-      // Execute the query
+      // Execute the query - order by created_at first (newest first), then by order
       const { data: photosData, error: photosError } = await query
-        .order('order', { ascending: true })
-        .order('created_at', { ascending: false });
+        .order('created_at', { ascending: false })
+        .order('order', { ascending: true });
 
       if (photosError) throw photosError;
       if (!photosData || photosData.length === 0) {
@@ -563,7 +563,46 @@ const PhotoGrid: FC<PhotoGridProps> = ({ closeSidebar, selectedGroupId }): JSX.E
     }
   };
 
-  const addPhoto = async (params: { imageUrl: string; groupId?: string | null }): Promise<boolean> => {
+  const [newPhotoUrl, setNewPhotoUrl] = useState<string | null>(null);
+  const [showCaptionInput, setShowCaptionInput] = useState(false);
+  const [photoCaption, setPhotoCaption] = useState('');
+  const [photoHashtags, setPhotoHashtags] = useState<string[]>([]);
+  const [isUploading, setIsUploading] = useState(false);
+
+  const handleCaptionSubmit = async () => {
+    if (!newPhotoUrl || !photoCaption.trim()) return;
+    
+    setIsUploading(true);
+    try {
+      await addPhoto({
+        imageUrl: newPhotoUrl,
+        caption: photoCaption.trim(),
+        hashtags: photoHashtags,
+        groupId: selectedGroupId || undefined
+      });
+      
+      setPhotoCaption('');
+      setPhotoHashtags([]);
+      setNewPhotoUrl(null);
+      setShowCaptionInput(false);
+    } catch (error) {
+      console.error('Error adding photo with caption:', error);
+      toast({
+        title: "خطأ",
+        description: "حدث خطأ أثناء إضافة الصورة مع الوصف",
+        variant: "destructive"
+      });
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  const addPhoto = async (params: { 
+    imageUrl: string; 
+    caption?: string; 
+    hashtags?: string[];
+    groupId?: string | null 
+  }): Promise<boolean> => {
     console.log('addPhoto called with params:', params);
     if (!user) {
       toast({ title: "لم تسجل الدخول", description: "يجب تسجيل الدخول لإضافة صور", variant: "destructive" });
@@ -573,13 +612,18 @@ const PhotoGrid: FC<PhotoGridProps> = ({ closeSidebar, selectedGroupId }): JSX.E
       const isFirstPhoto = photos.length === 0;
       console.log('isFirstPhoto:', isFirstPhoto, 'photos.length:', photos.length);
       
+      // Extract hashtags from caption if any
+      const captionText = params.caption || '';
+      const captionHashtags = captionText.match(/#\w+/g) || [];
+      const allHashtags = [...new Set([...(params.hashtags || []), ...captionHashtags])];
+      
       const { data, error } = await supabase
         .from('photos')
         .insert({
           image_url: params.imageUrl,
           likes: 0,
-          caption: null,
-          hashtags: [],
+          caption: captionText,
+          hashtags: allHashtags,
           user_id: user.id,
           order: 0,
           group_id: params.groupId || selectedGroupId || null
@@ -615,20 +659,29 @@ const PhotoGrid: FC<PhotoGridProps> = ({ closeSidebar, selectedGroupId }): JSX.E
         
         toast({ 
           title: "✨ تمت الإضافة بنجاح", 
-          description: isFirstPhoto ? "تهانينا! لقد أضفت صورتك الأولى" : "إلمس الصورة للتعليق عليها أو تحريكها",
+          description: isFirstPhoto ? "تهانينا! لقد أضفت صورتك الأولى" : "تمت إضافة صورتك بنجاح",
           className: "animate-pulse border-2 border-green-400/50 bg-green-900/80 backdrop-blur-sm"
         });
       }
 
       return true;
-    } catch {
-      toast({ title: "خطأ غير متوقع", description: "حدث خطأ أثناء إضافة الصورة", variant: "destructive" });
+    } catch (error) {
+      console.error('Error in addPhoto:', error);
+      toast({ 
+        title: "خطأ غير متوقع", 
+        description: "حدث خطأ أثناء إضافة الصورة", 
+        variant: "destructive" 
+      });
       return false;
     }
   };
 
   useEffect(() => {
-    window.addPhoto = addPhoto;
+    window.addPhoto = async (params) => {
+      setNewPhotoUrl(params.imageUrl);
+      setShowCaptionInput(true);
+      return true;
+    };
     return () => {
       // @ts-ignore
       delete window.addPhoto;
@@ -686,6 +739,73 @@ const PhotoGrid: FC<PhotoGridProps> = ({ closeSidebar, selectedGroupId }): JSX.E
       )}
 
       {renderHashtags()}
+
+      {/* Caption Input Modal */}
+      <Dialog open={showCaptionInput} onOpenChange={setShowCaptionInput}>
+        <DialogContent className="sm:max-w-[500px] bg-gradient-to-br from-[#2D1F3D] to-[#1A1F2C] border border-white/20 text-white">
+          <DialogHeader>
+            <DialogTitle className="text-right text-xl font-bold mb-4">إضافة وصف للصورة</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            {newPhotoUrl && (
+              <div className="flex justify-center mb-4">
+                <img 
+                  src={newPhotoUrl} 
+                  alt="معاينة الصورة" 
+                  className="max-h-48 rounded-lg object-cover"
+                />
+              </div>
+            )}
+            <div className="space-y-2">
+              <label htmlFor="photoCaption" className="block text-sm font-medium text-right">
+                اكتب وصفاً للصورة (اختياري)
+              </label>
+              <textarea
+                id="photoCaption"
+                value={photoCaption}
+                onChange={(e) => setPhotoCaption(e.target.value)}
+                className="w-full p-3 rounded-lg bg-white/5 border border-white/20 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/50 text-white placeholder-gray-400"
+                rows={3}
+                placeholder="اكتب وصفاً للصورة..."
+                dir="rtl"
+              />
+              <p className="text-xs text-gray-400 text-right mt-1">
+                يمكنك استخدام # لإنشاء هاشتاجات (مثال: #مناسبه #ذكريات)
+              </p>
+            </div>
+          </div>
+          <div className="flex justify-end gap-3 mt-6">
+            <button
+              type="button"
+              onClick={() => {
+                setShowCaptionInput(false);
+                setPhotoCaption('');
+                setNewPhotoUrl(null);
+              }}
+              className="px-4 py-2 text-sm font-medium text-gray-300 hover:text-white bg-white/10 hover:bg-white/20 rounded-lg transition-colors"
+              disabled={isUploading}
+            >
+              إلغاء
+            </button>
+            <button
+              type="button"
+              onClick={handleCaptionSubmit}
+              className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg transition-colors flex items-center gap-2"
+              disabled={isUploading}
+            >
+              {isUploading ? (
+                <>
+                  <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  جاري الحفظ...
+                </>
+              ) : 'حفظ الصورة'}
+            </button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {loadingInitialPhotos ? (
         <div className="flex justify-center items-center h-48">

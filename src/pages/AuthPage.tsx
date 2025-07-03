@@ -271,11 +271,18 @@ const AuthPage = () => {
     <div className="min-h-screen bg-gradient-to-br from-[#2D1F3D] via-[#1A1F2C] to-[#3D1F2C] flex items-center justify-center p-4">
       <div className="max-w-md w-full space-y-6 bg-gray-900/60 backdrop-blur-xl p-6 rounded-2xl shadow-xl"> 
         <div className="text-center">
-          <div className="inline-block mb-4 mt-4 w-29 h-29">
+          <div className="flex justify-center mb-4 mt-4">
             <img
               src="/musin-logo.png"
               alt="Logo"
-              className="w-full h-full object-contain"
+              className="w-48 h-auto object-contain"
+              onError={(e) => {
+                // Fallback in case the image fails to load
+                console.error('Failed to load logo:', e);
+                const target = e.target as HTMLImageElement;
+                target.onerror = null;
+                target.src = 'https://via.placeholder.com/200x80?text=Logo+Here';
+              }}
             />
           </div>
           <h2 className="text-xl font-bold text-white"> 

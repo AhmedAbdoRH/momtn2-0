@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react"; // استيراد useState و useEffect لإدارة الحالة في المكون
-import { GripVertical, Heart, MessageCircle, Trash2, MoreVertical, Plus } from "lucide-react"; // استيراد أيقونات من مكتبة lucide-react
+import { GripVertical, Heart, MessageCircle, Trash2, MoreVertical, Plus, Edit3 } from "lucide-react"; // استيراد أيقونات من مكتبة lucide-react
 import { supabase } from "@/integrations/supabase/client"; // استيراد عميل supabase للتفاعل مع قاعدة البيانات
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "./ui/dialog"; // استيراد مكونات Dialog لعرض نافذة تحرير التعليق والهاشتاجات
 import { toast } from "@/hooks/use-toast"; // استيراد دالة toast لعرض الإشعارات
@@ -331,6 +331,16 @@ const PhotoCard: React.FC<PhotoCardProps> = ({
               >
                 <Plus className="w-4 h-4 ml-2" />
                 <span>إضافة إلى ألبوم</span>
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setIsEditing(true);
+                }}
+                className="text-white hover:bg-white/20 cursor-pointer"
+              >
+                <Edit3 className="w-4 h-4 ml-2" />
+                <span>إضافة/تعديل الوصف</span>
               </DropdownMenuItem>
               <DropdownMenuItem
                 onClick={(e) => {

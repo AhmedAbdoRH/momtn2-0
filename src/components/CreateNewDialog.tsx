@@ -23,6 +23,7 @@ const CreateNewDialog = ({ open, onOpenChange, onPhotoAdded, selectedGroupId }: 
   // State for managing album selection and visibility
   const [selectedAlbums, setSelectedAlbums] = useState<Set<string>>(new Set());
   const [showSuggestions, setShowSuggestions] = useState(true);
+  const [caption, setCaption] = useState('');
   const { toast } = useToast();
   const { user } = useAuth();
   // مرجع لعنصر label الخاص برفع الصور
@@ -104,6 +105,7 @@ const CreateNewDialog = ({ open, onOpenChange, onPhotoAdded, selectedGroupId }: 
     setImage(null);
     setPreviewUrl("");
     setAlbumName("");
+    setCaption("");
     setSelectedAlbums(new Set());
     setShowAlbumInput(false);
     setIsSubmitting(false);
@@ -252,6 +254,7 @@ const CreateNewDialog = ({ open, onOpenChange, onPhotoAdded, selectedGroupId }: 
         .from("photos")
         .insert({
           image_url: publicUrl,
+          caption: caption.trim(),
           hashtags: selectedAlbumsArray,
           user_id: user.id,
           group_id: selectedGroupId || null, // Will be null for personal albums
@@ -337,6 +340,27 @@ const CreateNewDialog = ({ open, onOpenChange, onPhotoAdded, selectedGroupId }: 
               onChange={handleImageChange}
               className="hidden"
             />
+
+            {/* Caption Input */}
+            {image && (
+              <div className="w-full space-y-2">
+                <label htmlFor="photoCaption" className="block text-sm font-medium text-gray-300 text-right">
+                  اكتب تعليقاً للصورة (اختياري)
+                </label>
+                <textarea
+                  id="photoCaption"
+                  value={caption}
+                  onChange={(e) => setCaption(e.target.value)}
+                  className="w-full p-3 rounded-lg bg-gray-800/90 border border-gray-700 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/50 text-white placeholder-gray-400 text-right"
+                  rows={2}
+                  placeholder="اكتب تعليقاً يصف الصورة..."
+                  dir="rtl"
+                />
+                <p className="text-xs text-gray-400 text-right">
+                  يمكنك استخدام # لإنشاء هاشتاجات (مثال: #مناسبه #ذكريات)
+                </p>
+              </div>
+            )}
 
             <div className="w-full relative">
               {showAlbumInput && (
