@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react"; // استيراد useState و useEffect لإدارة الحالة في المكون
-import { GripVertical, Heart, MessageCircle, Trash2, MoreVertical, Plus, Edit3 } from "lucide-react"; // استيراد أيقونات من مكتبة lucide-react
+import { GripVertical, Heart, MessageCircle, Trash2, MoreVertical, Plus, Edit3, X, Check, MoreHorizontal } from "lucide-react"; // استيراد أيقونات من مكتبة lucide-react
 import { supabase } from "@/integrations/supabase/client"; // استيراد عميل supabase للتفاعل مع قاعدة البيانات
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "./ui/dialog"; // استيراد مكونات Dialog لعرض نافذة تحرير التعليق والهاشتاجات
 import { toast } from "@/hooks/use-toast"; // استيراد دالة toast لعرض الإشعارات
@@ -228,7 +228,131 @@ const PhotoCard: React.FC<PhotoCardProps> = ({
     }
   };
 
+  // تنسيق تاريخ التعليق بتنسيق رقمي
+  const formatCommentDate = (dateString: string) => {
+    const date = new Date(dateString);
+    const day = date.getDate().toString().padStart(2, '0');
+    const month = (date.getMonth() + 1).toString().padStart(2, '0');
+    const year = date.getFullYear().toString().slice(-2);
+    const hours = date.getHours().toString().padStart(2, '0');
+    const minutes = date.getMinutes().toString().padStart(2, '0');
+    
+    return `${day}/${month}/${year} ${hours}:${minutes}`;
+  };
+
   // No duplicate state declarations here - they've been moved to the top of the component
+
+  // حالة التعديل على التعليق
+  const [editingCommentId, setEditingCommentId] = useState<string | null>(null);
+  const [editedCommentContent, setEditedCommentContent] = useState('');
+
+  // بدء تعديل تعليق
+  const startEditingComment = (comment: Comment) => {
+    setEditingCommentId(comment.id);
+    setEditedCommentContent(comment.content);
+  };
+
+  // إلغاء التعديل
+  const cancelEditing = () => {
+    setEditingCommentId(null);
+    setEditedCommentContent('');
+  };
+
+  // حفظ التعديلات على التعليق
+  const saveEditedComment = async (commentId: string) => {
+    if (!editedCommentContent.trim()) return;
+
+    try {
+      setIsCommentLoading(true);
+      
+      // تحديث التعليق محلياً أولاً
+      setComments(prev => 
+        prev.map(comment => 
+          comment.id === commentId 
+            ? { ...comment, content: editedCommentContent, updated_at: new Date().toISOString() }
+            : comment
+        )
+      );
+
+      // تحديث التعليق في قاعدة البيانات
+      const { error } = await supabase
+        .from('comments')
+        .update({ 
+          content: editedCommentContent,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', commentId);
+
+      if (error) throw error;
+
+      // إغلاق وضع التعديل
+      setEditingCommentId(null);
+      setEditedCommentContent('');
+      
+      toast({
+        title: 'تم التحديث',
+        description: 'تم تحديث التعليق بنجاح',
+      });
+      
+    } catch (error) {
+      console.error('Error updating comment:', error);
+      
+      // إعادة تحميل التعليقات من الخادم في حالة الخطأ
+      toast({
+        title: 'خطأ',
+        description: 'حدث خطأ أثناء تحديث التعليق. يرجى المحاولة مرة أخرى.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsCommentLoading(false);
+    }
+  };
+
+  // حذف تعليق
+  const handleDeleteComment = async (commentId: string) => {
+    if (!confirm('هل أنت متأكد من حذف هذا التعليق؟')) return;
+    
+    try {
+      setIsCommentLoading(true);
+      
+      // حفظ نسخة من التعليق المحذوف للتراجع في حالة الخطأ
+      const deletedComment = comments.find(c => c.id === commentId);
+      
+      // حذف التعليق محلياً أولاً
+      setComments(prev => prev.filter(comment => comment.id !== commentId));
+      
+      // حذف التعليق من قاعدة البيانات
+      const { error } = await supabase
+        .from('comments')
+        .delete()
+        .eq('id', commentId);
+
+      if (error) throw error;
+      
+      toast({
+        title: 'تم الحذف',
+        description: 'تم حذف التعليق بنجاح',
+      });
+      
+    } catch (error) {
+      console.error('Error deleting comment:', error);
+      
+      // إعادة إضافة التعليق في حالة الخطأ
+      if (deletedComment) {
+        setComments(prev => [...prev, deletedComment].sort((a, b) => 
+          new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+        ));
+      }
+      
+      toast({
+        title: 'خطأ',
+        description: 'حدث خطأ أثناء حذف التعليق. يرجى المحاولة مرة أخرى.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsCommentLoading(false);
+    }
+  };
 
   // معالجة إضافة تعليق جديد
   const handleAddComment = async (content: string) => {
@@ -258,8 +382,6 @@ const PhotoCard: React.FC<PhotoCardProps> = ({
       
       // إرسال التعليق للخادم من خلال الدالة الأب
       await onAddComment(content);
-      
-      // نجاح - لا حاجة لفعل أي شيء إضافي لأن useEffect سيتعامل مع التحديث
       
     } catch (error) {
       console.error('Error adding comment:', error);
@@ -360,21 +482,32 @@ const PhotoCard: React.FC<PhotoCardProps> = ({
           </div>
         )}
 
-        {/* زر عرض/إخفاء التعليقات */}
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            setShowComments(!showComments);
-            if (!showComments) {
-              setIsCommenting(false);
-            }
-          }}
-          className={`absolute bottom-2 right-2 p-2 rounded-full bg-black/20 backdrop-blur-sm transition-all duration-300 ${
-            isControlsVisible ? 'opacity-100' : 'opacity-0'
-          } hover:bg-blue-500/50 hover:opacity-100`}
-        >
-          <MessageCircle className={`w-4 h-4 ${showComments ? 'text-blue-400' : 'text-white'}`} />
-        </button>
+        {/* زر عرض/إخفاء التعليقات مع العداد */}
+        <div className="absolute bottom-2 right-2 flex items-center gap-1">
+          <div className="relative">
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                setShowComments(!showComments);
+                if (!showComments) {
+                  setIsCommenting(false);
+                }
+              }}
+              className={`p-2 rounded-full bg-black/20 backdrop-blur-sm transition-all duration-300 ${
+                isControlsVisible ? 'opacity-100' : 'opacity-0'
+              } hover:bg-blue-500/50 hover:opacity-100`}
+            >
+              <MessageCircle className={`w-4 h-4 ${showComments ? 'text-blue-400' : 'text-white'}`} />
+              {comments.length > 0 && (
+                <span className={`absolute -top-1 -right-1 bg-red-500 text-white text-[10px] rounded-full w-4 h-4 flex items-center justify-center transition-opacity duration-300 ${
+                  isControlsVisible ? 'opacity-100' : 'opacity-0'
+                }`}>
+                  {comments.length > 9 ? '9+' : comments.length}
+                </span>
+              )}
+            </button>
+          </div>
+        </div>
 
         {/* قسم الإعجابات - في الموضع القديم */}
         <div className="absolute bottom-2 left-2 flex items-center gap-1">
@@ -412,57 +545,143 @@ const PhotoCard: React.FC<PhotoCardProps> = ({
           {showComments && (
             <div className="bg-black/50 backdrop-blur-md rounded-lg p-2 mb-2">
               <div className="w-full">
-                <div className="text-right mb-1">
-                  <span className="text-yellow-100 text-[11px] font-medium opacity-80">
-                    {getDisplayName(currentUserId, userEmail, userDisplayName)}
-                  </span>
-                </div>
                 <div className="flex gap-2">
                   <input
                     type="text"
+                    dir="rtl"
                     value={newComment}
                     onChange={(e) => setNewComment(e.target.value)}
                     placeholder="اكتب تعليقاً..."
-                    className="flex-1 bg-white/10 text-white placeholder-white/50 text-sm rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="flex-1 bg-white/10 text-white placeholder-white/50 text-xs rounded px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-blue-500 text-right"
                     onKeyDown={(e) => {
                       if (e.key === 'Enter' && !e.shiftKey) {
                         e.preventDefault();
                         handleAddComment(newComment);
                       }
                     }}
+                    style={{ direction: 'rtl' }}
                   />
                   <button
                     onClick={() => handleAddComment(newComment)}
                     disabled={!newComment.trim() || isCommentLoading}
-                    className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded text-sm disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
+                    className="bg-blue-600 hover:bg-blue-700 text-white p-1.5 rounded-full aspect-square flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
+                    title="إرسال التعليق"
                   >
-                    {isCommentLoading ? 'جاري الإرسال...' : 'إرسال'}
+                    {isCommentLoading ? (
+                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    ) : (
+                      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                        <line x1="22" y1="2" x2="11" y2="13"></line>
+                        <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                      </svg>
+                    )}
                   </button>
                 </div>
               </div>
             </div>
           )}
 
-          {/* عرض التعليقات */}
-          {showComments && comments.length > 0 && (
-            <div className="max-h-40 overflow-y-auto bg-black/50 backdrop-blur-md rounded-lg p-2 space-y-3">
-              {comments.map((comment) => (
-                <div key={comment.id} className="bg-white/5 rounded-lg p-2">
-                  <div className="flex flex-col items-end gap-0">
-                    <div className="w-full text-right">
-                      <span className="text-yellow-100 text-[11px] font-medium opacity-80 block mb-1">
-                        {getDisplayName(comment.user_id, comment.user?.email, comment.user?.full_name)}
-                      </span>
-                      <p className="text-white text-sm text-right pr-1 mt-1">{comment.content}</p>
-                      <span className="text-[10px] text-white/50 block text-left mt-1">
-                        {new Date(comment.created_at).toLocaleString('ar-EG')}
-                      </span>
-                    </div>
+        {/* عرض التعليقات */}
+        {showComments && comments.length > 0 && (
+          <div className="max-h-32 overflow-y-auto bg-black/50 backdrop-blur-md rounded-lg p-1.5 space-y-2">
+            {comments.map((comment) => (
+              <div key={comment.id} className="flex gap-2">
+                {/* زر القائمة المنسدلة للتعليق - يظهر فقط لمالك التعليق */}
+                {comment.user_id === currentUserId && (
+                  <div className="flex-shrink-0">
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <button 
+                          className="opacity-0 group-hover:opacity-50 hover:opacity-100 transition-opacity p-1 -ml-1 mt-1"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <MoreHorizontal className="w-3.5 h-3.5 text-white" />
+                        </button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="start" className="bg-gray-800 border-gray-700">
+                        <DropdownMenuItem 
+                          className="cursor-pointer text-sm p-2 hover:bg-gray-700"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            startEditingComment(comment);
+                          }}
+                        >
+                          <Edit3 className="w-3.5 h-3.5 ml-2 text-white" />
+                          <span className="text-white">تعديل</span>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem 
+                          className="cursor-pointer text-sm p-2 text-red-400 hover:bg-red-500/10"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDeleteComment(comment.id);
+                          }}
+                        >
+                          <Trash2 className="w-3.5 h-3.5 ml-2" />
+                          <span>حذف</span>
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   </div>
+                )}
+
+                <div className="bg-white/5 rounded-lg p-1.5 flex-1 group">
+                  {editingCommentId === comment.id ? (
+                    <div className="space-y-2">
+                      <textarea
+                        value={editedCommentContent}
+                        onChange={(e) => setEditedCommentContent(e.target.value)}
+                        className="w-full bg-white/10 border border-white/20 rounded p-2 text-white text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 text-right"
+                        dir="rtl"
+                        rows={2}
+                        autoFocus
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' && !e.shiftKey) {
+                            e.preventDefault();
+                            saveEditedComment(comment.id);
+                          } else if (e.key === 'Escape') {
+                            cancelEditing();
+                          }
+                        }}
+                        style={{ direction: 'rtl' }}
+                      />
+                      <div className="flex justify-start gap-2">
+                        <button
+                          onClick={() => saveEditedComment(comment.id)}
+                          disabled={!editedCommentContent.trim()}
+                          className="px-3 py-1 text-xs bg-blue-600 hover:bg-blue-700 rounded transition-colors disabled:opacity-50 text-white"
+                        >
+                          حفظ
+                        </button>
+                        <button
+                          onClick={() => cancelEditing()}
+                          className="px-3 py-1 text-xs bg-white/10 hover:bg-white/20 rounded transition-colors text-white"
+                        >
+                          إلغاء
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div>
+                      <div className="flex items-center justify-end gap-1 w-full">
+                        <p className="text-white text-xs leading-tight whitespace-pre-line text-right flex-1">
+                          {comment.content}
+                        </p>
+                        <span className="text-yellow-100/80 text-[10px] font-medium opacity-70 whitespace-nowrap">
+                          :{getDisplayName(comment.user_id, comment.user?.email, comment.user?.full_name)}
+                        </span>
+                      </div>
+                      <div className="flex justify-end">
+                        <span className="text-[8px] text-white/20 mr-1 font-mono">
+                          {formatCommentDate(comment.updated_at)}
+                        </span>
+                      </div>
+                    </div>
+                  )}
                 </div>
-              ))}
-            </div>
-          )}
+              </div>
+            ))}
+          </div>
+        )}
 
           {/* عرض الكابشن والهاشتاجات */}
           {(caption || hashtags.length > 0) && (
@@ -470,11 +689,13 @@ const PhotoCard: React.FC<PhotoCardProps> = ({
               {caption && (
                 <div className="mb-1 text-right">
                   <div className="text-right mb-1">
-                    <span className="text-yellow-100 text-[11px] font-medium opacity-80">
+                    <span className="text-yellow-100 text-[11px] font-medium opacity-80 bg-black/20 px-2 py-0.5 rounded">
                       {getDisplayName(currentUserId, userEmail, userDisplayName)}
                     </span>
                   </div>
-                  <p className="text-white text-sm pr-1">{caption}</p>
+                  <p className="text-white text-sm pr-1 text-right" dir="auto" style={{ unicodeBidi: 'plaintext' }}>
+                    {caption}
+                  </p>
                 </div>
               )}
               {hashtags.length > 0 && (
@@ -504,12 +725,17 @@ const PhotoCard: React.FC<PhotoCardProps> = ({
             <div>
               <label className="block text-sm font-medium mb-2"></label>
               <textarea
-                value={caption} // قيمة التعليق الحالية
-                onChange={(e) => setCaption(e.target.value)} // تحديث التعليق عند التغيير
-                className="w-full px-3 py-2 bg-white/10 backdrop-blur-sm rounded-md text-white text-right"
+                value={caption}
+                onChange={(e) => setCaption(e.target.value)}
+                className="w-full px-3 py-2 bg-white/10 backdrop-blur-sm rounded-sm text-white text-right"
                 rows={3}
                 placeholder="أضف تعليقاً..."
-                dir="rtl"
+                dir="auto"
+                style={{ 
+                  textAlign: 'right',
+                  unicodeBidi: 'plaintext',
+                  direction: 'rtl'
+                }}
               />
             </div>
             {/* أزرار الإلغاء والحفظ */}
@@ -585,13 +811,10 @@ const PhotoCard: React.FC<PhotoCardProps> = ({
                       setSelectedAlbum(album);
                       setShowNewAlbumInput(false);
                     }}
-                    className={`relative p-3 rounded-lg cursor-pointer transition-all overflow-hidden group h-20 flex items-center ${
-                      selectedAlbum === album 
-                        ? 'ring-2 ring-blue-400 bg-blue-500/10' 
-                        : 'bg-white/5 hover:bg-white/10'
-                    }`}
+                    className="relative p-0 overflow-hidden group h-20 flex items-center"
                   >
-                    <p className="relative z-10 text-right font-medium text-white text-sm flex-1 line-clamp-2 pr-2">{album}</p>
+                    <div className={`absolute inset-0 bg-black/60 ${selectedAlbum === album ? 'opacity-100' : 'opacity-70'} transition-opacity`}></div>
+                    <p className="relative z-10 text-right font-medium text-white text-sm flex-1 line-clamp-2 p-3 w-full">{album}</p>
                     {selectedAlbum === album && (
                       <div className="w-5 h-5 bg-blue-500 rounded-full flex-shrink-0 flex items-center justify-center">
                         <svg className="w-2.5 h-2.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">

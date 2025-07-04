@@ -277,9 +277,9 @@ const Index = () => {
           size="icon"
           onClick={toggleSidebar}
           aria-label="Toggle Sidebar" // Accessibility label / تسمية الوصولية
-          className="fixed top-4 right-4 z-50 glass-effect text-gray-700" // Styling and positioning / تنسيق وتحديد الموضع
+          className="fixed top-4 right-4 z-50 glass-effect" // Styling and positioning / تنسيق وتحديد الموضع
         >
-          <Menu className="h-5 w-5" />
+          <Menu className="h-5 w-5 text-gray-300 hover:text-white" />
         </Button>
 
         {/* User Menu Dropdown (Top Left) */}
@@ -287,14 +287,23 @@ const Index = () => {
         <div className="fixed top-4 left-4 z-50">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon" aria-label="User Menu" className="glass-effect text-gray-700">
-                <User className="h-5 w-5" />
+              <Button variant="ghost" size="icon" aria-label="User Menu" className="glass-effect">
+                <User className="h-5 w-5 text-gray-300 hover:text-white" />
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="start" className="w-56 glass-effect text-gray-700 border border-border">
-              {/* Display user email */}
-              {/* عرض بريد المستخدم الإلكتروني */}
-              <div className="px-2 py-1.5 text-sm font-medium text-white-300 truncate">{user?.email}</div>
+              {/* Display user info */}
+              {/* عرض معلومات المستخدم */}
+              <div className="px-2 py-1.5">
+                {user?.user_metadata?.full_name && (
+                  <div className="text-base font-medium text-gray-700">
+                    {user.user_metadata.full_name}
+                  </div>
+                )}
+                <div className="text-sm text-gray-600">
+                  {user?.email || 'مستخدم'}
+                </div>
+              </div>
               
               {/* Settings option */}
               <DropdownMenuItem
