@@ -44,6 +44,7 @@ interface PhotoCardProps {
   selectedGroupId?: string | null; // معرف المجموعة المحددة
   userEmail?: string; // بريد المستخدم
   userDisplayName?: string | null; // اسم المستخدم المعروض
+  photoOwnerId?: string; // معرف مالك الصورة
 }
 
 // تعريف المكون PhotoCard مع خصائصه
@@ -65,6 +66,7 @@ const PhotoCard: React.FC<PhotoCardProps> = ({
   selectedGroupId = null,
   userEmail = '',
   userDisplayName = null,
+  photoOwnerId = '',
 }) => {
   const photoId = id || propPhotoId; // استخدام id أو photoId أيهما متاح
 
@@ -308,53 +310,55 @@ const PhotoCard: React.FC<PhotoCardProps> = ({
           <GripVertical className="w-4 h-4 text-white" /> {/* أيقونة السحب */}
         </div>
 
-        {/* زر الخيارات - موحد لجميع الصور */}
-        <div className={`absolute top-2 left-2 transition-opacity duration-300 ${
-          isControlsVisible ? 'opacity-100' : 'opacity-0'
-        }`}>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <button
-                onClick={(e) => e.stopPropagation()}
-                className="p-2 rounded-full bg-black/20 backdrop-blur-sm hover:bg-black/40 transition-colors"
-              >
-                <MoreVertical className="w-4 h-4 text-white" />
-              </button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="start" className="bg-black/90 backdrop-blur-xl border border-white/20">
-              <DropdownMenuItem
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setShowAlbumDialog(true);
-                }}
-                className="text-white hover:bg-white/20 cursor-pointer"
-              >
-                <Plus className="w-4 h-4 ml-2" />
-                <span>إضافة إلى ألبوم</span>
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setIsEditing(true);
-                }}
-                className="text-white hover:bg-white/20 cursor-pointer"
-              >
-                <Edit3 className="w-4 h-4 ml-2" />
-                <span>إضافة/تعديل الوصف</span>
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onDelete?.();
-                }}
-                className="text-red-400 hover:bg-red-500/20 cursor-pointer"
-              >
-                <Trash2 className="w-4 h-4 ml-2" />
-                <span>حذف</span>
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
+        {/* زر الخيارات - موحد لجميع الصور - يظهر فقط لمالك الصورة */}
+        {currentUserId === photoOwnerId && (
+          <div className={`absolute top-2 left-2 transition-opacity duration-300 ${
+            isControlsVisible ? 'opacity-100' : 'opacity-0'
+          }`}>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button
+                  onClick={(e) => e.stopPropagation()}
+                  className="p-2 rounded-full bg-black/20 backdrop-blur-sm hover:bg-black/40 transition-colors"
+                >
+                  <MoreVertical className="w-4 h-4 text-white" />
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start" className="bg-black/90 backdrop-blur-xl border border-white/20">
+                <DropdownMenuItem
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setShowAlbumDialog(true);
+                  }}
+                  className="text-white hover:bg-white/20 cursor-pointer"
+                >
+                  <Plus className="w-4 h-4 ml-2" />
+                  <span>إضافة إلى ألبوم</span>
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setIsEditing(true);
+                  }}
+                  className="text-white hover:bg-white/20 cursor-pointer"
+                >
+                  <Edit3 className="w-4 h-4 ml-2" />
+                  <span>إضافة/تعديل الوصف</span>
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onDelete?.();
+                  }}
+                  className="text-red-400 hover:bg-red-500/20 cursor-pointer"
+                >
+                  <Trash2 className="w-4 h-4 ml-2" />
+                  <span>حذف</span>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+        )}
 
         {/* زر عرض/إخفاء التعليقات */}
         <button

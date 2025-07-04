@@ -862,6 +862,7 @@ const PhotoGrid: FC<PhotoGridProps> = ({ closeSidebar, selectedGroupId }): JSX.E
                           userDisplayName={userDisplayName}
                           selectedGroupId={selectedGroupId}
                           currentUserId={user?.id || ''}
+                          photoOwnerId={photo.user_id}
                         />
                       </div>
                     )}
