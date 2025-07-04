@@ -61,6 +61,7 @@ const PhotoGrid: FC<PhotoGridProps> = ({ closeSidebar, selectedGroupId }): JSX.E
   const [selectedHashtag, setSelectedHashtag] = useState<string | null>(null);
   const [allHashtags, setAllHashtags] = useState<Set<string>>(new Set());
   const { user } = useAuth();
+  const userDisplayName = user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'مستخدم';
   const [loadingInitialPhotos, setLoadingInitialPhotos] = useState(true);
   const [hasPhotosLoadedOnce, setHasPhotosLoadedOnce] = useState(false);
   const [showFirstTimeModal, setShowFirstTimeModal] = useState(false);
@@ -287,7 +288,6 @@ const PhotoGrid: FC<PhotoGridProps> = ({ closeSidebar, selectedGroupId }): JSX.E
     console.log('Content:', content);
     
     const tempId = `temp-${Date.now()}`;
-    const userDisplayName = user.user_metadata?.full_name || user.email?.split('@')[0] || 'مستخدم';
     
     // Create temporary comment for optimistic update
     const tempComment: Comment = {
@@ -445,9 +445,18 @@ const PhotoGrid: FC<PhotoGridProps> = ({ closeSidebar, selectedGroupId }): JSX.E
     if (!user?.id) return;
     
     try {
+      // Get current likes count first
+      const { data: currentPhoto } = await supabase
+        .from('photos')
+        .select('likes')
+        .eq('id', photoId)
+        .single();
+
+      const newLikesCount = (currentPhoto?.likes || 0) + 1;
+
       const { error } = await supabase
         .from('photos')
-        .update({ likes: { increment: 1 } })
+        .update({ likes: newLikesCount })
         .eq('id', photoId);
 
       if (error) throw error;
@@ -849,8 +858,8 @@ const PhotoGrid: FC<PhotoGridProps> = ({ closeSidebar, selectedGroupId }): JSX.E
                           }
                           onAddComment={(content) => handleAddComment(photo.id, content)}
                           isGroupPhoto={!!selectedGroupId}
-                          userEmail={photo.users?.email}
-                          userDisplayName={photo.users?.full_name}
+                          userEmail={user?.email || ''}
+                          userDisplayName={userDisplayName}
                           selectedGroupId={selectedGroupId}
                           currentUserId={user?.id || ''}
                         />
