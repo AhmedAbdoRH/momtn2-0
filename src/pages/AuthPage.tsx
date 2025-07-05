@@ -273,7 +273,7 @@ const AuthPage = () => {
         <div className="text-center">
           <div className="inline-block mb-4 mt-4 w-29 h-29">
             <img
-              src="/lovable-uploads/f39108e3-15cc-458c-bb92-7e6b18e100cc.png"
+              src="/lovable-uploads/2747e89b-5855-4294-9523-b5d3dd0527be.png"
               alt="Logo"
               className="w-full h-full object-contain"
             />
