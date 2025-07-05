@@ -571,7 +571,6 @@ const PhotoCard: React.FC<PhotoCardProps> = ({
 
       {/* قسم التعليقات الخارجي - يظهر أسفل الكارت */}
       <div className={`transition-all duration-500 ease-in-out overflow-hidden ${
-<<<<<<< Updated upstream
         showComments ? 'max-h-[600px] opacity-100 mt-4' : 'max-h-0 opacity-0 mt-0'
       }`}>
         <div className="bg-white/5 backdrop-blur-md rounded-xl p-4 space-y-4 border border-white/10">
@@ -603,19 +602,6 @@ const PhotoCard: React.FC<PhotoCardProps> = ({
                   onClick={() => handleAddComment(newComment)}
                   disabled={!newComment.trim() || isCommentLoading}
                   className="bg-blue-600 hover:bg-blue-700 text-white p-3 rounded-full aspect-square flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed transition-all transform hover:scale-105 active:scale-95"
-=======
-        showComments ? 'max-h-[500px] opacity-100 mt-1' : 'max-h-0 opacity-0 mt-0'
-      }`}>
-        <div className="bg-white/5 backdrop-blur-md rounded-xl px-1.5 py-1 space-y-1 border border-white/10">
-          {/* قسم إضافة تعليق جديد */}
-          <div>
-            <div className="flex-1">
-              <div className="flex gap-2">
-                <button
-                  onClick={() => handleAddComment(newComment)}
-                  disabled={!newComment.trim() || isCommentLoading}
-                  className="bg-blue-600 hover:bg-blue-700 text-white p-2 rounded-full aspect-square flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed transition-all transform hover:scale-105 active:scale-95"
->>>>>>> Stashed changes
                   title="إرسال التعليق"
                 >
                   {isCommentLoading ? (
@@ -627,31 +613,12 @@ const PhotoCard: React.FC<PhotoCardProps> = ({
                     </svg>
                   )}
                 </button>
-<<<<<<< Updated upstream
-=======
-                <input
-                  type="text"
-                  dir="rtl"
-                  value={newComment}
-                  onChange={(e) => setNewComment(e.target.value)}
-                  placeholder="اكتب تعليقاً..."
-                  className="flex-1 bg-white/5 border border-white/20 text-white placeholder-white/50 text-sm rounded-full px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 text-right transition-all"
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' && !e.shiftKey) {
-                      e.preventDefault();
-                      handleAddComment(newComment);
-                    }
-                  }}
-                  style={{ direction: 'rtl' }}
-                />
->>>>>>> Stashed changes
               </div>
             </div>
           </div>
 
           {/* عرض التعليقات */}
           {comments.length > 0 && (
-<<<<<<< Updated upstream
             <div className="space-y-3 max-h-96 overflow-y-auto pr-2 -mr-2">
               {comments.map((comment) => (
                 <div key={comment.id} className="flex gap-3 items-start group hover:bg-white/5 rounded-lg p-2 transition-all">
@@ -662,11 +629,6 @@ const PhotoCard: React.FC<PhotoCardProps> = ({
                     </span>
                   </div>
                   
-=======
-            <div className="space-y-2 max-h-80 overflow-y-auto pr-2 -mr-2">
-              {comments.map((comment) => (
-                <div key={comment.id} className="group hover:bg-white/5 rounded-lg px-1 py-0.5 transition-all -mx-1">
->>>>>>> Stashed changes
                   <div className="flex-1 min-w-0">
                     {editingCommentId === comment.id ? (
                       /* وضع التعديل */
@@ -708,11 +670,7 @@ const PhotoCard: React.FC<PhotoCardProps> = ({
                       </div>
                     ) : (
                       /* عرض التعليق العادي */
-<<<<<<< Updated upstream
                       <div className="bg-white/5 rounded-2xl p-3 relative">
-=======
-                      <div className="bg-white/5 rounded-2xl p-2 relative">
->>>>>>> Stashed changes
                         {/* زر القائمة المنسدلة للتعليق - يظهر فقط لمالك التعليق */}
                         {comment.user_id === currentUserId && (
                           <div className="absolute top-2 left-2 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -751,7 +709,6 @@ const PhotoCard: React.FC<PhotoCardProps> = ({
                           </div>
                         )}
                         
-<<<<<<< Updated upstream
                         <div className="pr-1">
                           <div className="flex items-center justify-between mb-1">
                             <span className="text-blue-300 text-sm font-medium">
@@ -764,22 +721,6 @@ const PhotoCard: React.FC<PhotoCardProps> = ({
                           <p className="text-white text-sm leading-relaxed whitespace-pre-line text-right" dir="auto">
                             {comment.content}
                           </p>
-=======
-                        <div className="w-full">
-                          <div className="flex justify-end mb-1">
-                            <span className="text-blue-300 text-xs font-medium bg-black/10 px-1.5 py-0.5 rounded-md">
-                              {getDisplayName(comment.user_id, comment.user?.email, comment.user?.full_name)}
-                            </span>
-                          </div>
-                          <p className="text-white text-sm leading-tight whitespace-pre-line text-right -mb-0.5 mt-0.5" dir="auto">
-                            {comment.content}
-                          </p>
-                          <div className="text-left -mt-0.5 mb-0">
-                            <span className="text-white/30 text-[10px]">
-                              {formatCommentDate(comment.updated_at)}
-                            </span>
-                          </div>
->>>>>>> Stashed changes
                         </div>
                       </div>
                     )}
