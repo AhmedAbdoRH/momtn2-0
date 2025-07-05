@@ -96,6 +96,7 @@ const PhotoGrid: FC<PhotoGridProps> = ({ closeSidebar, selectedGroupId }): JSX.E
       if (user?.id) {
         const dismissed = await checkTutorialStatus(user.id);
         setTutorialDismissed(dismissed);
+        console.log('Tutorial status loaded:', dismissed, 'for user:', user.id);
       }
     };
     
@@ -107,11 +108,6 @@ const PhotoGrid: FC<PhotoGridProps> = ({ closeSidebar, selectedGroupId }): JSX.E
       if (user) {
         try {
           await fetchPhotos();
-          
-          // Check if we should show the first-time modal
-          if (!tutorialDismissed && !hasPhotosLoadedOnce) {
-            setShowFirstTimeModal(true);
-          }
         } catch (error) {
           console.error('Error initializing photos:', error);
           setLoadingInitialPhotos(false);
@@ -122,7 +118,7 @@ const PhotoGrid: FC<PhotoGridProps> = ({ closeSidebar, selectedGroupId }): JSX.E
     };
     
     initialize();
-  }, [user, selectedGroupId, hasPhotosLoadedOnce, tutorialDismissed]);
+  }, [user, selectedGroupId]);
 
   useEffect(() => {
     const handlePhotoAdded = async () => {
