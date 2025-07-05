@@ -68,11 +68,39 @@ const PhotoGrid: FC<PhotoGridProps> = ({ closeSidebar, selectedGroupId }): JSX.E
   const [dontShowAgain, setDontShowAgain] = useState(false);
 
   // Check if user has disabled the tutorial
-  const shouldShowTutorial = (userId: string): boolean => {
-    if (typeof window === 'undefined') return true;
-    const dontShowTutorial = localStorage.getItem(`dontShowTutorial_${userId}`) === 'true';
-    return !dontShowTutorial;
+  const [tutorialDismissed, setTutorialDismissed] = useState<boolean>(false);
+
+  const checkTutorialStatus = async (userId: string) => {
+    try {
+      const { data: userData, error } = await supabase
+        .from('users')
+        .select('tutorial_dismissed')
+        .eq('id', userId)
+        .single();
+
+      if (error) {
+        console.error('Error fetching tutorial status:', error);
+        return false;
+      }
+
+      return userData?.tutorial_dismissed || false;
+    } catch (error) {
+      console.error('Error checking tutorial status:', error);
+      return false;
+    }
   };
+
+  // Load tutorial status when user changes
+  useEffect(() => {
+    const loadTutorialStatus = async () => {
+      if (user?.id) {
+        const dismissed = await checkTutorialStatus(user.id);
+        setTutorialDismissed(dismissed);
+      }
+    };
+    
+    loadTutorialStatus();
+  }, [user?.id]);
 
   useEffect(() => {
     const initialize = async () => {
@@ -81,7 +109,7 @@ const PhotoGrid: FC<PhotoGridProps> = ({ closeSidebar, selectedGroupId }): JSX.E
           await fetchPhotos();
           
           // Check if we should show the first-time modal
-          if (shouldShowTutorial(user.id) && !hasPhotosLoadedOnce) {
+          if (!tutorialDismissed && !hasPhotosLoadedOnce) {
             setShowFirstTimeModal(true);
           }
         } catch (error) {
@@ -94,7 +122,7 @@ const PhotoGrid: FC<PhotoGridProps> = ({ closeSidebar, selectedGroupId }): JSX.E
     };
     
     initialize();
-  }, [user, selectedGroupId, hasPhotosLoadedOnce]);
+  }, [user, selectedGroupId, hasPhotosLoadedOnce, tutorialDismissed]);
 
   useEffect(() => {
     const handlePhotoAdded = async () => {
@@ -660,8 +688,8 @@ const PhotoGrid: FC<PhotoGridProps> = ({ closeSidebar, selectedGroupId }): JSX.E
         setPhotos(prev => [photoWithUser, ...prev]);
         setHasPhotosLoadedOnce(true);
         
-        // Show first-time modal only if it's the first photo and user hasn't disabled tutorial
-        if (!selectedGroupId && isFirstPhoto && shouldShowTutorial(user.id)) {
+        // Show first-time modal only if it's the first photo and user hasn't dismissed tutorial
+        if (!selectedGroupId && isFirstPhoto && !tutorialDismissed) {
           console.log('Showing first time modal after adding first photo');
           setShowFirstTimeModal(true);
         }
@@ -726,10 +754,30 @@ const PhotoGrid: FC<PhotoGridProps> = ({ closeSidebar, selectedGroupId }): JSX.E
     }
   };
 
-  const handleTutorialClose = (): void => {
+  const handleTutorialClose = async (): Promise<void> => {
     setShowFirstTimeModal(false);
-    if (dontShowAgain && user?.id && typeof window !== 'undefined') {
-      localStorage.setItem(`dontShowTutorial_${user.id}`, 'true');
+    
+    if (dontShowAgain && user?.id) {
+      try {
+        // Save to database
+        const { error } = await supabase
+          .from('users')
+          .update({ tutorial_dismissed: true })
+          .eq('id', user.id);
+
+        if (error) {
+          console.error('Error updating tutorial dismissed status:', error);
+        } else {
+          setTutorialDismissed(true);
+        }
+        
+        // Also save to localStorage as backup
+        if (typeof window !== 'undefined') {
+          localStorage.setItem(`dontShowTutorial_${user.id}`, 'true');
+        }
+      } catch (error) {
+        console.error('Error in handleTutorialClose:', error);
+      }
     }
   };
 
