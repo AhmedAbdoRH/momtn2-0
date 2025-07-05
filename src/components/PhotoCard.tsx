@@ -312,11 +312,11 @@ const PhotoCard: React.FC<PhotoCardProps> = ({
   const handleDeleteComment = async (commentId: string) => {
     if (!confirm('هل أنت متأكد من حذف هذا التعليق؟')) return;
     
+    // حفظ نسخة من التعليق المحذوف للتراجع في حالة الخطأ
+    const deletedComment = comments.find(c => c.id === commentId);
+    
     try {
       setIsCommentLoading(true);
-      
-      // حفظ نسخة من التعليق المحذوف للتراجع في حالة الخطأ
-      const deletedComment = comments.find(c => c.id === commentId);
       
       // حذف التعليق محلياً أولاً
       setComments(prev => prev.filter(comment => comment.id !== commentId));
@@ -537,154 +537,11 @@ const PhotoCard: React.FC<PhotoCardProps> = ({
           </span>
         </div>
 
-        {/* عرض التعليقات والهاشتاجات */}
-        <div className={`absolute left-2 right-2 bottom-14 space-y-2 transition-all duration-300 ${
-          (showComments || isControlsVisible) ? 'opacity-100' : 'opacity-0 pointer-events-none'
-        }`}>
-          {/* قسم إضافة تعليق جديد */}
-          {showComments && (
-            <div className="bg-black/50 backdrop-blur-md rounded-lg p-2 mb-2">
-              <div className="w-full">
-                <div className="flex gap-2">
-                  <input
-                    type="text"
-                    dir="rtl"
-                    value={newComment}
-                    onChange={(e) => setNewComment(e.target.value)}
-                    placeholder="اكتب تعليقاً..."
-                    className="flex-1 bg-white/10 text-white placeholder-white/50 text-xs rounded px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-blue-500 text-right"
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter' && !e.shiftKey) {
-                        e.preventDefault();
-                        handleAddComment(newComment);
-                      }
-                    }}
-                    style={{ direction: 'rtl' }}
-                  />
-                  <button
-                    onClick={() => handleAddComment(newComment)}
-                    disabled={!newComment.trim() || isCommentLoading}
-                    className="bg-blue-600 hover:bg-blue-700 text-white p-1.5 rounded-full aspect-square flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
-                    title="إرسال التعليق"
-                  >
-                    {isCommentLoading ? (
-                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                    ) : (
-                      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                        <line x1="22" y1="2" x2="11" y2="13"></line>
-                        <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
-                      </svg>
-                    )}
-                  </button>
-                </div>
-              </div>
-            </div>
-          )}
-
-        {/* عرض التعليقات */}
-        {showComments && comments.length > 0 && (
-          <div className="max-h-32 overflow-y-auto bg-black/50 backdrop-blur-md rounded-lg p-1.5 space-y-2">
-            {comments.map((comment) => (
-              <div key={comment.id} className="flex gap-2">
-                {/* زر القائمة المنسدلة للتعليق - يظهر فقط لمالك التعليق */}
-                {comment.user_id === currentUserId && (
-                  <div className="flex-shrink-0">
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <button 
-                          className="opacity-0 group-hover:opacity-50 hover:opacity-100 transition-opacity p-1 -ml-1 mt-1"
-                          onClick={(e) => e.stopPropagation()}
-                        >
-                          <MoreHorizontal className="w-3.5 h-3.5 text-white" />
-                        </button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="start" className="bg-gray-800 border-gray-700">
-                        <DropdownMenuItem 
-                          className="cursor-pointer text-sm p-2 hover:bg-gray-700"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            startEditingComment(comment);
-                          }}
-                        >
-                          <Edit3 className="w-3.5 h-3.5 ml-2 text-white" />
-                          <span className="text-white">تعديل</span>
-                        </DropdownMenuItem>
-                        <DropdownMenuItem 
-                          className="cursor-pointer text-sm p-2 text-red-400 hover:bg-red-500/10"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleDeleteComment(comment.id);
-                          }}
-                        >
-                          <Trash2 className="w-3.5 h-3.5 ml-2" />
-                          <span>حذف</span>
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </div>
-                )}
-
-                <div className="bg-white/5 rounded-lg p-1.5 flex-1 group">
-                  {editingCommentId === comment.id ? (
-                    <div className="space-y-2">
-                      <textarea
-                        value={editedCommentContent}
-                        onChange={(e) => setEditedCommentContent(e.target.value)}
-                        className="w-full bg-white/10 border border-white/20 rounded p-2 text-white text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 text-right"
-                        dir="rtl"
-                        rows={2}
-                        autoFocus
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter' && !e.shiftKey) {
-                            e.preventDefault();
-                            saveEditedComment(comment.id);
-                          } else if (e.key === 'Escape') {
-                            cancelEditing();
-                          }
-                        }}
-                        style={{ direction: 'rtl' }}
-                      />
-                      <div className="flex justify-start gap-2">
-                        <button
-                          onClick={() => saveEditedComment(comment.id)}
-                          disabled={!editedCommentContent.trim()}
-                          className="px-3 py-1 text-xs bg-blue-600 hover:bg-blue-700 rounded transition-colors disabled:opacity-50 text-white"
-                        >
-                          حفظ
-                        </button>
-                        <button
-                          onClick={() => cancelEditing()}
-                          className="px-3 py-1 text-xs bg-white/10 hover:bg-white/20 rounded transition-colors text-white"
-                        >
-                          إلغاء
-                        </button>
-                      </div>
-                    </div>
-                  ) : (
-                    <div>
-                      <div className="flex items-center justify-end gap-1 w-full">
-                        <p className="text-white text-xs leading-tight whitespace-pre-line text-right flex-1">
-                          {comment.content}
-                        </p>
-                        <span className="text-yellow-100/80 text-[10px] font-medium opacity-70 whitespace-nowrap">
-                          :{getDisplayName(comment.user_id, comment.user?.email, comment.user?.full_name)}
-                        </span>
-                      </div>
-                      <div className="flex justify-end">
-                        <span className="text-[8px] text-white/20 mr-1 font-mono">
-                          {formatCommentDate(comment.updated_at)}
-                        </span>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-
-          {/* عرض الكابشن والهاشتاجات */}
-          {(caption || hashtags.length > 0) && (
+        {/* عرض الكابشن والهاشتاجات */}
+        {(caption || hashtags.length > 0) && (
+          <div className={`absolute left-2 right-2 bottom-14 transition-all duration-300 ${
+            isControlsVisible ? 'opacity-100' : 'opacity-0 pointer-events-none'
+          }`}>
             <div className="bg-black/50 backdrop-blur-md rounded-lg p-2">
               {caption && (
                 <div className="mb-1 text-right">
@@ -707,6 +564,178 @@ const PhotoCard: React.FC<PhotoCardProps> = ({
                   ))}
                 </div>
               )}
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* قسم التعليقات الخارجي - يظهر أسفل الكارت */}
+      <div className={`transition-all duration-500 ease-in-out overflow-hidden ${
+        showComments ? 'max-h-[600px] opacity-100 mt-4' : 'max-h-0 opacity-0 mt-0'
+      }`}>
+        <div className="bg-white/5 backdrop-blur-md rounded-xl p-4 space-y-4 border border-white/10">
+          {/* قسم إضافة تعليق جديد */}
+          <div className="flex gap-3 items-start">
+            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center flex-shrink-0">
+              <span className="text-white text-sm font-medium">
+                {(userDisplayName || userEmail)?.charAt(0).toUpperCase() || 'M'}
+              </span>
+            </div>
+            <div className="flex-1">
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  dir="rtl"
+                  value={newComment}
+                  onChange={(e) => setNewComment(e.target.value)}
+                  placeholder="اكتب تعليقاً..."
+                  className="flex-1 bg-white/5 border border-white/20 text-white placeholder-white/50 text-sm rounded-full px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 text-right transition-all"
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                      e.preventDefault();
+                      handleAddComment(newComment);
+                    }
+                  }}
+                  style={{ direction: 'rtl' }}
+                />
+                <button
+                  onClick={() => handleAddComment(newComment)}
+                  disabled={!newComment.trim() || isCommentLoading}
+                  className="bg-blue-600 hover:bg-blue-700 text-white p-3 rounded-full aspect-square flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed transition-all transform hover:scale-105 active:scale-95"
+                  title="إرسال التعليق"
+                >
+                  {isCommentLoading ? (
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  ) : (
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                      <line x1="22" y1="2" x2="11" y2="13"></line>
+                      <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                    </svg>
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* عرض التعليقات */}
+          {comments.length > 0 && (
+            <div className="space-y-3 max-h-96 overflow-y-auto pr-2 -mr-2">
+              {comments.map((comment) => (
+                <div key={comment.id} className="flex gap-3 items-start group hover:bg-white/5 rounded-lg p-2 transition-all">
+                  {/* صورة المستخدم */}
+                  <div className="w-8 h-8 rounded-full bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center flex-shrink-0">
+                    <span className="text-white text-sm font-medium">
+                      {getDisplayName(comment.user_id, comment.user?.email, comment.user?.full_name).charAt(0).toUpperCase()}
+                    </span>
+                  </div>
+                  
+                  <div className="flex-1 min-w-0">
+                    {editingCommentId === comment.id ? (
+                      /* وضع التعديل */
+                      <div className="space-y-3">
+                        <div className="bg-white/5 rounded-lg p-3 border border-white/20">
+                          <textarea
+                            value={editedCommentContent}
+                            onChange={(e) => setEditedCommentContent(e.target.value)}
+                            className="w-full bg-transparent border-none text-white text-sm focus:outline-none resize-none text-right"
+                            dir="rtl"
+                            rows={3}
+                            autoFocus
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter' && !e.shiftKey) {
+                                e.preventDefault();
+                                saveEditedComment(comment.id);
+                              } else if (e.key === 'Escape') {
+                                cancelEditing();
+                              }
+                            }}
+                            style={{ direction: 'rtl' }}
+                          />
+                        </div>
+                        <div className="flex justify-start gap-2">
+                          <button
+                            onClick={() => saveEditedComment(comment.id)}
+                            disabled={!editedCommentContent.trim()}
+                            className="px-4 py-2 text-sm bg-blue-600 hover:bg-blue-700 rounded-full transition-colors disabled:opacity-50 text-white font-medium"
+                          >
+                            حفظ
+                          </button>
+                          <button
+                            onClick={() => cancelEditing()}
+                            className="px-4 py-2 text-sm bg-white/10 hover:bg-white/20 rounded-full transition-colors text-white"
+                          >
+                            إلغاء
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      /* عرض التعليق العادي */
+                      <div className="bg-white/5 rounded-2xl p-3 relative">
+                        {/* زر القائمة المنسدلة للتعليق - يظهر فقط لمالك التعليق */}
+                        {comment.user_id === currentUserId && (
+                          <div className="absolute top-2 left-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <button 
+                                  className="p-1 rounded-full hover:bg-white/10 transition-colors"
+                                  onClick={(e) => e.stopPropagation()}
+                                >
+                                  <MoreHorizontal className="w-4 h-4 text-white/60" />
+                                </button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="start" className="bg-gray-800/95 backdrop-blur-xl border-gray-700">
+                                <DropdownMenuItem 
+                                  className="cursor-pointer text-sm p-3 hover:bg-gray-700/50 text-white"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    startEditingComment(comment);
+                                  }}
+                                >
+                                  <Edit3 className="w-4 h-4 ml-2" />
+                                  <span>تعديل</span>
+                                </DropdownMenuItem>
+                                <DropdownMenuItem 
+                                  className="cursor-pointer text-sm p-3 text-red-400 hover:bg-red-500/10"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleDeleteComment(comment.id);
+                                  }}
+                                >
+                                  <Trash2 className="w-4 h-4 ml-2" />
+                                  <span>حذف</span>
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          </div>
+                        )}
+                        
+                        <div className="pr-1">
+                          <div className="flex items-center justify-between mb-1">
+                            <span className="text-blue-300 text-sm font-medium">
+                              {getDisplayName(comment.user_id, comment.user?.email, comment.user?.full_name)}
+                            </span>
+                            <span className="text-white/40 text-xs">
+                              {formatCommentDate(comment.updated_at)}
+                            </span>
+                          </div>
+                          <p className="text-white text-sm leading-relaxed whitespace-pre-line text-right" dir="auto">
+                            {comment.content}
+                          </p>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* رسالة عدم وجود تعليقات */}
+          {comments.length === 0 && (
+            <div className="text-center py-8">
+              <MessageCircle className="w-12 h-12 text-white/20 mx-auto mb-3" />
+              <p className="text-white/40 text-sm">لا توجد تعليقات بعد</p>
+              <p className="text-white/30 text-xs mt-1">كن أول من يعلق على هذه الصورة</p>
             </div>
           )}
         </div>
