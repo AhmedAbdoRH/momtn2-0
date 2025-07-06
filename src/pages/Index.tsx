@@ -1,6 +1,6 @@
 import * as React from 'react'; // Import React
 import { useState, useEffect } from "react"; // Import useState and useEffect hooks
-import { Plus, Menu, LogOut, User, Settings, Users, X, Home, Edit2 } from "lucide-react"; // Added Edit2 icon
+import { Plus, Menu, LogOut, User, Settings, Users, X, Home } from "lucide-react"; // Removed Edit2 icon
 import { useNavigate } from "react-router-dom";
 
 // --- افتراضيات لمسارات الاستيراد ---
@@ -59,10 +59,6 @@ const Index = () => {
 
   // State for bottom navigation
   const [activeTab, setActiveTab] = useState<'personal' | 'groups'>('personal');
-
-  // State for editing group name
-  const [isEditingGroupName, setIsEditingGroupName] = useState(false);
-  const [editingGroupName, setEditingGroupName] = useState('');
 
   // Authentication context hook
   // خطاف سياق المصادقة
@@ -177,52 +173,6 @@ const Index = () => {
   };
 
   /**
-   * Handle group name edit
-   */
-  const handleEditGroupName = () => {
-    setEditingGroupName(selectedGroupName);
-    setIsEditingGroupName(true);
-  };
-
-  const handleSaveGroupName = async () => {
-    if (!selectedGroupId || !user || !editingGroupName.trim()) {
-      toast({ title: "خطأ", description: "يجب كتابة اسم المجموعة", variant: "destructive" });
-      return;
-    }
-
-    try {
-      const { error } = await supabase
-        .from('groups')
-        .update({ name: editingGroupName.trim() })
-        .eq('id', selectedGroupId)
-        .eq('created_by', user.id);
-
-      if (error) {
-        console.error('Error updating group name:', error);
-        toast({ title: "خطأ في التحديث", description: "لم نتمكن من تحديث اسم المجموعة", variant: "destructive" });
-        return;
-      }
-
-      setSelectedGroupName(editingGroupName.trim());
-      setIsEditingGroupName(false);
-      
-      toast({ 
-        title: "تم التحديث", 
-        description: "تم تحديث اسم المجموعة بنجاح",
-        className: "border-green-400/50 bg-green-900/80"
-      });
-    } catch (err) {
-      console.error('Exception updating group name:', err);
-      toast({ title: "خطأ غير متوقع", description: "حدث خطأ أثناء تحديث اسم المجموعة", variant: "destructive" });
-    }
-  };
-
-  const handleCancelEditGroupName = () => {
-    setIsEditingGroupName(false);
-    setEditingGroupName('');
-  };
-
-  /**
    * Effect to add/remove Escape key listener for closing the sidebar.
    * تأثير لإضافة/إزالة مستمع مفتاح Escape لإغلاق الشريط الجانبي.
    */
@@ -231,12 +181,11 @@ const Index = () => {
       if (event.key === 'Escape') {
         setSidebarOpen(false);
         setShowGroupsDropdown(false);
-        setIsEditingGroupName(false);
       }
     };
     // Add listener only if sidebar is open and document is available (client-side)
     // إضافة المستمع فقط إذا كان الشريط الجانبي مفتوحًا والمستند متاحًا (جانب العميل)
-    if ((sidebarOpen || showGroupsDropdown || isEditingGroupName) && typeof document !== 'undefined') {
+    if ((sidebarOpen || showGroupsDropdown) && typeof document !== 'undefined') {
       document.addEventListener('keydown', handleEscape);
     }
     // Cleanup function to remove the listener when the component unmounts or sidebar closes
@@ -246,7 +195,7 @@ const Index = () => {
         document.removeEventListener('keydown', handleEscape);
       }
     };
-  }, [sidebarOpen, showGroupsDropdown, isEditingGroupName]); // Dependency array: re-run effect only if sidebarOpen or showGroupsDropdown changes
+  }, [sidebarOpen, showGroupsDropdown]); // Dependency array: re-run effect only if sidebarOpen or showGroupsDropdown changes
 
   /**
    * Callback function passed to PhotoGrid to update the grid's empty status.
