@@ -8,7 +8,7 @@ import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Textarea } from './ui/textarea';
 import { Switch } from './ui/switch';
-import { Users, Plus, Loader2, Settings, Copy, UserPlus, Trash2, Crown, Shield, User, LogOut, Clipboard } from 'lucide-react';
+import { Users, Plus, Loader2, Settings, Copy, UserPlus, Trash2, Crown, Shield, User, LogOut, Clipboard, Edit2, Check, X } from 'lucide-react';
 import { Badge } from './ui/badge';
 
 interface Group {
@@ -55,6 +55,11 @@ export default function GroupsDropdown({ selectedGroupId, onGroupChange }: Group
   const [creating, setCreating] = useState(false);
   const [joining, setJoining] = useState(false);
   const [loadingMembers, setLoadingMembers] = useState(false);
+  
+  // Group editing states
+  const [isEditingGroupName, setIsEditingGroupName] = useState(false);
+  const [editingGroupName, setEditingGroupName] = useState('');
+  const [isUpdatingGroupName, setIsUpdatingGroupName] = useState(false);
   
   const { user } = useAuth();
   const { toast } = useToast();
@@ -461,6 +466,94 @@ export default function GroupsDropdown({ selectedGroupId, onGroupChange }: Group
     setSelectedGroup(group);
     setShowSettingsDialog(true);
     fetchGroupMembers(group.id);
+    // Reset editing state when opening settings
+    setIsEditingGroupName(false);
+    setEditingGroupName('');
+  };
+
+  // Group name editing functions
+  const handleEditGroupName = () => {
+    if (selectedGroup) {
+      setEditingGroupName(selectedGroup.name);
+      setIsEditingGroupName(true);
+    }
+  };
+
+  const handleSaveGroupName = async () => {
+    if (!selectedGroup || !user || !editingGroupName.trim()) {
+      toast({ 
+        title: "خطأ", 
+        description: "يجب كتابة اسم المجموعة", 
+        variant: "destructive" 
+      });
+      return;
+    }
+
+    // Only allow group creator to edit name
+    if (selectedGroup.created_by !== user.id) {
+      toast({ 
+        title: "غير مسموح", 
+        description: "فقط مؤسس المجموعة يمكنه تعديل الاسم", 
+        variant: "destructive" 
+      });
+      return;
+    }
+
+    setIsUpdatingGroupName(true);
+    try {
+      const { error } = await supabase
+        .from('groups')
+        .update({ 
+          name: editingGroupName.trim(),
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', selectedGroup.id)
+        .eq('created_by', user.id);
+
+      if (error) {
+        console.error('Error updating group name:', error);
+        toast({ 
+          title: "خطأ في التحديث", 
+          description: "لم نتمكن من تحديث اسم المجموعة", 
+          variant: "destructive" 
+        });
+        return;
+      }
+
+      // Update local state
+      const updatedGroup = { ...selectedGroup, name: editingGroupName.trim() };
+      setSelectedGroup(updatedGroup);
+      
+      // Update groups list
+      setGroups(prev => prev.map(group => 
+        group.id === selectedGroup.id 
+          ? { ...group, name: editingGroupName.trim() }
+          : group
+      ));
+
+      setIsEditingGroupName(false);
+      setEditingGroupName('');
+
+      toast({ 
+        title: "تم التحديث", 
+        description: "تم تحديث اسم المجموعة بنجاح",
+        className: "border-green-400/50 bg-green-900/80"
+      });
+    } catch (err) {
+      console.error('Exception updating group name:', err);
+      toast({ 
+        title: "خطأ غير متوقع", 
+        description: "حدث خطأ أثناء تحديث اسم المجموعة", 
+        variant: "destructive" 
+      });
+    } finally {
+      setIsUpdatingGroupName(false);
+    }
+  };
+
+  const handleCancelEditGroupName = () => {
+    setIsEditingGroupName(false);
+    setEditingGroupName('');
   };
 
   const getRoleIcon = (role: string) => {
@@ -715,7 +808,67 @@ export default function GroupsDropdown({ selectedGroupId, onGroupChange }: Group
             <div className="space-y-6">
               {/* Group Info */}
               <div className="space-y-2">
-                <h3 className="text-lg font-semibold text-right">{selectedGroup.name}</h3>
+                {/* Group Name - Editable for creators */}
+                <div className="flex items-center gap-2 justify-end">
+                  {selectedGroup.created_by === user?.id && (
+                    <>
+                      {isEditingGroupName ? (
+                        <>
+                          <Button
+                            onClick={handleCancelEditGroupName}
+                            variant="ghost"
+                            size="sm"
+                            className="text-gray-400 hover:text-white hover:bg-white/10"
+                            disabled={isUpdatingGroupName}
+                          >
+                            <X className="w-4 h-4" />
+                          </Button>
+                          <Button
+                            onClick={handleSaveGroupName}
+                            variant="ghost"
+                            size="sm"
+                            className="text-green-400 hover:text-green-300 hover:bg-green-900/20"
+                            disabled={isUpdatingGroupName || !editingGroupName.trim()}
+                          >
+                            {isUpdatingGroupName ? (
+                              <Loader2 className="w-4 h-4 animate-spin" />
+                            ) : (
+                              <Check className="w-4 h-4" />
+                            )}
+                          </Button>
+                        </>
+                      ) : (
+                        <Button
+                          onClick={handleEditGroupName}
+                          variant="ghost"
+                          size="sm"
+                          className="text-blue-400 hover:text-blue-300 hover:bg-blue-900/20"
+                        >
+                          <Edit2 className="w-4 h-4" />
+                        </Button>
+                      )}
+                    </>
+                  )}
+                  {isEditingGroupName ? (
+                    <Input
+                      value={editingGroupName}
+                      onChange={(e) => setEditingGroupName(e.target.value)}
+                      className="bg-white/10 border-white/20 text-white text-right text-lg font-semibold max-w-xs"
+                      dir="rtl"
+                      placeholder="اسم المجموعة"
+                      autoFocus
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          handleSaveGroupName();
+                        } else if (e.key === 'Escape') {
+                          handleCancelEditGroupName();
+                        }
+                      }}
+                    />
+                  ) : (
+                    <h3 className="text-lg font-semibold text-right">{selectedGroup.name}</h3>
+                  )}
+                </div>
                 {selectedGroup.description && (
                   <p className="text-gray-300 text-right">{selectedGroup.description}</p>
                 )}
