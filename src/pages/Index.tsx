@@ -405,58 +405,13 @@ const Index = () => {
               />
             </div>
 
-            {/* Group Name Display and Edit */}
+            {/* Group Name Display */}
             {selectedGroupId && selectedGroupName && (
               <div className="mb-4">
-                {isEditingGroupName ? (
-                  <div className="flex items-center justify-center gap-2 mb-4">
-                    <Button
-                      onClick={handleCancelEditGroupName}
-                      variant="outline"
-                      size="sm"
-                      className="bg-transparent border-white/20 text-white hover:bg-white/10"
-                    >
-                      إلغاء
-                    </Button>
-                    <Button
-                      onClick={handleSaveGroupName}
-                      size="sm"
-                      className="bg-green-600 hover:bg-green-700 text-white"
-                    >
-                      حفظ
-                    </Button>
-                    <input
-                      type="text"
-                      value={editingGroupName}
-                      onChange={(e) => setEditingGroupName(e.target.value)}
-                      className="bg-white/10 border border-white/20 rounded-lg px-3 py-2 text-white text-center text-xl font-bold"
-                      dir="rtl"
-                      autoFocus
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter') {
-                          handleSaveGroupName();
-                        } else if (e.key === 'Escape') {
-                          handleCancelEditGroupName();
-                        }
-                      }}
-                    />
-                  </div>
-                ) : (
-                  <div className="flex items-center justify-center gap-2 mb-4">
-                    <Button
-                      onClick={handleEditGroupName}
-                      variant="ghost"
-                      size="sm"
-                      className="text-white/70 hover:text-white hover:bg-white/10"
-                    >
-                      <Edit2 className="w-4 h-4" />
-                    </Button>
-                    <h2 className="text-2xl font-bold text-amber-100 flex items-center gap-2">
-                      {selectedGroupName}
-                      <Users className="w-6 h-6" />
-                    </h2>
-                  </div>
-                )}
+                <h2 className="text-2xl font-bold text-amber-100 flex items-center justify-center gap-2">
+                  {selectedGroupName}
+                  <Users className="w-6 h-6" />
+                </h2>
               </div>
             )}
 
