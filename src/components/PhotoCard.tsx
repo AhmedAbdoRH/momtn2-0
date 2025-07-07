@@ -22,8 +22,6 @@ interface PhotoCardProps {
   isGroupPhoto?: boolean; // هل هذه صورة في مجموعة
   userEmail?: string; // إيميل المستخدم (للمجموعات)
   userDisplayName?: string; // الاسم الشخصي للمستخدم (للمجموعات)
-  currentUserEmail?: string; // إيميل المستخدم الحالي
-  isCurrentUserAdmin?: boolean; // هل المستخدم الحالي هو مسؤول المجموعة
 }
 
 // تعريف المكون PhotoCard مع خصائصه
@@ -37,9 +35,7 @@ const PhotoCard = ({
   onUpdateCaption,
   isGroupPhoto = false, // افتراضي false
   userEmail, // إيميل المستخدم
-  userDisplayName, // الاسم الشخصي للمستخدم
-  currentUserEmail, // إيميل المستخدم الحالي
-  isCurrentUserAdmin = false // هل المستخدم الحالي هو مسؤول المجموعة
+  userDisplayName // الاسم الشخصي للمستخدم
 }: PhotoCardProps) => {
   // تعريف الحالات باستخدام useState
   const [isLoved, setIsLoved] = useState(false); // حالة لتتبع ما إذا تم الإعجاب بالصورة
@@ -137,45 +133,43 @@ const PhotoCard = ({
           <GripVertical className="w-4 h-4 text-white" /> {/* أيقونة السحب */}
         </div>
 
-        {/* زر الخيارات - يظهر لصاحب الصورة أو مدير المجموعة */}
-        {(currentUserEmail === userEmail || isCurrentUserAdmin) && (
-          <div className={`absolute top-2 left-2 transition-opacity duration-300 ${
-            isControlsVisible ? 'opacity-100' : 'opacity-0'
-          }`}>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <button
-                  onClick={(e) => e.stopPropagation()}
-                  className="p-2 rounded-full bg-black/20 backdrop-blur-sm hover:bg-black/40 transition-colors"
-                >
-                  <MoreVertical className="w-4 h-4 text-white" />
-                </button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="start" className="bg-black/90 backdrop-blur-xl border border-white/20">
-                <DropdownMenuItem
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setIsEditing(true);
-                  }}
-                  className="text-white hover:bg-white/20 cursor-pointer"
-                >
-                  <Plus className="w-4 h-4 ml-2" />
-                  <span>إضافة إلى ألبوم</span>
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onDelete?.();
-                  }}
-                  className="text-red-400 hover:bg-red-500/20 cursor-pointer"
-                >
-                  <Trash2 className="w-4 h-4 ml-2" />
-                  <span>حذف</span>
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </div>
-        )}
+        {/* زر الخيارات - موحد لجميع الصور */}
+        <div className={`absolute top-2 left-2 transition-opacity duration-300 ${
+          isControlsVisible ? 'opacity-100' : 'opacity-0'
+        }`}>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button
+                onClick={(e) => e.stopPropagation()}
+                className="p-2 rounded-full bg-black/20 backdrop-blur-sm hover:bg-black/40 transition-colors"
+              >
+                <MoreVertical className="w-4 h-4 text-white" />
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start" className="bg-black/90 backdrop-blur-xl border border-white/20">
+              <DropdownMenuItem
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setIsEditing(true);
+                }}
+                className="text-white hover:bg-white/20 cursor-pointer"
+              >
+                <Plus className="w-4 h-4 ml-2" />
+                <span>إضافة إلى ألبوم</span>
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onDelete?.();
+                }}
+                className="text-red-400 hover:bg-red-500/20 cursor-pointer"
+              >
+                <Trash2 className="w-4 h-4 ml-2" />
+                <span>حذف</span>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
 
         {/* زر التعليق - موحد لجميع الصور */}
         <button
