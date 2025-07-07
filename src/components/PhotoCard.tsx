@@ -1,349 +1,300 @@
-import { useState } from 'react';
-import { useAuth } from '@/components/AuthProvider';
-import { Button } from '@/components/ui/button';
-import { useToast } from '@/hooks/use-toast';
-import { Navigate } from 'react-router-dom';
-import { toast } from 'sonner';
-import { supabase } from '@/integrations/supabase/client';
 
-const AuthPage = () => {
-  const [mode, setMode] = useState<'signIn' | 'signUp' | 'resetPassword'>('signIn');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [loading, setLoading] = useState(false);
-  const { signIn, signUp, user } = useAuth();
-  const { toast: uiToast } = useToast();
+import { useState } from "react"; // استيراد useState لإدارة الحالة في المكون
+import { GripVertical, Heart, MessageCircle, Trash2, MoreVertical, Plus } from "lucide-react"; // استيراد أيقونات من مكتبة lucide-react
+import { supabase } from "@/integrations/supabase/client"; // استيراد عميل supabase للتفاعل مع قاعدة البيانات
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "./ui/dialog"; // استيراد مكونات Dialog لعرض نافذة تحرير التعليق والهاشتاجات
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "./ui/dropdown-menu";
 
-  if (user) {
-    return <Navigate to="/" replace />;
-  }
+// تعريف واجهة (interface) لتحديد خصائص المكون PhotoCard
+interface PhotoCardProps {
+  imageUrl: string; // رابط الصورة
+  likes: number; // عدد الإعجابات الأولية
+  caption?: string; // التعليق (اختياري)
+  hashtags?: string[]; // الهاشتاجات (اختيارية)
+  onDelete?: () => void; // دالة لحذف الصورة (اختيارية)
+  dragHandleProps?: any; // خصائص للسحب والإفلات (اختيارية)
+  onUpdateCaption?: (caption: string, hashtags: string[]) => Promise<void>; // دالة لتحديث التعليق والهاشتاجات (اختيارية)
+  isGroupPhoto?: boolean; // هل هذه صورة في مجموعة
+  userEmail?: string; // إيميل المستخدم (للمجموعات)
+  userDisplayName?: string; // الاسم الشخصي للمستخدم (للمجموعات)
+}
 
-  const handleAuth = async (e: React.FormEvent) => {
-    e.preventDefault();
+// تعريف المكون PhotoCard مع خصائصه
+const PhotoCard = ({ 
+  imageUrl, 
+  likes: initialLikes, 
+  caption: initialCaption = '', // قيمة افتراضية فارغة إذا لم يُحدد تعليق
+  hashtags: initialHashtags = [], // قيمة افتراضية مصفوفة فارغة إذا لم تُحدد هاشتاجات
+  onDelete,
+  dragHandleProps,
+  onUpdateCaption,
+  isGroupPhoto = false, // افتراضي false
+  userEmail, // إيميل المستخدم
+  userDisplayName // الاسم الشخصي للمستخدم
+}: PhotoCardProps) => {
+  // تعريف الحالات باستخدام useState
+  const [isLoved, setIsLoved] = useState(false); // حالة لتتبع ما إذا تم الإعجاب بالصورة
+  const [likes, setLikes] = useState(initialLikes); // حالة لتتبع عدد الإعجابات
+  const [isEditing, setIsEditing] = useState(false); // حالة لتتبع ما إذا كان وضع التحرير مفعلاً
+  const [caption, setCaption] = useState(initialCaption); // حالة لتتبع التعليق الحالي
+  const [hashtags, setHashtags] = useState(initialHashtags); // حالة لتتبع الهاشتاجات الحالية
+  const [isControlsVisible, setIsControlsVisible] = useState(false); // حالة لإظهار/إخفاء الأزرار (مثل الحذف والتحرير)
+  const [isHeartAnimating, setIsHeartAnimating] = useState(false); // حالة لتتبع تشغيل أنيميشن القلب
 
-    if (!email) {
-      uiToast({
-        variant: "destructive",
-        title: "حقول مطلوبة",
-        description: "يرجى إدخال البريد الإلكتروني",
-      });
-      return;
+  // دالة لمعالجة الإعجاب بالصورة
+  const handleLike = async () => {
+    setIsHeartAnimating(true); // تفعيل أنيميشن القلب
+    const newLikeCount = likes + 1; // زيادة عدد الإعجابات بـ 1
+    setLikes(newLikeCount); // تحديث عدد الإعجابات في الحالة
+    setIsLoved(true); // تعيين حالة الإعجاب إلى صحيح
+
+    // تحديث عدد الإعجابات في قاعدة البيانات باستخدام supabase
+    const { error } = await supabase
+      .from('photos') // الجدول في قاعدة البيانات
+      .update({ likes: newLikeCount }) // تحديث حقل الإعجابات
+      .eq('image_url', imageUrl); // شرط لتحديد الصورة بناءً على رابطها
+
+    if (error) { // في حالة حدوث خطأ
+      console.error('Error updating likes:', error); // تسجيل الخطأ في وحدة التحكم
+      setLikes(likes); // إعادة عدد الإعجابات إلى القيمة السابقة
     }
 
-    if (mode === 'resetPassword') {
-      setLoading(true);
-      try {
-        const { error } = await supabase.auth.resetPasswordForEmail(email, {
-          redirectTo: `${window.location.origin}/reset-password`,
-        });
-
-        if (error) {
-          uiToast({
-            variant: "destructive",
-            title: "حدث خطأ",
-            description: `خطأ في إعادة تعيين كلمة المرور: ${error.message}`,
-          });
-          toast.error(`خطأ في إعادة تعيين كلمة المرور: ${error.message}`);
-        } else {
-          uiToast({
-            title: "تم إرسال رابط إعادة تعيين كلمة المرور",
-            description: "تفقد بريدك الإلكتروني للحصول على تعليمات إعادة تعيين كلمة المرور",
-          });
-          toast.success("تم إرسال رابط إعادة تعيين كلمة المرور، تفقد بريدك الإلكتروني");
-        }
-      } catch (error) {
-        console.error("Error in reset password:", error);
-        uiToast({
-          variant: "destructive",
-          title: "حدث خطأ غير متوقع",
-          description: "فشل في إرسال رابط إعادة تعيين كلمة المرور، يرجى المحاولة مرة أخرى",
-        });
-        toast.error("حدث خطأ غير متوقع، يرجى المحاولة مرة أخرى");
-      } finally {
-        setLoading(false);
-        setMode('signIn');
-      }
-      return;
-    }
-
-    if (!password) {
-      uiToast({
-        variant: "destructive",
-        title: "حقول مطلوبة",
-        description: "يرجى إدخال كلمة المرور",
-      });
-      return;
-    }
-
-    setLoading(true);
-    try {
-      let error;
-
-      if (mode === 'signIn') {
-        const result = await signIn(email, password);
-        error = result.error;
-
-        if (error) {
-          let errorMessage = "فشل في تسجيل الدخول";
-          if (error.message === "Invalid login credentials") {
-            errorMessage = "بيانات الدخول غير صحيحة";
-          } else if (error.message?.includes("network")) {
-            errorMessage = "خطأ في الاتصال بالخادم، يرجى التحقق من اتصالك بالإنترنت";
-          } else {
-            console.error("Sign-in error details:", error);
-            errorMessage = `خطأ: ${error.message || "حدث خطأ غير معروف"}`;
-          }
-
-          uiToast({
-            variant: "destructive",
-            title: "حدث خطأ",
-            description: errorMessage,
-          });
-          toast.error(errorMessage);
-        }
-      } else {
-        const result = await signUp(email, password);
-        error = result.error;
-
-        if (error) {
-          let errorMessage = "فشل في إنشاء الحساب";
-          if (error.message?.includes("already registered")) {
-            errorMessage = "البريد الإلكتروني مسجل بالفعل";
-          } else if (error.message?.includes("network")) {
-            errorMessage = "خطأ في الاتصال بالخادم، يرجى التحقق من اتصالك بالإنترنت";
-          } else {
-            console.error("Sign-up error details:", error);
-            errorMessage = `خطأ: ${error.message || "حدث خطأ غير معروف"}`;
-          }
-
-          uiToast({
-            variant: "destructive",
-            title: "حدث خطأ",
-            description: errorMessage,
-          });
-          toast.error(errorMessage);
-        }
-      }
-    } catch (error) {
-      console.error("Authentication error:", error);
-      uiToast({
-        variant: "destructive",
-        title: "حدث خطأ غير متوقع",
-        description: "فشل في عملية التسجيل، يرجى المحاولة مرة أخرى",
-      });
-      toast.error("حدث خطأ غير متوقع، يرجى المحاولة مرة أخرى");
-    } finally {
-      setLoading(false);
-    }
+    // إيقاف الأنيميشن بعد ثانية واحدة (1000 مللي ثانية)
+    setTimeout(() => {
+      setIsHeartAnimating(false); // إيقاف أنيميشن القلب
+      setIsLoved(false); // إعادة حالة الإعجاب إلى خطأ
+    }, 1000);
   };
 
-  const signInWithGoogle = async () => {
-    try {
-      setLoading(true);
-      console.log("Attempting to sign in with Google...");
-
-      const { error, data } = await supabase.auth.signInWithOAuth({
-        provider: 'google',
-        options: {
-          redirectTo: `${window.location.origin}/`,
-          queryParams: {
-            access_type: 'offline',
-            prompt: 'consent',
-          }
-        }
-      });
-
-      if (error) {
-        console.error("Error signing in with Google:", error);
-        let errorMessage = "فشل في تسجيل الدخول بواسطة جوجل";
-        if (error.message?.includes("network")) {
-          errorMessage = "خطأ في الاتصال بالخادم، يرجى التحقق من اتصالك بالإنترنت";
-        } else {
-          errorMessage = `خطأ: ${error.message || "حدث خطأ غير معروف"}`;
-        }
-
-        uiToast({
-          variant: "destructive",
-          title: "حدث خطأ",
-          description: errorMessage,
-        });
-        toast.error(errorMessage);
-      } else {
-        console.log("Google OAuth initiated:", data);
-      }
-    } catch (error: any) {
-      console.error("Error signing in with Google:", error);
-      uiToast({
-        variant: "destructive",
-        title: "حدث خطأ",
-        description: "فشل في تسجيل الدخول بواسطة جوجل: " + (error.message || "خطأ غير معروف"),
-      });
-      toast.error("فشل في تسجيل الدخول بواسطة جوجل");
-    } finally {
-      setLoading(false);
+  // دالة لتقديم التعليق والهاشتاجات بعد التحرير
+  const handleCaptionSubmit = async () => {
+    if (onUpdateCaption) { // إذا كانت دالة التحديث موجودة
+      await onUpdateCaption(caption, hashtags); // استدعاء الدالة لتحديث التعليق والهاشتاجات
     }
+    setIsEditing(false); // إغلاق وضع التحرير
   };
 
-  const renderFormContent = () => {
-    if (mode === 'resetPassword') {
-      return (
-        <div className="space-y-3 rounded-md shadow-sm">
-          <div>
-            <label htmlFor="email-address" className="sr-only">البريد الإلكتروني</label>
-            <input
-              id="email-address"
-              name="email"
-              type="email"
-              autoComplete="email"
-              required
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="appearance-none bg-gray-800/50 backdrop-blur-sm relative block w-full px-3 py-3 border border-gray-700 placeholder-gray-500 text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-              placeholder="البريد الإلكتروني"
-              dir="rtl"
-            />
-          </div>
-        </div>
-      );
-    }
-
-    return (
-      <div className="space-y-3 rounded-md shadow-sm">
-        <div>
-          <label htmlFor="email-address" className="sr-only">البريد الإلكتروني</label>
-          <input
-            id="email-address"
-            name="email"
-            type="email"
-            autoComplete="email"
-            required
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            className="appearance-none bg-gray-800/50 backdrop-blur-sm relative block w-full px-3 py-3 border border-gray-700 placeholder-gray-500 text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-            placeholder="البريد الإلكتروني"
-            dir="rtl"
-          />
-        </div>
-        <div>
-          <label htmlFor="password" className="sr-only">كلمة المرور</label>
-          <input
-            id="password"
-            name="password"
-            type="password"
-            autoComplete={mode === 'signIn' ? 'current-password' : 'new-password'}
-            required
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            className="appearance-none bg-gray-800/50 backdrop-blur-sm relative block w-full px-3 py-3 border border-gray-700 placeholder-gray-500 text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-            placeholder="كلمة المرور"
-            dir="rtl"
-          />
-          {mode === 'signIn' && (
-            <div className="mt-1 text-right">
-              <span
-                className="text-sm text-indigo-300 hover:text-indigo-200 cursor-pointer"
-                onClick={() => setMode('resetPassword')}
-              >
-                نسيت كلمة المرور؟
-              </span>
-            </div>
-          )}
-        </div>
-      </div>
-    );
+  // دالة لمعالجة تغيير الهاشتاجات
+  const handleHashtagsChange = (value: string) => {
+    const tags = value.split(' '); // Treat space-separated words as album name
+    setHashtags(tags); // تحديث حالة الهاشتاجات
   };
 
+  // دالة لتبديل إظهار/إخفاء الأزرار
+  const toggleControls = () => {
+    setIsControlsVisible(!isControlsVisible); // تغيير الحالة بين الإظهار والإخفاء
+  };
+
+  // دالة للحصول على الاسم المعروض
+  const getDisplayName = () => {
+    if (userDisplayName && userDisplayName.trim()) {
+      return userDisplayName.trim();
+    }
+    if (userEmail) {
+      return userEmail.split('@')[0];
+    }
+    return '';
+  };
+
+  // العرض (render) للمكون
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#2D1F3D] via-[#1A1F2C] to-[#3D1F2C] flex items-center justify-center p-4">
-      <div className="max-w-md w-full space-y-6 bg-gray-900/60 backdrop-blur-xl p-6 rounded-2xl shadow-xl">
-        <div className="text-center">
-          <div className="inline-block mb-2 mt-4 w-20 h-20 mx-auto">
-            <img
-              src="/lovable-uploads/2747e89b-5855-4294-9523-b5d3dd0527be.png"
-              alt="Logo"
-              className="w-full h-full object-contain"
-            />
-          </div>
-          <p className="text-sm text-gray-400 mb-2">الإصدار 2.0</p>
-          <h2 className="text-xl font-bold text-white">
-            {mode === 'signIn'
-              ? 'تسجيل الدخول'
-              : mode === 'signUp'
-                ? 'إنشاء حساب جديد'
-                : 'استعادة كلمة المرور'}
-          </h2>
+    <>
+      {/* الحاوية الرئيسية للبطاقة */}
+      <div 
+        className="relative group overflow-hidden rounded-xl shadow-xl transition-all duration-300"
+        onClick={toggleControls} // تبديل إظهار الأزرار عند النقر
+      >
+        {/* حاوية الصورة */}
+        <div className="relative overflow-hidden rounded-xl">
+          <img
+            src={imageUrl} // رابط الصورة
+            alt="Gallery" // نص بديل للصورة
+            className="w-full h-auto object-contain transition-transform duration-500 group-hover:scale-105" // تنسيق الصورة مع تأثير تكبير عند التمرير
+            loading="lazy" // تحميل كسول للصورة لتحسين الأداء
+          />
+          {/* تدرج شفاف فوق الصورة يظهر عند إظهار الأزرار */}
+          <div className={`absolute inset-0 bg-gradient-to-b from-black/30 via-transparent to-black/70 transition-opacity duration-300 ${
+            isControlsVisible ? 'opacity-100' : 'opacity-0'
+          }`} />
+        </div>
+        
+        {/* زر السحب (drag handle) - موحد لجميع الصور */}
+        <div 
+          {...dragHandleProps} // خصائص السحب والإفلات
+          className={`absolute top-2 right-2 p-2 rounded-full bg-black/20 backdrop-blur-sm transition-opacity duration-300 cursor-move ${
+            isControlsVisible ? 'opacity-50' : 'opacity-0' // يظهر عند تفعيل الأزرار
+          }`}
+        >
+          <GripVertical className="w-4 h-4 text-white" /> {/* أيقونة السحب */}
         </div>
 
-        <form className="mt-6 space-y-5" onSubmit={handleAuth}>
-          {renderFormContent()}
+        {/* زر الخيارات - موحد لجميع الصور */}
+        <div className={`absolute top-2 left-2 transition-opacity duration-300 ${
+          isControlsVisible ? 'opacity-100' : 'opacity-0'
+        }`}>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button
+                onClick={(e) => e.stopPropagation()}
+                className="p-2 rounded-full bg-black/20 backdrop-blur-sm hover:bg-black/40 transition-colors"
+              >
+                <MoreVertical className="w-4 h-4 text-white" />
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start" className="bg-black/90 backdrop-blur-xl border border-white/20">
+              <DropdownMenuItem
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setIsEditing(true);
+                }}
+                className="text-white hover:bg-white/20 cursor-pointer"
+              >
+                <Plus className="w-4 h-4 ml-2" />
+                <span>إضافة إلى ألبوم</span>
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onDelete?.();
+                }}
+                className="text-red-400 hover:bg-red-500/20 cursor-pointer"
+              >
+                <Trash2 className="w-4 h-4 ml-2" />
+                <span>حذف</span>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
 
-          <div>
-            <Button
-              type="submit"
-              className="group relative w-full flex justify-center py-3 px-4 bg-white/10 backdrop-blur-md hover:bg-white/20 text-white rounded-lg"
-              disabled={loading}
-            >
-              {loading ? (
-                <span className="flex items-center">
-                  <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                  </svg>
-                  جاري التحميل...
-                </span>
-              ) : (
-                mode === 'signIn'
-                  ? 'تسجيل الدخول'
-                  : mode === 'signUp'
-                    ? 'إنشاء حساب'
-                    : 'إرسال رابط استعادة كلمة المرور'
+        {/* زر التعليق - موحد لجميع الصور */}
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            setIsEditing(true);
+          }}
+          className={`absolute bottom-2 right-2 p-2 rounded-full bg-black/20 backdrop-blur-sm transition-opacity duration-300 hover:bg-blue-500/50 ${
+            isControlsVisible ? 'opacity-50' : 'opacity-0'
+          } hover:opacity-100`}
+        >
+          <MessageCircle className="w-4 h-4 text-white" />
+        </button>
+
+        {/* قسم الإعجابات - في الموضع القديم */}
+        <div className="absolute bottom-2 left-2 flex items-center gap-1">
+          <button
+            onClick={(e) => {
+              e.stopPropagation(); // منع النقر من التأثير على الحاوية الرئيسية
+              handleLike(); // استدعاء دالة الإعجاب
+            }}
+            className="relative group flex items-center gap-2 text-white/90 hover:text-white transition-colors p-2"
+          >
+            <div className="relative">
+              <Heart
+                className={`w-6 h-6 transition-all duration-300 transform ${
+                  isLoved ? "fill-[#ea384c] text-[#ea384c] scale-125" : "hover:scale-110" // تغيير شكل القلب عند الإعجاب
+                }`}
+              />
+              {isHeartAnimating && ( // عرض الأنيميشن عند تفعيله
+                <div className="absolute inset-0 animate-ping">
+                  <Heart className="w-6 h-6 text-[#ea384c]/30" /> {/* أنيميشن ping للقلب */}
+                </div>
               )}
-            </Button>
-          </div>
-
-          <div className="relative">
-            <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-gray-700"></div>
             </div>
-            <div className="relative flex justify-center text-sm">
-              <span className="px-2 bg-gray-900/60 text-gray-400">أو</span>
-            </div>
-          </div>
+          </button>
+          {/* عرض عدد الإعجابات */}
+          <span className="text-sm font-medium bg-black/10 backdrop-blur-sm px-2 py-1 rounded-md text-white/90">
+            {likes}
+          </span>
+        </div>
 
-          <div>
-            <Button
-              type="button"
-              onClick={signInWithGoogle}
-              className="w-full flex items-center justify-center gap-2 py-3 px-4 bg-white text-gray-800 rounded-lg hover:bg-gray-100"
-              disabled={loading}
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24" className="w-5 h-5">
-                <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
-                <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
-                <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" />
-                <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
-              </svg>
-              التسجيل باستخدام جوجل
-            </Button>
+        {/* عرض التعليق والهاشتاجات مع اسم المستخدم بجانب التعليق */}
+        {(caption || hashtags.length > 0) && (
+          <div className={`absolute left-2 right-2 bottom-14 p-2 bg-black/50 backdrop-blur-md rounded-lg transition-opacity duration-300 ${
+            isControlsVisible ? 'opacity-80' : 'opacity-0' // يظهر عند تفعيل الأزرار
+          }`}>
+            {caption && (
+              <div className="flex items-start gap-2 mb-1 text-right" dir="rtl">
+                <p className="text-white text-sm flex-1">{caption}</p>
+                {isGroupPhoto && getDisplayName() && (
+                  <span className="text-yellow-100 text-xs font-medium bg-black/30 px-2 py-1 rounded whitespace-nowrap">
+                    {getDisplayName()}
+                  </span>
+                )}
+              </div>
+            )}
+            {hashtags.length > 0 && ( // الهاشتاجات
+              <div className="flex flex-wrap gap-1 justify-end">
+                {hashtags.map((tag) => (
+                  <span key={tag} className="text-xs text-white/60" dir="rtl">
+                    {tag}
+                  </span>
+                ))}
+              </div>
+            )}
           </div>
-
-          <div className="text-center">
-            <button
-              type="button"
-              onClick={() => setMode(mode === 'signIn' ? 'signUp' : 'signIn')}
-              className="font-medium text-indigo-300 hover:text-indigo-200"
-            >
-              {mode === 'signIn'
-                ? 'ليس لديك حساب؟ سجل الآن'
-                : mode === 'signUp'
-                  ? 'لديك حساب بالفعل؟ تسجيل الدخول'
-                  : 'العودة إلى تسجيل الدخول'}
-            </button>
-          </div>
-        </form>
+        )}
       </div>
-    </div>
+
+      {/* نافذة التحرير (Dialog) */}
+      <Dialog open={isEditing} onOpenChange={setIsEditing}>
+        <DialogContent className="bg-gray-900/60 backdrop-blur-xl text-white border-0">
+          <DialogHeader>
+            <DialogTitle className="text-right text-xl">
+              {isGroupPhoto ? "إضافة تعليق" : "تعديل تفاصيل الصورة"}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            {/* حقل التعليق */}
+            <div>
+              <label className="block text-sm font-medium mb-2">التعليق</label>
+              <textarea
+                value={caption} // قيمة التعليق الحالية
+                onChange={(e) => setCaption(e.target.value)} // تحديث التعليق عند التغيير
+                className="w-full px-3 py-2 bg-white/10 backdrop-blur-sm rounded-md text-white text-right"
+                rows={3}
+                placeholder="أضف تعليقاً..."
+                dir="rtl"
+              />
+            </div>
+            {/* حقل الهاشتاجات للصور الشخصية فقط */}
+            {!isGroupPhoto && (
+              <div>
+                <label className="block text-sm font-medium mb-2">اسم الالبوم</label>
+                <input
+                  type="text"
+                  value={hashtags.join(' ')} // عرض الهاشتاجات كسلسلة نصية
+                  onChange={(e) => handleHashtagsChange(e.target.value)} // تحديث الهاشتاجات عند التغيير
+                  className="w-full px-3 py-2 bg-white/10 backdrop-blur-sm rounded-md text-white text-right"
+                  dir="rtl"
+                />
+              </div>
+            )}
+            {/* أزرار الإلغاء والحفظ */}
+            <div className="flex justify-end gap-2">
+              <button
+                onClick={() => setIsEditing(false)} // إغلاق النافذة بدون حفظ
+                className="px-4 py-2 rounded-md bg-white/10 backdrop-blur-sm text-white hover:bg-white/20 transition-colors"
+              >
+                إلغاء
+              </button>
+              <button
+                onClick={handleCaptionSubmit} // حفظ التغييرات
+                className="px-4 py-2 rounded-md bg-white/20 backdrop-blur-sm text-white hover:bg-white/30 transition-colors"
+              >
+                حفظ
+              </button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 };
 
-export default AuthPage;
+// تصدير المكون لاستخدامه في مكان آخر
+export default PhotoCard;
