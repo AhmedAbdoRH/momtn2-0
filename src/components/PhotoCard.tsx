@@ -1,928 +1,349 @@
-import { useState, useEffect } from "react"; // استيراد useState و useEffect لإدارة الحالة في المكون
-import { GripVertical, Heart, MessageCircle, Trash2, MoreVertical, Plus, Edit3, X, Check, MoreHorizontal } from "lucide-react"; // استيراد أيقونات من مكتبة lucide-react
-import { supabase } from "@/integrations/supabase/client"; // استيراد عميل supabase للتفاعل مع قاعدة البيانات
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "./ui/dialog"; // استيراد مكونات Dialog لعرض نافذة تحرير التعليق والهاشتاجات
-import { toast } from "@/hooks/use-toast"; // استيراد دالة toast لعرض الإشعارات
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "./ui/dropdown-menu";
+import { useState } from 'react';
+import { useAuth } from '@/components/AuthProvider';
+import { Button } from '@/components/ui/button';
+import { useToast } from '@/hooks/use-toast';
+import { Navigate } from 'react-router-dom';
+import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
 
-// تعريف واجهة (interface) لتحديد خصائص المكون PhotoCard
-interface CommentUser {
-  email: string;
-  full_name: string | null;
-}
+const AuthPage = () => {
+  const [mode, setMode] = useState<'signIn' | 'signUp' | 'resetPassword'>('signIn');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [loading, setLoading] = useState(false);
+  const { signIn, signUp, user } = useAuth();
+  const { toast: uiToast } = useToast();
 
-interface Comment {
-  id: string;
-  photo_id: string;
-  user_id: string;
-  content: string;
-  created_at: string;
-  updated_at: string;
-  user: CommentUser;
-}
+  if (user) {
+    return <Navigate to="/" replace />;
+  }
 
-interface PhotoCardProps {
-  id: string; // معرف الصورة
-  imageUrl: string; // رابط الصورة
-  likes: number; // عدد الإعجابات الأولية
-  caption?: string; // التعليق (اختياري)
-  hashtags?: string[]; // الهاشتاجات (اختيارية)
-  comments?: Comment[]; // التعليقات على الصورة
-  onLike: () => void; // دالة للإعجاب بالصورة
-  onDelete: () => void; // دالة لحذف الصورة
-  onUpdateCaption: (caption: string, hashtags: string[]) => Promise<void>; // دالة لتحديث التعليق والهاشتاجات
-  onAddComment: (content: string) => Promise<void>; // دالة لإضافة تعليق جديد
-  currentUserId: string; // معرف المستخدم الحالي
-  photoId: string; // معرف الصورة (مرادف لـ id للتوافق مع المكونات الأخرى)
-  dragHandleProps?: any; // خصائص السحب والإفلات
-  isGroupPhoto?: boolean; // هل الصورة في مجموعة
-  selectedGroupId?: string | null; // معرف المجموعة المحددة
-  userEmail?: string; // بريد المستخدم
-  userDisplayName?: string | null; // اسم المستخدم المعروض
-  photoOwnerId?: string; // معرف مالك الصورة
-}
+  const handleAuth = async (e: React.FormEvent) => {
+    e.preventDefault();
 
-// تعريف المكون PhotoCard مع خصائصه
-const PhotoCard: React.FC<PhotoCardProps> = ({
-  id,
-  imageUrl,
-  likes: initialLikes,
-  caption: initialCaption = '',
-  hashtags: initialHashtags = [],
-  comments: initialComments = [],
-  onLike,
-  onDelete,
-  onUpdateCaption,
-  onAddComment,
-  currentUserId,
-  photoId: propPhotoId,
-  dragHandleProps,
-  isGroupPhoto = false,
-  selectedGroupId = null,
-  userEmail = '',
-  userDisplayName = null,
-  photoOwnerId = '',
-}) => {
-  const photoId = id || propPhotoId; // استخدام id أو photoId أيهما متاح
-
-  // تعريف الحالات باستخدام useState
-  const [isLoved, setIsLoved] = useState(false); // حالة لتتبع ما إذا تم الإعجاب بالصورة
-  const [likes, setLikes] = useState(initialLikes); // حالة لتتبع عدد الإعجابات
-  const [isEditing, setIsEditing] = useState(false); // حالة لتتبع ما إذا كان وضع التحرير مفعلاً
-  const [caption, setCaption] = useState(initialCaption); // حالة لتتبع التعليق الحالي
-  const [hashtags, setHashtags] = useState(initialHashtags); // حالة لتتبع الهاشتاجات الحالية
-  const [isControlsVisible, setIsControlsVisible] = useState(false); // حالة لإظهار/إخفاء الأزرار (مثل الحذف والتحرير)
-  const [isHeartAnimating, setIsHeartAnimating] = useState(false); // حالة لتتبع تشغيل أنيميشن القلب
-  const [newComment, setNewComment] = useState(''); // حالة لتتبع نص التعليق الجديد
-  const [isCommenting, setIsCommenting] = useState(false); // حالة لتتبع ما إذا كان حقل التعليق مفتوحاً
-  const [comments, setComments] = useState<Comment[]>(initialComments); // حالة لتخزين التعليقات
-  const [showComments, setShowComments] = useState(false); // حالة لإظهار/إخفاء التعليقات
-  const [isCommentLoading, setIsCommentLoading] = useState(false); // حالة لتحميل التعليقات
-
-  // دالة لمعالجة الإعجاب بالصورة
-  const handleLike = async () => {
-    setIsHeartAnimating(true); // تفعيل أنيميشن القلب
-    const newLikeCount = likes + 1; // زيادة عدد الإعجابات بـ 1
-    setLikes(newLikeCount); // تحديث عدد الإعجابات في الحالة
-    setIsLoved(true); // تعيين حالة الإعجاب إلى صحيح
-
-    // تحديث عدد الإعجابات في قاعدة البيانات باستخدام supabase
-    const { error } = await supabase
-      .from('photos') // الجدول في قاعدة البيانات
-      .update({ likes: newLikeCount }) // تحديث حقل الإعجابات
-      .eq('image_url', imageUrl); // شرط لتحديد الصورة بناءً على رابطها
-
-    if (error) { // في حالة حدوث خطأ
-      console.error('Error updating likes:', error); // تسجيل الخطأ في وحدة التحكم
-      setLikes(likes); // إعادة عدد الإعجابات إلى القيمة السابقة
+    if (!email) {
+      uiToast({
+        variant: "destructive",
+        title: "حقول مطلوبة",
+        description: "يرجى إدخال البريد الإلكتروني",
+      });
+      return;
     }
 
-    // إيقاف الأنيميشن بعد ثانية واحدة (1000 مللي ثانية)
-    setTimeout(() => {
-      setIsHeartAnimating(false); // إيقاف أنيميشن القلب
-      setIsLoved(false); // إعادة حالة الإعجاب إلى خطأ
-    }, 1000);
-  };
-
-  // دالة لتقديم التعليق والهاشتاجات بعد التحرير
-  const handleCaptionSubmit = async () => {
-    if (onUpdateCaption) { // إذا كانت دالة التحديث موجودة
-      await onUpdateCaption(caption, hashtags); // استدعاء الدالة لتحديث التعليق والهاشتاجات
-    }
-    setIsEditing(false); // إغلاق وضع التحرير
-  };
-
-  // دالة لمعالجة تغيير الهاشتاجات
-  const handleHashtagsChange = (value: string) => {
-    const tags = value.split(' '); // Treat space-separated words as album name
-    setHashtags(tags); // تحديث حالة الهاشتاجات
-  };
-
-  // دالة لتبديل إظهار/إخفاء الأزرار
-  const toggleControls = () => {
-    setIsControlsVisible(!isControlsVisible); // تغيير الحالة بين الإظهار والإخفاء
-  };
-
-  // الحصول على الاسم المعروض
-  const getDisplayName = (userId: string, userEmail?: string, userFullName?: string | null) => {
-    // إذا كان هناك اسم كامل، نستخدمه
-    if (userFullName && userFullName.trim()) {
-      return userFullName.trim();
-    }
-    // إذا كان هناك إيميل، نستخدم الجزء الأول منه
-    if (userEmail) {
-      return userEmail.split('@')[0];
-    }
-    // إذا لم يكن هناك اسم أو إيميل، نستخدم معرف المستخدم
-    return `User ${userId.substring(0, 6)}`;
-  };
-
-  // حالة لحفظ قائمة الألبومات
-  const [albums, setAlbums] = useState<string[]>([]);
-  const [showAlbumDialog, setShowAlbumDialog] = useState(false);
-  const [newAlbumName, setNewAlbumName] = useState('');
-  const [selectedAlbum, setSelectedAlbum] = useState<string | null>(null);
-  const [showNewAlbumInput, setShowNewAlbumInput] = useState(false);
-
-  // جلب الألبومات
-  useEffect(() => {
-    const fetchAlbums = async () => {
+    if (mode === 'resetPassword') {
+      setLoading(true);
       try {
-        let query = supabase
-          .from('photos')
-          .select('hashtags')
-          .not('hashtags', 'is', null);
+        const { error } = await supabase.auth.resetPasswordForEmail(email, {
+          redirectTo: `${window.location.origin}/reset-password`,
+        });
 
-        // إذا كنا في مجموعة محددة، نجلب ألبومات المجموعة
-        if (selectedGroupId) {
-          query = query.eq('group_id', selectedGroupId);
+        if (error) {
+          uiToast({
+            variant: "destructive",
+            title: "حدث خطأ",
+            description: `خطأ في إعادة تعيين كلمة المرور: ${error.message}`,
+          });
+          toast.error(`خطأ في إعادة تعيين كلمة المرور: ${error.message}`);
+        } else {
+          uiToast({
+            title: "تم إرسال رابط إعادة تعيين كلمة المرور",
+            description: "تفقد بريدك الإلكتروني للحصول على تعليمات إعادة تعيين كلمة المرور",
+          });
+          toast.success("تم إرسال رابط إعادة تعيين كلمة المرور، تفقد بريدك الإلكتروني");
         }
-        // إذا كنا في المساحة الشخصية، نجلب الألبومات الشخصية
-        else if (!isGroupPhoto) {
-          query = query.is('group_id', null);
-        }
-        // إذا كنا في المساحة المشتركة، نجلب جميع الألبومات المشتركة
-        else {
-          query = query.not('group_id', 'is', null);
-        }
-
-        const { data, error } = await query;
-
-        if (error) throw error;
-
-        const allAlbums = data
-          .flatMap(photo => photo.hashtags || [])
-          .filter((album): album is string => Boolean(album));
-        
-        const uniqueAlbums = [...new Set(allAlbums)];
-        setAlbums(uniqueAlbums);
       } catch (error) {
-        console.error('Error fetching albums:', error);
+        console.error("Error in reset password:", error);
+        uiToast({
+          variant: "destructive",
+          title: "حدث خطأ غير متوقع",
+          description: "فشل في إرسال رابط إعادة تعيين كلمة المرور، يرجى المحاولة مرة أخرى",
+        });
+        toast.error("حدث خطأ غير متوقع، يرجى المحاولة مرة أخرى");
+      } finally {
+        setLoading(false);
+        setMode('signIn');
       }
-    };
-
-    if (showAlbumDialog) {
-      fetchAlbums();
+      return;
     }
-  }, [showAlbumDialog]);
 
-  // معالجة إضافة صورة إلى ألبوم
-  const handleAddToAlbum = async () => {
-    if (!selectedAlbum) return;
-    
-    try {
-      if (onUpdateCaption) {
-        await onUpdateCaption(caption, [selectedAlbum]);
-      }
-      setShowAlbumDialog(false);
-    } catch (error) {
-      console.error('Error adding to album:', error);
-    }
-  };
-
-  // معالجة إنشاء ألبوم جديد
-  const handleCreateAlbum = async () => {
-    if (!newAlbumName.trim()) return;
-    
-    try {
-      setAlbums(prev => [...prev, newAlbumName]);
-      setSelectedAlbum(newAlbumName);
-      setNewAlbumName('');
-      setShowNewAlbumInput(false);
-    } catch (error) {
-      console.error('Error creating album:', error);
-    }
-  };
-
-  // إظهار/إخفاء حقل الإدخال للألبوم الجديد
-  const toggleNewAlbumInput = () => {
-    setShowNewAlbumInput(!showNewAlbumInput);
-    if (!showNewAlbumInput) {
-      setSelectedAlbum(null);
-      setTimeout(() => document.getElementById('newAlbumInput')?.focus(), 100);
-    }
-  };
-
-  // تنسيق تاريخ التعليق بتنسيق رقمي
-  const formatCommentDate = (dateString: string) => {
-    const date = new Date(dateString);
-    const day = date.getDate().toString().padStart(2, '0');
-    const month = (date.getMonth() + 1).toString().padStart(2, '0');
-    const year = date.getFullYear().toString().slice(-2);
-    const hours = date.getHours().toString().padStart(2, '0');
-    const minutes = date.getMinutes().toString().padStart(2, '0');
-    
-    return `${day}/${month}/${year} ${hours}:${minutes}`;
-  };
-
-  // No duplicate state declarations here - they've been moved to the top of the component
-
-  // حالة التعديل على التعليق
-  const [editingCommentId, setEditingCommentId] = useState<string | null>(null);
-  const [editedCommentContent, setEditedCommentContent] = useState('');
-
-  // بدء تعديل تعليق
-  const startEditingComment = (comment: Comment) => {
-    setEditingCommentId(comment.id);
-    setEditedCommentContent(comment.content);
-  };
-
-  // إلغاء التعديل
-  const cancelEditing = () => {
-    setEditingCommentId(null);
-    setEditedCommentContent('');
-  };
-
-  // حفظ التعديلات على التعليق
-  const saveEditedComment = async (commentId: string) => {
-    if (!editedCommentContent.trim()) return;
-
-    try {
-      setIsCommentLoading(true);
-      
-      // تحديث التعليق محلياً أولاً
-      setComments(prev => 
-        prev.map(comment => 
-          comment.id === commentId 
-            ? { ...comment, content: editedCommentContent, updated_at: new Date().toISOString() }
-            : comment
-        )
-      );
-
-      // تحديث التعليق في قاعدة البيانات
-      const { error } = await supabase
-        .from('comments')
-        .update({ 
-          content: editedCommentContent,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', commentId);
-
-      if (error) throw error;
-
-      // إغلاق وضع التعديل
-      setEditingCommentId(null);
-      setEditedCommentContent('');
-      
-      toast({
-        title: 'تم التحديث',
-        description: 'تم تحديث التعليق بنجاح',
+    if (!password) {
+      uiToast({
+        variant: "destructive",
+        title: "حقول مطلوبة",
+        description: "يرجى إدخال كلمة المرور",
       });
-      
-    } catch (error) {
-      console.error('Error updating comment:', error);
-      
-      // إعادة تحميل التعليقات من الخادم في حالة الخطأ
-      toast({
-        title: 'خطأ',
-        description: 'حدث خطأ أثناء تحديث التعليق. يرجى المحاولة مرة أخرى.',
-        variant: 'destructive',
-      });
-    } finally {
-      setIsCommentLoading(false);
+      return;
     }
-  };
 
-  // حذف تعليق
-  const handleDeleteComment = async (commentId: string) => {
-    if (!confirm('هل أنت متأكد من حذف هذا التعليق؟')) return;
-    
-    // حفظ نسخة من التعليق المحذوف للتراجع في حالة الخطأ
-    const deletedComment = comments.find(c => c.id === commentId);
-    
+    setLoading(true);
     try {
-      setIsCommentLoading(true);
-      
-      // حذف التعليق محلياً أولاً
-      setComments(prev => prev.filter(comment => comment.id !== commentId));
-      
-      // حذف التعليق من قاعدة البيانات
-      const { error } = await supabase
-        .from('comments')
-        .delete()
-        .eq('id', commentId);
+      let error;
 
-      if (error) throw error;
-      
-      toast({
-        title: 'تم الحذف',
-        description: 'تم حذف التعليق بنجاح',
-      });
-      
-    } catch (error) {
-      console.error('Error deleting comment:', error);
-      
-      // إعادة إضافة التعليق في حالة الخطأ
-      if (deletedComment) {
-        setComments(prev => [...prev, deletedComment].sort((a, b) => 
-          new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-        ));
-      }
-      
-      toast({
-        title: 'خطأ',
-        description: 'حدث خطأ أثناء حذف التعليق. يرجى المحاولة مرة أخرى.',
-        variant: 'destructive',
-      });
-    } finally {
-      setIsCommentLoading(false);
-    }
-  };
+      if (mode === 'signIn') {
+        const result = await signIn(email, password);
+        error = result.error;
 
-  // معالجة إضافة تعليق جديد
-  const handleAddComment = async (content: string) => {
-    if (!content.trim() || !onAddComment) return;
-    
-    setIsCommentLoading(true);
-    const tempId = `temp-${Date.now()}`;
-    
-    try {
-      // إنشاء تعليق مؤقت
-      const tempComment: Comment = {
-        id: tempId,
-        photo_id: photoId,
-        user_id: currentUserId,
-        content,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-        user: {
-          email: userEmail || '',
-          full_name: userDisplayName || userEmail?.split('@')[0] || 'مستخدم'
+        if (error) {
+          let errorMessage = "فشل في تسجيل الدخول";
+          if (error.message === "Invalid login credentials") {
+            errorMessage = "بيانات الدخول غير صحيحة";
+          } else if (error.message?.includes("network")) {
+            errorMessage = "خطأ في الاتصال بالخادم، يرجى التحقق من اتصالك بالإنترنت";
+          } else {
+            console.error("Sign-in error details:", error);
+            errorMessage = `خطأ: ${error.message || "حدث خطأ غير معروف"}`;
+          }
+
+          uiToast({
+            variant: "destructive",
+            title: "حدث خطأ",
+            description: errorMessage,
+          });
+          toast.error(errorMessage);
         }
-      };
-      
-      // إضافة التعليق محلياً أولاً
-      setComments(prev => [tempComment, ...(prev || [])]);
-      setNewComment('');
-      
-      // إرسال التعليق للخادم من خلال الدالة الأب
-      await onAddComment(content);
-      
+      } else {
+        const result = await signUp(email, password);
+        error = result.error;
+
+        if (error) {
+          let errorMessage = "فشل في إنشاء الحساب";
+          if (error.message?.includes("already registered")) {
+            errorMessage = "البريد الإلكتروني مسجل بالفعل";
+          } else if (error.message?.includes("network")) {
+            errorMessage = "خطأ في الاتصال بالخادم، يرجى التحقق من اتصالك بالإنترنت";
+          } else {
+            console.error("Sign-up error details:", error);
+            errorMessage = `خطأ: ${error.message || "حدث خطأ غير معروف"}`;
+          }
+
+          uiToast({
+            variant: "destructive",
+            title: "حدث خطأ",
+            description: errorMessage,
+          });
+          toast.error(errorMessage);
+        }
+      }
     } catch (error) {
-      console.error('Error adding comment:', error);
-      
-      // إزالة التعليق المؤقت في حالة الخطأ
-      setComments(prev => prev.filter(c => c.id !== tempId));
-      
-      // إظهار رسالة خطأ للمستخدم
-      toast({
-        title: 'خطأ',
-        description: 'حدث خطأ أثناء إضافة التعليق. يرجى المحاولة مرة أخرى.',
-        variant: 'destructive',
+      console.error("Authentication error:", error);
+      uiToast({
+        variant: "destructive",
+        title: "حدث خطأ غير متوقع",
+        description: "فشل في عملية التسجيل، يرجى المحاولة مرة أخرى",
       });
+      toast.error("حدث خطأ غير متوقع، يرجى المحاولة مرة أخرى");
     } finally {
-      setIsCommentLoading(false);
+      setLoading(false);
     }
   };
 
-  // العرض (render) للمكون
-  return (
-    <>
-      {/* الحاوية الرئيسية للبطاقة */}
-      <div 
-        className="relative group overflow-hidden rounded-xl shadow-xl transition-all duration-300"
-        onClick={toggleControls} // تبديل إظهار الأزرار عند النقر
-      >
-        {/* حاوية الصورة */}
-        <div className="relative overflow-hidden rounded-xl">
-          <img
-            src={imageUrl} // رابط الصورة
-            alt="Gallery" // نص بديل للصورة
-            className="w-full h-auto object-contain transition-transform duration-500 group-hover:scale-105" // تنسيق الصورة مع تأثير تكبير عند التمرير
-            loading="lazy" // تحميل كسول للصورة لتحسين الأداء
-          />
-          {/* تدرج شفاف فوق الصورة يظهر عند إظهار الأزرار */}
-          <div className={`absolute inset-0 bg-gradient-to-b from-black/30 via-transparent to-black/70 transition-opacity duration-300 ${
-            isControlsVisible ? 'opacity-100' : 'opacity-0'
-          }`} />
-        </div>
-        
-        {/* زر السحب (drag handle) - موحد لجميع الصور */}
-        <div 
-          {...dragHandleProps} // خصائص السحب والإفلات
-          className={`absolute top-2 right-2 p-2 rounded-full bg-black/20 backdrop-blur-sm transition-opacity duration-300 cursor-move ${
-            isControlsVisible ? 'opacity-50' : 'opacity-0' // يظهر عند تفعيل الأزرار
-          }`}
-        >
-          <GripVertical className="w-4 h-4 text-white" /> {/* أيقونة السحب */}
-        </div>
+  const signInWithGoogle = async () => {
+    try {
+      setLoading(true);
+      console.log("Attempting to sign in with Google...");
 
-        {/* زر الخيارات - موحد لجميع الصور - يظهر فقط لمالك الصورة */}
-        {currentUserId === photoOwnerId && (
-          <div className={`absolute top-2 left-2 transition-opacity duration-300 ${
-            isControlsVisible ? 'opacity-100' : 'opacity-0'
-          }`}>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <button
-                  onClick={(e) => e.stopPropagation()}
-                  className="p-2 rounded-full bg-black/20 backdrop-blur-sm hover:bg-black/40 transition-colors"
-                >
-                  <MoreVertical className="w-4 h-4 text-white" />
-                </button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="start" className="bg-black/90 backdrop-blur-xl border border-white/20">
-                <DropdownMenuItem
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setShowAlbumDialog(true);
-                  }}
-                  className="text-white hover:bg-white/20 cursor-pointer"
-                >
-                  <Plus className="w-4 h-4 ml-2" />
-                  <span>إضافة إلى ألبوم</span>
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setIsEditing(true);
-                  }}
-                  className="text-white hover:bg-white/20 cursor-pointer"
-                >
-                  <Edit3 className="w-4 h-4 ml-2" />
-                  <span>إضافة/تعديل الوصف</span>
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onDelete?.();
-                  }}
-                  className="text-red-400 hover:bg-red-500/20 cursor-pointer"
-                >
-                  <Trash2 className="w-4 h-4 ml-2" />
-                  <span>حذف</span>
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+      const { error, data } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: `${window.location.origin}/`,
+          queryParams: {
+            access_type: 'offline',
+            prompt: 'consent',
+          }
+        }
+      });
+
+      if (error) {
+        console.error("Error signing in with Google:", error);
+        let errorMessage = "فشل في تسجيل الدخول بواسطة جوجل";
+        if (error.message?.includes("network")) {
+          errorMessage = "خطأ في الاتصال بالخادم، يرجى التحقق من اتصالك بالإنترنت";
+        } else {
+          errorMessage = `خطأ: ${error.message || "حدث خطأ غير معروف"}`;
+        }
+
+        uiToast({
+          variant: "destructive",
+          title: "حدث خطأ",
+          description: errorMessage,
+        });
+        toast.error(errorMessage);
+      } else {
+        console.log("Google OAuth initiated:", data);
+      }
+    } catch (error: any) {
+      console.error("Error signing in with Google:", error);
+      uiToast({
+        variant: "destructive",
+        title: "حدث خطأ",
+        description: "فشل في تسجيل الدخول بواسطة جوجل: " + (error.message || "خطأ غير معروف"),
+      });
+      toast.error("فشل في تسجيل الدخول بواسطة جوجل");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const renderFormContent = () => {
+    if (mode === 'resetPassword') {
+      return (
+        <div className="space-y-3 rounded-md shadow-sm">
+          <div>
+            <label htmlFor="email-address" className="sr-only">البريد الإلكتروني</label>
+            <input
+              id="email-address"
+              name="email"
+              type="email"
+              autoComplete="email"
+              required
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className="appearance-none bg-gray-800/50 backdrop-blur-sm relative block w-full px-3 py-3 border border-gray-700 placeholder-gray-500 text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+              placeholder="البريد الإلكتروني"
+              dir="rtl"
+            />
           </div>
-        )}
+        </div>
+      );
+    }
 
-        {/* زر عرض/إخفاء التعليقات مع العداد */}
-        <div className="absolute bottom-2 right-2 flex items-center gap-1">
-          <div className="relative">
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                setShowComments(!showComments);
-                if (!showComments) {
-                  setIsCommenting(false);
-                }
-              }}
-              className={`p-2 rounded-full bg-black/20 backdrop-blur-sm transition-all duration-300 ${
-                isControlsVisible ? 'opacity-100' : 'opacity-0'
-              } hover:bg-blue-500/50 hover:opacity-100`}
+    return (
+      <div className="space-y-3 rounded-md shadow-sm">
+        <div>
+          <label htmlFor="email-address" className="sr-only">البريد الإلكتروني</label>
+          <input
+            id="email-address"
+            name="email"
+            type="email"
+            autoComplete="email"
+            required
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            className="appearance-none bg-gray-800/50 backdrop-blur-sm relative block w-full px-3 py-3 border border-gray-700 placeholder-gray-500 text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+            placeholder="البريد الإلكتروني"
+            dir="rtl"
+          />
+        </div>
+        <div>
+          <label htmlFor="password" className="sr-only">كلمة المرور</label>
+          <input
+            id="password"
+            name="password"
+            type="password"
+            autoComplete={mode === 'signIn' ? 'current-password' : 'new-password'}
+            required
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            className="appearance-none bg-gray-800/50 backdrop-blur-sm relative block w-full px-3 py-3 border border-gray-700 placeholder-gray-500 text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+            placeholder="كلمة المرور"
+            dir="rtl"
+          />
+          {mode === 'signIn' && (
+            <div className="mt-1 text-right">
+              <span
+                className="text-sm text-indigo-300 hover:text-indigo-200 cursor-pointer"
+                onClick={() => setMode('resetPassword')}
+              >
+                نسيت كلمة المرور؟
+              </span>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  };
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-[#2D1F3D] via-[#1A1F2C] to-[#3D1F2C] flex items-center justify-center p-4">
+      <div className="max-w-md w-full space-y-6 bg-gray-900/60 backdrop-blur-xl p-6 rounded-2xl shadow-xl">
+        <div className="text-center">
+          <div className="inline-block mb-2 mt-4 w-20 h-20 mx-auto">
+            <img
+              src="/lovable-uploads/2747e89b-5855-4294-9523-b5d3dd0527be.png"
+              alt="Logo"
+              className="w-full h-full object-contain"
+            />
+          </div>
+          <p className="text-sm text-gray-400 mb-2">الإصدار 2.0</p>
+          <h2 className="text-xl font-bold text-white">
+            {mode === 'signIn'
+              ? 'تسجيل الدخول'
+              : mode === 'signUp'
+                ? 'إنشاء حساب جديد'
+                : 'استعادة كلمة المرور'}
+          </h2>
+        </div>
+
+        <form className="mt-6 space-y-5" onSubmit={handleAuth}>
+          {renderFormContent()}
+
+          <div>
+            <Button
+              type="submit"
+              className="group relative w-full flex justify-center py-3 px-4 bg-white/10 backdrop-blur-md hover:bg-white/20 text-white rounded-lg"
+              disabled={loading}
             >
-              <MessageCircle className={`w-4 h-4 ${showComments ? 'text-blue-400' : 'text-white'}`} />
-              {comments.length > 0 && (
-                <span className={`absolute -top-1 -right-1 bg-red-500 text-white text-[10px] rounded-full w-4 h-4 flex items-center justify-center transition-opacity duration-300 ${
-                  isControlsVisible ? 'opacity-100' : 'opacity-0'
-                }`}>
-                  {comments.length > 9 ? '9+' : comments.length}
+              {loading ? (
+                <span className="flex items-center">
+                  <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  جاري التحميل...
                 </span>
+              ) : (
+                mode === 'signIn'
+                  ? 'تسجيل الدخول'
+                  : mode === 'signUp'
+                    ? 'إنشاء حساب'
+                    : 'إرسال رابط استعادة كلمة المرور'
               )}
+            </Button>
+          </div>
+
+          <div className="relative">
+            <div className="absolute inset-0 flex items-center">
+              <div className="w-full border-t border-gray-700"></div>
+            </div>
+            <div className="relative flex justify-center text-sm">
+              <span className="px-2 bg-gray-900/60 text-gray-400">أو</span>
+            </div>
+          </div>
+
+          <div>
+            <Button
+              type="button"
+              onClick={signInWithGoogle}
+              className="w-full flex items-center justify-center gap-2 py-3 px-4 bg-white text-gray-800 rounded-lg hover:bg-gray-100"
+              disabled={loading}
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24" className="w-5 h-5">
+                <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
+                <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
+                <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" />
+                <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
+              </svg>
+              التسجيل باستخدام جوجل
+            </Button>
+          </div>
+
+          <div className="text-center">
+            <button
+              type="button"
+              onClick={() => setMode(mode === 'signIn' ? 'signUp' : 'signIn')}
+              className="font-medium text-indigo-300 hover:text-indigo-200"
+            >
+              {mode === 'signIn'
+                ? 'ليس لديك حساب؟ سجل الآن'
+                : mode === 'signUp'
+                  ? 'لديك حساب بالفعل؟ تسجيل الدخول'
+                  : 'العودة إلى تسجيل الدخول'}
             </button>
           </div>
-        </div>
-
-        {/* قسم الإعجابات - في الموضع القديم */}
-        <div className="absolute bottom-2 left-2 flex items-center gap-1">
-          <button
-            onClick={(e) => {
-              e.stopPropagation(); // منع النقر من التأثير على الحاوية الرئيسية
-              handleLike(); // استدعاء دالة الإعجاب
-            }}
-            className="relative group flex items-center gap-2 text-white/90 hover:text-white transition-colors p-2"
-          >
-            <div className="relative">
-              <Heart
-                className={`w-6 h-6 transition-all duration-300 transform ${
-                  isLoved ? "fill-[#ea384c] text-[#ea384c] scale-125" : "hover:scale-110" // تغيير شكل القلب عند الإعجاب
-                }`}
-              />
-              {isHeartAnimating && ( // عرض الأنيميشن عند تفعيله
-                <div className="absolute inset-0 animate-ping">
-                  <Heart className="w-6 h-6 text-[#ea384c]/30" /> {/* أنيميشن ping للقلب */}
-                </div>
-              )}
-            </div>
-          </button>
-          {/* عرض عدد الإعجابات */}
-          <span className="text-sm font-medium bg-black/10 backdrop-blur-sm px-2 py-1 rounded-md text-white/90">
-            {likes}
-          </span>
-        </div>
-
-        {/* عرض الكابشن والهاشتاجات */}
-        {(caption || hashtags.length > 0) && (
-          <div className={`absolute left-2 right-2 bottom-14 transition-all duration-300 ${
-            isControlsVisible ? 'opacity-100' : 'opacity-0 pointer-events-none'
-          }`}>
-            <div className="bg-black/50 backdrop-blur-md rounded-lg p-2">
-              {caption && (
-                <div className="mb-1 text-right">
-                  <div className="text-right mb-1">
-                    <span className="text-yellow-100 text-[11px] font-medium opacity-80 bg-black/20 px-2 py-0.5 rounded">
-                      {getDisplayName(currentUserId, userEmail, userDisplayName)}
-                    </span>
-                  </div>
-                  <p className="text-white text-sm pr-1 text-right" dir="auto" style={{ unicodeBidi: 'plaintext' }}>
-                    {caption}
-                  </p>
-                </div>
-              )}
-              {hashtags.length > 0 && (
-                <div className="flex flex-wrap gap-1 justify-end">
-                  {hashtags.map((tag) => (
-                    <span key={tag} className="text-xs text-white/60" dir="rtl">
-                      {tag}
-                    </span>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
-        )}
+        </form>
       </div>
-
-      {/* قسم التعليقات الخارجي - يظهر أسفل الكارت */}
-      <div className={`transition-all duration-500 ease-in-out overflow-hidden ${
-        showComments ? 'max-h-[500px] opacity-100 mt-1' : 'max-h-0 opacity-0 mt-0'
-      }`}>
-        <div className="bg-white/5 backdrop-blur-md rounded-xl px-1.5 py-1 space-y-1 border border-white/10">
-          {/* قسم إضافة تعليق جديد */}
-          <div>
-            <div className="flex-1">
-              <div className="flex gap-2">
-                <button
-                  onClick={() => handleAddComment(newComment)}
-                  disabled={!newComment.trim() || isCommentLoading}
-                  className="bg-blue-600 hover:bg-blue-700 text-white p-2 rounded-full aspect-square flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed transition-all transform hover:scale-105 active:scale-95"
-                  title="إرسال التعليق"
-                >
-                  {isCommentLoading ? (
-                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                  ) : (
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                      <line x1="22" y1="2" x2="11" y2="13"></line>
-                      <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
-                    </svg>
-                  )}
-                </button>
-                <input
-                  type="text"
-                  dir="rtl"
-                  value={newComment}
-                  onChange={(e) => setNewComment(e.target.value)}
-                  placeholder="اكتب تعليقاً..."
-                  className="flex-1 bg-white/5 border border-white/20 text-white placeholder-white/50 text-sm rounded-full px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 text-right transition-all"
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' && !e.shiftKey) {
-                      e.preventDefault();
-                      handleAddComment(newComment);
-                    }
-                  }}
-                  style={{ direction: 'rtl' }}
-                />
-              </div>
-            </div>
-          </div>
-
-          {/* عرض التعليقات */}
-          {comments.length > 0 && (
-            <div className="space-y-2 max-h-80 overflow-y-auto pr-2 -mr-2">
-              {comments.map((comment) => (
-                <div key={comment.id} className="group hover:bg-white/5 rounded-lg px-1 py-0.5 transition-all -mx-1">
-                  <div className="flex-1 min-w-0">
-                    {editingCommentId === comment.id ? (
-                      /* وضع التعديل */
-                      <div className="space-y-3">
-                        <div className="bg-white/5 rounded-lg p-3 border border-white/20">
-                          <textarea
-                            value={editedCommentContent}
-                            onChange={(e) => setEditedCommentContent(e.target.value)}
-                            className="w-full bg-transparent border-none text-white text-sm focus:outline-none resize-none text-right"
-                            dir="rtl"
-                            rows={3}
-                            autoFocus
-                            onKeyDown={(e) => {
-                              if (e.key === 'Enter' && !e.shiftKey) {
-                                e.preventDefault();
-                                saveEditedComment(comment.id);
-                              } else if (e.key === 'Escape') {
-                                cancelEditing();
-                              }
-                            }}
-                            style={{ direction: 'rtl' }}
-                          />
-                        </div>
-                        <div className="flex justify-start gap-2">
-                          <button
-                            onClick={() => saveEditedComment(comment.id)}
-                            disabled={!editedCommentContent.trim()}
-                            className="px-4 py-2 text-sm bg-blue-600 hover:bg-blue-700 rounded-full transition-colors disabled:opacity-50 text-white font-medium"
-                          >
-                            حفظ
-                          </button>
-                          <button
-                            onClick={() => cancelEditing()}
-                            className="px-4 py-2 text-sm bg-white/10 hover:bg-white/20 rounded-full transition-colors text-white"
-                          >
-                            إلغاء
-                          </button>
-                        </div>
-                      </div>
-                    ) : (
-                      /* عرض التعليق العادي */
-                      <div className="bg-white/5 rounded-2xl p-2 relative">
-                        {/* زر القائمة المنسدلة للتعليق - يظهر فقط لمالك التعليق */}
-                        {comment.user_id === currentUserId && (
-                          <div className="absolute top-2 left-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                            <DropdownMenu>
-                              <DropdownMenuTrigger asChild>
-                                <button 
-                                  className="p-1 rounded-full hover:bg-white/10 transition-colors"
-                                  onClick={(e) => e.stopPropagation()}
-                                >
-                                  <MoreHorizontal className="w-4 h-4 text-white/60" />
-                                </button>
-                              </DropdownMenuTrigger>
-                              <DropdownMenuContent align="start" className="bg-gray-800/95 backdrop-blur-xl border-gray-700">
-                                <DropdownMenuItem 
-                                  className="cursor-pointer text-sm p-3 hover:bg-gray-700/50 text-white"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    startEditingComment(comment);
-                                  }}
-                                >
-                                  <Edit3 className="w-4 h-4 ml-2" />
-                                  <span>تعديل</span>
-                                </DropdownMenuItem>
-                                <DropdownMenuItem 
-                                  className="cursor-pointer text-sm p-3 text-red-400 hover:bg-red-500/10"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleDeleteComment(comment.id);
-                                  }}
-                                >
-                                  <Trash2 className="w-4 h-4 ml-2" />
-                                  <span>حذف</span>
-                                </DropdownMenuItem>
-                              </DropdownMenuContent>
-                            </DropdownMenu>
-                          </div>
-                        )}
-                        
-                        <div className="w-full">
-                          <div className="flex justify-end mb-1">
-                            <span className="text-blue-300 text-xs font-medium bg-black/10 px-1.5 py-0.5 rounded-md">
-                              {getDisplayName(comment.user_id, comment.user?.email, comment.user?.full_name)}
-                            </span>
-                          </div>
-                          <p className="text-white text-sm leading-tight whitespace-pre-line text-right -mb-0.5 mt-0.5" dir="auto">
-                            {comment.content}
-                          </p>
-                          <div className="text-left -mt-0.5 mb-0">
-                            <span className="text-white/30 text-[10px]">
-                              {formatCommentDate(comment.updated_at)}
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-
-          {/* رسالة عدم وجود تعليقات */}
-          {comments.length === 0 && (
-            <div className="text-center py-8">
-              <MessageCircle className="w-12 h-12 text-white/20 mx-auto mb-3" />
-              <p className="text-white/40 text-sm">لا توجد تعليقات بعد</p>
-              <p className="text-white/30 text-xs mt-1">كن أول من يعلق على هذه الصورة</p>
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* نافذة التحرير (Dialog) */}
-      <Dialog open={isEditing} onOpenChange={setIsEditing}>
-        <DialogContent className="bg-gray-900/60 backdrop-blur-xl text-white border-0">
-          <DialogHeader>
-            <DialogTitle className="text-right text-xl">
-              أضف تعليقا
-            </DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
-            {/* حقل التعليق */}
-            <div>
-              <label className="block text-sm font-medium mb-2"></label>
-              <textarea
-                value={caption}
-                onChange={(e) => setCaption(e.target.value)}
-                className="w-full px-3 py-2 bg-white/10 backdrop-blur-sm rounded-sm text-white text-right"
-                rows={3}
-                placeholder="أضف تعليقاً..."
-                dir="auto"
-                style={{ 
-                  textAlign: 'right',
-                  unicodeBidi: 'plaintext',
-                  direction: 'rtl'
-                }}
-              />
-            </div>
-            {/* أزرار الإلغاء والحفظ */}
-            <div className="flex justify-end gap-2">
-              <button
-                onClick={() => setIsEditing(false)} // إغلاق النافذة بدون حفظ
-                className="px-4 py-2 rounded-md bg-white/10 backdrop-blur-sm text-white hover:bg-white/20 transition-colors"
-              >
-                إلغاء
-              </button>
-              <button
-                onClick={handleCaptionSubmit} // حفظ التغييرات
-                className="px-4 py-2 rounded-md bg-white/20 backdrop-blur-sm text-white hover:bg-white/30 transition-colors"
-              >
-                حفظ
-              </button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
-
-      {/* نافذة اختيار الألبوم المشترك */}
-      <Dialog open={showAlbumDialog} onOpenChange={(open) => {
-        setShowAlbumDialog(open);
-        if (!open) {
-          setShowNewAlbumInput(false);
-          setNewAlbumName('');
-        }
-      }}>
-        <DialogContent className="bg-gray-900/95 backdrop-blur-xl text-white border-0 max-w-2xl p-4">
-          <DialogHeader>
-            <DialogTitle className="text-right text-xl">
-              {selectedGroupId ? 'اختر ألبوم المجموعة' : (isGroupPhoto ? 'اختر ألبوم مشترك' : 'اختر ألبوماً شخصياً')}
-            </DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
-            {/* إشعار للمستخدم */}
-            <div className={`${selectedGroupId ? 'bg-purple-500/10 border-purple-500/30' : (isGroupPhoto ? 'bg-blue-500/10 border-blue-500/30' : 'bg-green-500/10 border-green-500/30')} border rounded-lg p-3 text-center`}>
-              <p className={`${selectedGroupId ? 'text-purple-300' : (isGroupPhoto ? 'text-blue-300' : 'text-green-300')} text-sm`}>
-                {selectedGroupId 
-                  ? 'هذه الألبومات خاصة بهذه المجموعة فقط'
-                  : (isGroupPhoto 
-                    ? 'هذه الألبومات خاصة بالمساحة المشتركة فقط'
-                    : 'هذه الألبومات خاصة بمساحتك الشخصية فقط'
-                  )
-                }
-              </p>
-            </div>
-            
-            {/* قائمة الألبومات */}
-            <div className="max-h-96 overflow-y-auto p-2">
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                {/* New Album Card */}
-                <div 
-                  onClick={toggleNewAlbumInput}
-                  className={`flex flex-col items-center justify-center p-3 border-2 border-dashed rounded-xl cursor-pointer transition-all h-20 ${
-                    showNewAlbumInput 
-                      ? 'border-emerald-500 bg-emerald-500/10' 
-                      : 'border-emerald-500/50 hover:bg-emerald-500/10'
-                  }`}
-                >
-                  <Plus className={`w-5 h-5 mb-1 ${showNewAlbumInput ? 'text-emerald-400' : 'text-emerald-400'}`} />
-                  <span className={`text-sm font-medium ${showNewAlbumInput ? 'text-emerald-300' : 'text-emerald-400'}`}>
-                    {showNewAlbumInput ? 'إلغاء' : 'ألبوم جديد'}
-                  </span>
-                </div>
-                
-                {/* Existing Albums */}
-                {albums.map((album) => (
-                  <div 
-                    key={album}
-                    onClick={() => {
-                      setSelectedAlbum(album);
-                      setShowNewAlbumInput(false);
-                    }}
-                    className="relative p-0 overflow-hidden group h-20 flex items-center"
-                  >
-                    <div className={`absolute inset-0 bg-black/60 ${selectedAlbum === album ? 'opacity-100' : 'opacity-70'} transition-opacity`}></div>
-                    <p className="relative z-10 text-right font-medium text-white text-sm flex-1 line-clamp-2 p-3 w-full">{album}</p>
-                    {selectedAlbum === album && (
-                      <div className="w-5 h-5 bg-blue-500 rounded-full flex-shrink-0 flex items-center justify-center">
-                        <svg className="w-2.5 h-2.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-                        </svg>
-                      </div>
-                    )}
-                  </div>
-                ))}
-                
-                {albums.length === 0 && !showNewAlbumInput && (
-                  <div className="col-span-3 py-8 text-center">
-                    <p className="text-white/50">
-                      {selectedGroupId 
-                        ? 'لا توجد ألبومات متاحة لهذه المجموعة'
-                        : (isGroupPhoto 
-                          ? 'لا توجد ألبومات مشتركة متاحة'
-                          : 'لا توجد ألبومات شخصية متاحة'
-                        )
-                      }
-                    </p>
-                    <p className="text-white/30 text-sm mt-2">
-                      {selectedGroupId
-                        ? 'يمكنك إنشاء ألبوم جديد لهذه المجموعة'
-                        : (isGroupPhoto
-                          ? 'يمكنك إنشاء ألبوم جديد للمساحة المشتركة'
-                          : 'يمكنك إنشاء ألبوم جديد لمساحتك الشخصية'
-                        )
-                      }
-                    </p>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* New Album Input - Only shown when showNewAlbumInput is true */}
-            {showNewAlbumInput && (
-              <div className="pt-4 border-t border-white/10 animate-fadeIn">
-                <div className="flex gap-2">
-                  <input
-                    id="newAlbumInput"
-                    type="text"
-                    value={newAlbumName}
-                    onChange={(e) => setNewAlbumName(e.target.value)}
-                    onKeyDown={(e) => e.key === 'Enter' && newAlbumName.trim() && handleCreateAlbum()}
-                    placeholder={selectedGroupId 
-                      ? "اكتب اسم ألبوم المجموعة الجديد"
-                      : (isGroupPhoto 
-                        ? "اكتب اسم الألبوم المشترك الجديد"
-                        : "اكتب اسم الألبوم الشخصي الجديد"
-                      )
-                    }
-                    className="flex-1 px-3 py-2 bg-white/5 border border-emerald-500/30 rounded-lg text-white text-right focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all text-sm"
-                    dir="rtl"
-                    autoFocus
-                  />
-                  <button
-                    onClick={handleCreateAlbum}
-                    disabled={!newAlbumName.trim()}
-                    className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1 text-sm"
-                  >
-                    <span>إضافة</span>
-                  </button>
-                </div>
-              </div>
-            )}
-
-            {/* أزرار الإجراءات */}
-            <div className="flex justify-end gap-2 pt-4">
-              <button
-                onClick={() => setShowAlbumDialog(false)}
-                className="px-4 py-2 rounded-md bg-white/10 hover:bg-white/20 transition-colors"
-              >
-                إلغاء
-              </button>
-              <button
-                onClick={handleAddToAlbum}
-                disabled={!selectedAlbum}
-                className="px-4 py-2 rounded-md bg-blue-500 hover:bg-blue-600 transition-colors disabled:opacity-50"
-              >
-                تأكيد
-              </button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
-    </>
+    </div>
   );
 };
 
-// تصدير المكون لاستخدامه في مكان آخر
-export default PhotoCard;
+export default AuthPage;
