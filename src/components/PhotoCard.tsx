@@ -1,8 +1,8 @@
-
-import { useState } from "react"; // استيراد useState لإدارة الحالة في المكون
-import { GripVertical, Heart, MessageCircle, Trash2, MoreVertical, Plus } from "lucide-react"; // استيراد أيقونات من مكتبة lucide-react
+import { useState, useEffect } from "react"; // استيراد useState و useEffect لإدارة الحالة في المكون
+import { GripVertical, Heart, MessageCircle, Trash2, MoreVertical, Plus, Edit3 } from "lucide-react"; // استيراد أيقونات من مكتبة lucide-react
 import { supabase } from "@/integrations/supabase/client"; // استيراد عميل supabase للتفاعل مع قاعدة البيانات
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "./ui/dialog"; // استيراد مكونات Dialog لعرض نافذة تحرير التعليق والهاشتاجات
+import { toast } from "@/hooks/use-toast"; // استيراد دالة toast لعرض الإشعارات
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -11,32 +11,67 @@ import {
 } from "./ui/dropdown-menu";
 
 // تعريف واجهة (interface) لتحديد خصائص المكون PhotoCard
+interface CommentUser {
+  email: string;
+  full_name: string | null;
+}
+
+interface Comment {
+  id: string;
+  photo_id: string;
+  user_id: string;
+  content: string;
+  created_at: string;
+  updated_at: string;
+  user: CommentUser;
+}
+
 interface PhotoCardProps {
+  id: string; // معرف الصورة
   imageUrl: string; // رابط الصورة
   likes: number; // عدد الإعجابات الأولية
   caption?: string; // التعليق (اختياري)
   hashtags?: string[]; // الهاشتاجات (اختيارية)
-  onDelete?: () => void; // دالة لحذف الصورة (اختيارية)
-  dragHandleProps?: any; // خصائص للسحب والإفلات (اختيارية)
-  onUpdateCaption?: (caption: string, hashtags: string[]) => Promise<void>; // دالة لتحديث التعليق والهاشتاجات (اختيارية)
-  isGroupPhoto?: boolean; // هل هذه صورة في مجموعة
-  userEmail?: string; // إيميل المستخدم (للمجموعات)
-  userDisplayName?: string; // الاسم الشخصي للمستخدم (للمجموعات)
+  comments?: Comment[]; // التعليقات على الصورة
+  onLike: () => void; // دالة للإعجاب بالصورة
+  onDelete: () => void; // دالة لحذف الصورة
+  onUpdateCaption: (caption: string, hashtags: string[]) => Promise<void>; // دالة لتحديث التعليق والهاشتاجات
+  onAddComment: (content: string) => Promise<void>; // دالة لإضافة تعليق جديد
+  currentUserId: string; // معرف المستخدم الحالي
+  photoId: string; // معرف الصورة (مرادف لـ id للتوافق مع المكونات الأخرى)
+  dragHandleProps?: any; // خصائص السحب والإفلات
+  isGroupPhoto?: boolean; // هل الصورة في مجموعة
+  selectedGroupId?: string | null; // معرف المجموعة المحددة
+  userEmail?: string; // بريد المستخدم
+  userDisplayName?: string | null; // اسم المستخدم المعروض
+  user_id?: string; // معرف المستخدم الذي رفع الصورة
+  isGroupAdmin?: boolean; // هل المستخدم الحالي مدير المجموعة
 }
 
 // تعريف المكون PhotoCard مع خصائصه
-const PhotoCard = ({ 
-  imageUrl, 
-  likes: initialLikes, 
-  caption: initialCaption = '', // قيمة افتراضية فارغة إذا لم يُحدد تعليق
-  hashtags: initialHashtags = [], // قيمة افتراضية مصفوفة فارغة إذا لم تُحدد هاشتاجات
+const PhotoCard: React.FC<PhotoCardProps> = ({
+  id,
+  imageUrl,
+  likes: initialLikes,
+  caption: initialCaption = '',
+  hashtags: initialHashtags = [],
+  comments: initialComments = [],
+  onLike,
   onDelete,
-  dragHandleProps,
   onUpdateCaption,
-  isGroupPhoto = false, // افتراضي false
-  userEmail, // إيميل المستخدم
-  userDisplayName // الاسم الشخصي للمستخدم
-}: PhotoCardProps) => {
+  onAddComment,
+  currentUserId,
+  photoId: propPhotoId,
+  dragHandleProps,
+  isGroupPhoto = false,
+  selectedGroupId = null,
+  userEmail = '',
+  userDisplayName = null,
+  user_id = '',
+  isGroupAdmin = false,
+}) => {
+  const photoId = id || propPhotoId; // استخدام id أو photoId أيهما متاح
+
   // تعريف الحالات باستخدام useState
   const [isLoved, setIsLoved] = useState(false); // حالة لتتبع ما إذا تم الإعجاب بالصورة
   const [likes, setLikes] = useState(initialLikes); // حالة لتتبع عدد الإعجابات
@@ -45,6 +80,15 @@ const PhotoCard = ({
   const [hashtags, setHashtags] = useState(initialHashtags); // حالة لتتبع الهاشتاجات الحالية
   const [isControlsVisible, setIsControlsVisible] = useState(false); // حالة لإظهار/إخفاء الأزرار (مثل الحذف والتحرير)
   const [isHeartAnimating, setIsHeartAnimating] = useState(false); // حالة لتتبع تشغيل أنيميشن القلب
+  const [newComment, setNewComment] = useState(''); // حالة لتتبع نص التعليق الجديد
+  const [isCommenting, setIsCommenting] = useState(false); // حالة لتتبع ما إذا كان حقل التعليق مفتوحاً
+  const [comments, setComments] = useState<Comment[]>(initialComments); // حالة لتخزين التعليقات
+  const [showComments, setShowComments] = useState(false); // حالة لإظهار/إخفاء التعليقات
+  const [isCommentLoading, setIsCommentLoading] = useState(false); // حالة لتحميل التعليقات
+
+  // Check if the current user is the photo uploader or group admin
+  const isCurrentUserOwner = user_id === currentUserId;
+  const showEditButton = isCurrentUserOwner || isGroupAdmin;
 
   // دالة لمعالجة الإعجاب بالصورة
   const handleLike = async () => {
@@ -90,15 +134,154 @@ const PhotoCard = ({
     setIsControlsVisible(!isControlsVisible); // تغيير الحالة بين الإظهار والإخفاء
   };
 
-  // دالة للحصول على الاسم المعروض
-  const getDisplayName = () => {
-    if (userDisplayName && userDisplayName.trim()) {
-      return userDisplayName.trim();
+  // الحصول على الاسم المعروض
+  const getDisplayName = (userId: string, userEmail?: string, userFullName?: string | null) => {
+    // إذا كان هناك اسم كامل، نستخدمه
+    if (userFullName && userFullName.trim()) {
+      return userFullName.trim();
     }
+    // إذا كان هناك إيميل، نستخدم الجزء الأول منه
     if (userEmail) {
       return userEmail.split('@')[0];
     }
-    return '';
+    // إذا لم يكن هناك اسم أو إيميل، نستخدم معرف المستخدم
+    return `User ${userId.substring(0, 6)}`;
+  };
+
+  // حالة لحفظ قائمة الألبومات
+  const [albums, setAlbums] = useState<string[]>([]);
+  const [showAlbumDialog, setShowAlbumDialog] = useState(false);
+  const [newAlbumName, setNewAlbumName] = useState('');
+  const [selectedAlbum, setSelectedAlbum] = useState<string | null>(null);
+  const [showNewAlbumInput, setShowNewAlbumInput] = useState(false);
+
+  // جلب الألبومات
+  useEffect(() => {
+    const fetchAlbums = async () => {
+      try {
+        let query = supabase
+          .from('photos')
+          .select('hashtags')
+          .not('hashtags', 'is', null);
+
+        // إذا كنا في مجموعة محددة، نجلب ألبومات المجموعة
+        if (selectedGroupId) {
+          query = query.eq('group_id', selectedGroupId);
+        }
+        // إذا كنا في المساحة الشخصية، نجلب الألبومات الشخصية
+        else if (!isGroupPhoto) {
+          query = query.is('group_id', null);
+        }
+        // إذا كنا في المساحة المشتركة، نجلب جميع الألبومات المشتركة
+        else {
+          query = query.not('group_id', 'is', null);
+        }
+
+        const { data, error } = await query;
+
+        if (error) throw error;
+
+        const allAlbums = data
+          .flatMap(photo => photo.hashtags || [])
+          .filter((album): album is string => Boolean(album));
+        
+        const uniqueAlbums = [...new Set(allAlbums)];
+        setAlbums(uniqueAlbums);
+      } catch (error) {
+        console.error('Error fetching albums:', error);
+      }
+    };
+
+    if (showAlbumDialog) {
+      fetchAlbums();
+    }
+  }, [showAlbumDialog]);
+
+  // معالجة إضافة صورة إلى ألبوم
+  const handleAddToAlbum = async () => {
+    if (!selectedAlbum) return;
+    
+    try {
+      if (onUpdateCaption) {
+        await onUpdateCaption(caption, [selectedAlbum]);
+      }
+      setShowAlbumDialog(false);
+    } catch (error) {
+      console.error('Error adding to album:', error);
+    }
+  };
+
+  // معالجة إنشاء ألبوم جديد
+  const handleCreateAlbum = async () => {
+    if (!newAlbumName.trim()) return;
+    
+    try {
+      setAlbums(prev => [...prev, newAlbumName]);
+      setSelectedAlbum(newAlbumName);
+      setNewAlbumName('');
+      setShowNewAlbumInput(false);
+    } catch (error) {
+      console.error('Error creating album:', error);
+    }
+  };
+
+  // إظهار/إخفاء حقل الإدخال للألبوم الجديد
+  const toggleNewAlbumInput = () => {
+    setShowNewAlbumInput(!showNewAlbumInput);
+    if (!showNewAlbumInput) {
+      setSelectedAlbum(null);
+      setTimeout(() => document.getElementById('newAlbumInput')?.focus(), 100);
+    }
+  };
+
+  // No duplicate state declarations here - they've been moved to the top of the component
+
+  // معالجة إضافة تعليق جديد
+  const handleAddComment = async (content: string) => {
+    if (!content.trim() || !onAddComment) return;
+    
+    setIsCommentLoading(true);
+    const tempId = `temp-${Date.now()}`;
+    
+    try {
+      // إنشاء تعليق مؤقت
+      const tempComment: Comment = {
+        id: tempId,
+        photo_id: photoId,
+        user_id: currentUserId,
+        content,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        user: {
+          email: userEmail || '',
+          full_name: userDisplayName || userEmail?.split('@')[0] || 'مستخدم'
+        }
+      };
+      
+      // إضافة التعليق محلياً أولاً
+      setComments(prev => [tempComment, ...(prev || [])]);
+      setNewComment('');
+      
+      // إرسال التعليق للخادم من خلال الدالة الأب
+      await onAddComment(content);
+      
+      // نجاح - لا حاجة لفعل أي شيء إضافي لأن useEffect سيتعامل مع التحديث
+      
+    } catch (error) {
+      console.error('Error adding comment:', error);
+      
+      // إزالة التعليق المؤقت في حالة الخطأ
+      setComments(prev => prev.filter(c => c.id !== tempId));
+      
+      // إظهار رسالة خطأ للمستخدم
+      toast({
+        title: 'خطأ',
+        description: 'حدث خطأ أثناء إضافة التعليق. يرجى المحاولة مرة أخرى.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsCommentLoading(false);
+    }
   };
 
   // العرض (render) للمكون
@@ -133,9 +316,9 @@ const PhotoCard = ({
           <GripVertical className="w-4 h-4 text-white" /> {/* أيقونة السحب */}
         </div>
 
-        {/* زر الخيارات - موحد لجميع الصور */}
+        {/* زر الخيارات - يظهر فقط لصاحب الصورة أو مدير المجموعة */}
         <div className={`absolute top-2 left-2 transition-opacity duration-300 ${
-          isControlsVisible ? 'opacity-100' : 'opacity-0'
+          (isControlsVisible && showEditButton) ? 'opacity-100' : 'opacity-0 pointer-events-none'
         }`}>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -150,12 +333,22 @@ const PhotoCard = ({
               <DropdownMenuItem
                 onClick={(e) => {
                   e.stopPropagation();
-                  setIsEditing(true);
+                  setShowAlbumDialog(true);
                 }}
                 className="text-white hover:bg-white/20 cursor-pointer"
               >
                 <Plus className="w-4 h-4 ml-2" />
                 <span>إضافة إلى ألبوم</span>
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setIsEditing(true);
+                }}
+                className="text-white hover:bg-white/20 cursor-pointer"
+              >
+                <Edit3 className="w-4 h-4 ml-2" />
+                <span>إضافة/تعديل الوصف</span>
               </DropdownMenuItem>
               <DropdownMenuItem
                 onClick={(e) => {
@@ -171,17 +364,20 @@ const PhotoCard = ({
           </DropdownMenu>
         </div>
 
-        {/* زر التعليق - موحد لجميع الصور */}
+        {/* زر عرض/إخفاء التعليقات */}
         <button
           onClick={(e) => {
             e.stopPropagation();
-            setIsEditing(true);
+            setShowComments(!showComments);
+            if (!showComments) {
+              setIsCommenting(false);
+            }
           }}
-          className={`absolute bottom-2 right-2 p-2 rounded-full bg-black/20 backdrop-blur-sm transition-opacity duration-300 hover:bg-blue-500/50 ${
-            isControlsVisible ? 'opacity-50' : 'opacity-0'
-          } hover:opacity-100`}
+          className={`absolute bottom-2 right-2 p-2 rounded-full bg-black/20 backdrop-blur-sm transition-all duration-300 ${
+            isControlsVisible ? 'opacity-100' : 'opacity-0'
+          } hover:bg-blue-500/50 hover:opacity-100`}
         >
-          <MessageCircle className="w-4 h-4 text-white" />
+          <MessageCircle className={`w-4 h-4 ${showComments ? 'text-blue-400' : 'text-white'}`} />
         </button>
 
         {/* قسم الإعجابات - في الموضع القديم */}
@@ -212,32 +408,91 @@ const PhotoCard = ({
           </span>
         </div>
 
-        {/* عرض التعليق والهاشتاجات مع اسم المستخدم بجانب التعليق */}
-        {(caption || hashtags.length > 0) && (
-          <div className={`absolute left-2 right-2 bottom-14 p-2 bg-black/50 backdrop-blur-md rounded-lg transition-opacity duration-300 ${
-            isControlsVisible ? 'opacity-80' : 'opacity-0' // يظهر عند تفعيل الأزرار
-          }`}>
-            {caption && (
-              <div className="flex items-start gap-2 mb-1 text-right" dir="rtl">
-                <p className="text-white text-sm flex-1">{caption}</p>
-                {isGroupPhoto && getDisplayName() && (
-                  <span className="text-yellow-100 text-xs font-medium bg-black/30 px-2 py-1 rounded whitespace-nowrap">
-                    {getDisplayName()}
+        {/* عرض التعليقات والهاشتاجات */}
+        <div className={`absolute left-2 right-2 bottom-14 space-y-2 transition-all duration-300 ${
+          (showComments || isControlsVisible) ? 'opacity-100' : 'opacity-0 pointer-events-none'
+        }`}>
+          {/* قسم إضافة تعليق جديد */}
+          {showComments && (
+            <div className="bg-black/50 backdrop-blur-md rounded-lg p-2 mb-2">
+              <div className="w-full">
+                <div className="text-right mb-1">
+                  <span className="text-yellow-100 text-[11px] font-medium opacity-80">
+                    {getDisplayName(currentUserId, userEmail, userDisplayName)}
                   </span>
-                )}
+                </div>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={newComment}
+                    onChange={(e) => setNewComment(e.target.value)}
+                    placeholder="اكتب تعليقاً..."
+                    className="flex-1 bg-white/10 text-white placeholder-white/50 text-sm rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' && !e.shiftKey) {
+                        e.preventDefault();
+                        handleAddComment(newComment);
+                      }
+                    }}
+                  />
+                  <button
+                    onClick={() => handleAddComment(newComment)}
+                    disabled={!newComment.trim() || isCommentLoading}
+                    className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded text-sm disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
+                  >
+                    {isCommentLoading ? 'جاري الإرسال...' : 'إرسال'}
+                  </button>
+                </div>
               </div>
-            )}
-            {hashtags.length > 0 && ( // الهاشتاجات
-              <div className="flex flex-wrap gap-1 justify-end">
-                {hashtags.map((tag) => (
-                  <span key={tag} className="text-xs text-white/60" dir="rtl">
-                    {tag}
-                  </span>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
+            </div>
+          )}
+
+          {/* عرض التعليقات */}
+          {showComments && comments.length > 0 && (
+            <div className="max-h-40 overflow-y-auto bg-black/50 backdrop-blur-md rounded-lg p-2 space-y-3">
+              {comments.map((comment) => (
+                <div key={comment.id} className="bg-white/5 rounded-lg p-2">
+                  <div className="flex flex-col items-end gap-0">
+                    <div className="w-full text-right">
+                      <span className="text-yellow-100 text-[11px] font-medium opacity-80 block mb-1">
+                        {getDisplayName(comment.user_id, comment.user?.email, comment.user?.full_name)}
+                      </span>
+                      <p className="text-white text-sm text-right pr-1 mt-1">{comment.content}</p>
+                      <span className="text-[10px] text-white/50 block text-left mt-1">
+                        {new Date(comment.created_at).toLocaleString('ar-EG')}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* عرض الكابشن والهاشتاجات */}
+          {(caption || hashtags.length > 0) && (
+            <div className="bg-black/50 backdrop-blur-md rounded-lg p-2">
+              {caption && (
+                <div className="mb-1 text-right">
+                  <div className="text-right mb-1">
+                    <span className="text-yellow-100 text-[11px] font-medium opacity-80">
+                      {getDisplayName(currentUserId, userEmail, userDisplayName)}
+                    </span>
+                  </div>
+                  <p className="text-white text-sm pr-1">{caption}</p>
+                </div>
+              )}
+              {hashtags.length > 0 && (
+                <div className="flex flex-wrap gap-1 justify-end">
+                  {hashtags.map((tag) => (
+                    <span key={tag} className="text-xs text-white/60" dir="rtl">
+                      {tag}
+                    </span>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
       </div>
 
       {/* نافذة التحرير (Dialog) */}
@@ -245,13 +500,13 @@ const PhotoCard = ({
         <DialogContent className="bg-gray-900/60 backdrop-blur-xl text-white border-0">
           <DialogHeader>
             <DialogTitle className="text-right text-xl">
-              {isGroupPhoto ? "إضافة تعليق" : "تعديل تفاصيل الصورة"}
+              أضف تعليقا
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             {/* حقل التعليق */}
             <div>
-              <label className="block text-sm font-medium mb-2">التعليق</label>
+              <label className="block text-sm font-medium mb-2"></label>
               <textarea
                 value={caption} // قيمة التعليق الحالية
                 onChange={(e) => setCaption(e.target.value)} // تحديث التعليق عند التغيير
@@ -261,19 +516,6 @@ const PhotoCard = ({
                 dir="rtl"
               />
             </div>
-            {/* حقل الهاشتاجات للصور الشخصية فقط */}
-            {!isGroupPhoto && (
-              <div>
-                <label className="block text-sm font-medium mb-2">اسم الالبوم</label>
-                <input
-                  type="text"
-                  value={hashtags.join(' ')} // عرض الهاشتاجات كسلسلة نصية
-                  onChange={(e) => handleHashtagsChange(e.target.value)} // تحديث الهاشتاجات عند التغيير
-                  className="w-full px-3 py-2 bg-white/10 backdrop-blur-sm rounded-md text-white text-right"
-                  dir="rtl"
-                />
-              </div>
-            )}
             {/* أزرار الإلغاء والحفظ */}
             <div className="flex justify-end gap-2">
               <button
@@ -287,6 +529,154 @@ const PhotoCard = ({
                 className="px-4 py-2 rounded-md bg-white/20 backdrop-blur-sm text-white hover:bg-white/30 transition-colors"
               >
                 حفظ
+              </button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* نافذة اختيار الألبوم المشترك */}
+      <Dialog open={showAlbumDialog} onOpenChange={(open) => {
+        setShowAlbumDialog(open);
+        if (!open) {
+          setShowNewAlbumInput(false);
+          setNewAlbumName('');
+        }
+      }}>
+        <DialogContent className="bg-gray-900/95 backdrop-blur-xl text-white border-0 max-w-2xl p-4">
+          <DialogHeader>
+            <DialogTitle className="text-right text-xl">
+              {selectedGroupId ? 'اختر ألبوم المجموعة' : (isGroupPhoto ? 'اختر ألبوم مشترك' : 'اختر ألبوماً شخصياً')}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            {/* إشعار للمستخدم */}
+            <div className={`${selectedGroupId ? 'bg-purple-500/10 border-purple-500/30' : (isGroupPhoto ? 'bg-blue-500/10 border-blue-500/30' : 'bg-green-500/10 border-green-500/30')} border rounded-lg p-3 text-center`}>
+              <p className={`${selectedGroupId ? 'text-purple-300' : (isGroupPhoto ? 'text-blue-300' : 'text-green-300')} text-sm`}>
+                {selectedGroupId 
+                  ? 'هذه الألبومات خاصة بهذه المجموعة فقط'
+                  : (isGroupPhoto 
+                    ? 'هذه الألبومات خاصة بالمساحة المشتركة فقط'
+                    : 'هذه الألبومات خاصة بمساحتك الشخصية فقط'
+                  )
+                }
+              </p>
+            </div>
+            
+            {/* قائمة الألبومات */}
+            <div className="max-h-96 overflow-y-auto p-2">
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                {/* New Album Card */}
+                <div 
+                  onClick={toggleNewAlbumInput}
+                  className={`flex flex-col items-center justify-center p-3 border-2 border-dashed rounded-xl cursor-pointer transition-all h-20 ${
+                    showNewAlbumInput 
+                      ? 'border-emerald-500 bg-emerald-500/10' 
+                      : 'border-emerald-500/50 hover:bg-emerald-500/10'
+                  }`}
+                >
+                  <Plus className={`w-5 h-5 mb-1 ${showNewAlbumInput ? 'text-emerald-400' : 'text-emerald-400'}`} />
+                  <span className={`text-sm font-medium ${showNewAlbumInput ? 'text-emerald-300' : 'text-emerald-400'}`}>
+                    {showNewAlbumInput ? 'إلغاء' : 'ألبوم جديد'}
+                  </span>
+                </div>
+                
+                {/* Existing Albums */}
+                {albums.map((album) => (
+                  <div 
+                    key={album}
+                    onClick={() => {
+                      setSelectedAlbum(album);
+                      setShowNewAlbumInput(false);
+                    }}
+                    className={`relative p-3 rounded-lg cursor-pointer transition-all overflow-hidden group h-20 flex items-center ${
+                      selectedAlbum === album 
+                        ? 'ring-2 ring-blue-400 bg-blue-500/10' 
+                        : 'bg-white/5 hover:bg-white/10'
+                    }`}
+                  >
+                    <p className="relative z-10 text-right font-medium text-white text-sm flex-1 line-clamp-2 pr-2">{album}</p>
+                    {selectedAlbum === album && (
+                      <div className="w-5 h-5 bg-blue-500 rounded-full flex-shrink-0 flex items-center justify-center">
+                        <svg className="w-2.5 h-2.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                        </svg>
+                      </div>
+                    )}
+                  </div>
+                ))}
+                
+                {albums.length === 0 && !showNewAlbumInput && (
+                  <div className="col-span-3 py-8 text-center">
+                    <p className="text-white/50">
+                      {selectedGroupId 
+                        ? 'لا توجد ألبومات متاحة لهذه المجموعة'
+                        : (isGroupPhoto 
+                          ? 'لا توجد ألبومات مشتركة متاحة'
+                          : 'لا توجد ألبومات شخصية متاحة'
+                        )
+                      }
+                    </p>
+                    <p className="text-white/30 text-sm mt-2">
+                      {selectedGroupId
+                        ? 'يمكنك إنشاء ألبوم جديد لهذه المجموعة'
+                        : (isGroupPhoto
+                          ? 'يمكنك إنشاء ألبوم جديد للمساحة المشتركة'
+                          : 'يمكنك إنشاء ألبوم جديد لمساحتك الشخصية'
+                        )
+                      }
+                    </p>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* New Album Input - Only shown when showNewAlbumInput is true */}
+            {showNewAlbumInput && (
+              <div className="pt-4 border-t border-white/10 animate-fadeIn">
+                <div className="flex gap-2">
+                  <input
+                    id="newAlbumInput"
+                    type="text"
+                    value={newAlbumName}
+                    onChange={(e) => setNewAlbumName(e.target.value)}
+                    onKeyDown={(e) => e.key === 'Enter' && newAlbumName.trim() && handleCreateAlbum()}
+                    placeholder={selectedGroupId 
+                      ? "اكتب اسم ألبوم المجموعة الجديد"
+                      : (isGroupPhoto 
+                        ? "اكتب اسم الألبوم المشترك الجديد"
+                        : "اكتب اسم الألبوم الشخصي الجديد"
+                      )
+                    }
+                    className="flex-1 px-3 py-2 bg-white/5 border border-emerald-500/30 rounded-lg text-white text-right focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all text-sm"
+                    dir="rtl"
+                    autoFocus
+                  />
+                  <button
+                    onClick={handleCreateAlbum}
+                    disabled={!newAlbumName.trim()}
+                    className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1 text-sm"
+                  >
+                    <span>إضافة</span>
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* أزرار الإجراءات */}
+            <div className="flex justify-end gap-2 pt-4">
+              <button
+                onClick={() => setShowAlbumDialog(false)}
+                className="px-4 py-2 rounded-md bg-white/10 hover:bg-white/20 transition-colors"
+              >
+                إلغاء
+              </button>
+              <button
+                onClick={handleAddToAlbum}
+                disabled={!selectedAlbum}
+                className="px-4 py-2 rounded-md bg-blue-500 hover:bg-blue-600 transition-colors disabled:opacity-50"
+              >
+                تأكيد
               </button>
             </div>
           </div>
