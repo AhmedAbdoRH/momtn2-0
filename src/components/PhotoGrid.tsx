@@ -65,12 +65,41 @@ const PhotoGrid: FC<PhotoGridProps> = ({ closeSidebar, selectedGroupId }): JSX.E
   const [hasPhotosLoadedOnce, setHasPhotosLoadedOnce] = useState(false);
   const [showFirstTimeModal, setShowFirstTimeModal] = useState(false);
   const [dontShowAgain, setDontShowAgain] = useState(false);
+  const [isUserGroupAdmin, setIsUserGroupAdmin] = useState(false);
 
   // Check if user has disabled the tutorial
   const shouldShowTutorial = (userId: string): boolean => {
     if (typeof window === 'undefined') return true;
     const dontShowTutorial = localStorage.getItem(`dontShowTutorial_${userId}`) === 'true';
     return !dontShowTutorial;
+  };
+
+  // Check if the current user is a group admin
+  const checkIfUserIsGroupAdmin = async () => {
+    if (!user || !selectedGroupId) {
+      setIsUserGroupAdmin(false);
+      return;
+    }
+
+    try {
+      const { data, error } = await supabase
+        .from('group_members')
+        .select('role')
+        .eq('group_id', selectedGroupId)
+        .eq('user_id', user.id)
+        .single();
+
+      if (error || !data) {
+        console.error('Error checking group admin status:', error);
+        setIsUserGroupAdmin(false);
+        return;
+      }
+
+      setIsUserGroupAdmin(data.role === 'admin' || data.role === 'creator');
+    } catch (error) {
+      console.error('Exception checking group admin status:', error);
+      setIsUserGroupAdmin(false);
+    }
   };
 
   useEffect(() => {
@@ -94,6 +123,11 @@ const PhotoGrid: FC<PhotoGridProps> = ({ closeSidebar, selectedGroupId }): JSX.E
     
     initialize();
   }, [user, selectedGroupId, hasPhotosLoadedOnce]);
+
+  // Check group admin status when selectedGroupId changes
+  useEffect(() => {
+    checkIfUserIsGroupAdmin();
+  }, [selectedGroupId, user]);
 
   useEffect(() => {
     const handlePhotoAdded = async () => {
@@ -854,7 +888,7 @@ const PhotoGrid: FC<PhotoGridProps> = ({ closeSidebar, selectedGroupId }): JSX.E
                           selectedGroupId={selectedGroupId}
                           currentUserId={user?.id || ''}
                           user_id={photo.user_id || ''}
-                          isGroupAdmin={false} // You'll need to implement group admin check
+                          isGroupAdmin={!!selectedGroupId && isUserGroupAdmin}
                         />
                       </div>
                     )}
