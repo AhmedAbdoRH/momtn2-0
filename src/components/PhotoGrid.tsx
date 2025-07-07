@@ -61,53 +61,28 @@ const PhotoGrid: FC<PhotoGridProps> = ({ closeSidebar, selectedGroupId }): JSX.E
   const [selectedHashtag, setSelectedHashtag] = useState<string | null>(null);
   const [allHashtags, setAllHashtags] = useState<Set<string>>(new Set());
   const { user } = useAuth();
-  const userDisplayName = user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'مستخدم';
   const [loadingInitialPhotos, setLoadingInitialPhotos] = useState(true);
   const [hasPhotosLoadedOnce, setHasPhotosLoadedOnce] = useState(false);
   const [showFirstTimeModal, setShowFirstTimeModal] = useState(false);
   const [dontShowAgain, setDontShowAgain] = useState(false);
 
   // Check if user has disabled the tutorial
-  const [tutorialDismissed, setTutorialDismissed] = useState<boolean>(false);
-
-  const checkTutorialStatus = async (userId: string) => {
-    try {
-      const { data: userData, error } = await supabase
-        .from('users')
-        .select('tutorial_dismissed')
-        .eq('id', userId)
-        .single();
-
-      if (error) {
-        console.error('Error fetching tutorial status:', error);
-        return false;
-      }
-
-      return userData?.tutorial_dismissed || false;
-    } catch (error) {
-      console.error('Error checking tutorial status:', error);
-      return false;
-    }
+  const shouldShowTutorial = (userId: string): boolean => {
+    if (typeof window === 'undefined') return true;
+    const dontShowTutorial = localStorage.getItem(`dontShowTutorial_${userId}`) === 'true';
+    return !dontShowTutorial;
   };
-
-  // Load tutorial status when user changes
-  useEffect(() => {
-    const loadTutorialStatus = async () => {
-      if (user?.id) {
-        const dismissed = await checkTutorialStatus(user.id);
-        setTutorialDismissed(dismissed);
-        console.log('Tutorial status loaded:', dismissed, 'for user:', user.id);
-      }
-    };
-    
-    loadTutorialStatus();
-  }, [user?.id]);
 
   useEffect(() => {
     const initialize = async () => {
       if (user) {
         try {
           await fetchPhotos();
+          
+          // Check if we should show the first-time modal
+          if (shouldShowTutorial(user.id) && !hasPhotosLoadedOnce) {
+            setShowFirstTimeModal(true);
+          }
         } catch (error) {
           console.error('Error initializing photos:', error);
           setLoadingInitialPhotos(false);
@@ -118,7 +93,7 @@ const PhotoGrid: FC<PhotoGridProps> = ({ closeSidebar, selectedGroupId }): JSX.E
     };
     
     initialize();
-  }, [user, selectedGroupId]);
+  }, [user, selectedGroupId, hasPhotosLoadedOnce]);
 
   useEffect(() => {
     const handlePhotoAdded = async () => {
@@ -312,6 +287,7 @@ const PhotoGrid: FC<PhotoGridProps> = ({ closeSidebar, selectedGroupId }): JSX.E
     console.log('Content:', content);
     
     const tempId = `temp-${Date.now()}`;
+    const userDisplayName = user.user_metadata?.full_name || user.email?.split('@')[0] || 'مستخدم';
     
     // Create temporary comment for optimistic update
     const tempComment: Comment = {
@@ -469,18 +445,9 @@ const PhotoGrid: FC<PhotoGridProps> = ({ closeSidebar, selectedGroupId }): JSX.E
     if (!user?.id) return;
     
     try {
-      // Get current likes count first
-      const { data: currentPhoto } = await supabase
-        .from('photos')
-        .select('likes')
-        .eq('id', photoId)
-        .single();
-
-      const newLikesCount = (currentPhoto?.likes || 0) + 1;
-
       const { error } = await supabase
         .from('photos')
-        .update({ likes: newLikesCount })
+        .update({ likes: { increment: 1 } })
         .eq('id', photoId);
 
       if (error) throw error;
@@ -684,8 +651,8 @@ const PhotoGrid: FC<PhotoGridProps> = ({ closeSidebar, selectedGroupId }): JSX.E
         setPhotos(prev => [photoWithUser, ...prev]);
         setHasPhotosLoadedOnce(true);
         
-        // Show first-time modal only if it's the first photo and user hasn't dismissed tutorial
-        if (!selectedGroupId && isFirstPhoto && !tutorialDismissed) {
+        // Show first-time modal only if it's the first photo and user hasn't disabled tutorial
+        if (!selectedGroupId && isFirstPhoto && shouldShowTutorial(user.id)) {
           console.log('Showing first time modal after adding first photo');
           setShowFirstTimeModal(true);
         }
@@ -750,30 +717,10 @@ const PhotoGrid: FC<PhotoGridProps> = ({ closeSidebar, selectedGroupId }): JSX.E
     }
   };
 
-  const handleTutorialClose = async (): Promise<void> => {
+  const handleTutorialClose = (): void => {
     setShowFirstTimeModal(false);
-    
-    if (dontShowAgain && user?.id) {
-      try {
-        // Save to database
-        const { error } = await supabase
-          .from('users')
-          .update({ tutorial_dismissed: true })
-          .eq('id', user.id);
-
-        if (error) {
-          console.error('Error updating tutorial dismissed status:', error);
-        } else {
-          setTutorialDismissed(true);
-        }
-        
-        // Also save to localStorage as backup
-        if (typeof window !== 'undefined') {
-          localStorage.setItem(`dontShowTutorial_${user.id}`, 'true');
-        }
-      } catch (error) {
-        console.error('Error in handleTutorialClose:', error);
-      }
+    if (dontShowAgain && user?.id && typeof window !== 'undefined') {
+      localStorage.setItem(`dontShowTutorial_${user.id}`, 'true');
     }
   };
 
@@ -902,11 +849,12 @@ const PhotoGrid: FC<PhotoGridProps> = ({ closeSidebar, selectedGroupId }): JSX.E
                           }
                           onAddComment={(content) => handleAddComment(photo.id, content)}
                           isGroupPhoto={!!selectedGroupId}
-                          userEmail={user?.email || ''}
-                          userDisplayName={userDisplayName}
+                          userEmail={photo.users?.email}
+                          userDisplayName={photo.users?.full_name}
                           selectedGroupId={selectedGroupId}
                           currentUserId={user?.id || ''}
-                          photoOwnerId={photo.user_id}
+                          user_id={photo.user_id || ''}
+                          isGroupAdmin={false} // You'll need to implement group admin check
                         />
                       </div>
                     )}
