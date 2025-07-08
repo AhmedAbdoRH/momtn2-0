@@ -30,6 +30,7 @@ interface Group {
   name: string;
   description: string | null;
   invite_code: string | null;
+  welcome_message: string | null;
   created_at: string;
   is_private: boolean;
   created_by: string;
@@ -41,10 +42,11 @@ export const GroupSettings = () => {
   const [editingGroup, setEditingGroup] = useState<string | null>(null);
   const [editingName, setEditingName] = useState("");
   const [editingDescription, setEditingDescription] = useState("");
+  const [editingWelcomeMessage, setEditingWelcomeMessage] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const [isUpdating, setIsUpdating] = useState(false);
   const [isDeleting, setIsDeleting] = useState<string | null>(null);
-  
+
   const { user } = useAuth();
   const { toast } = useToast();
 
@@ -59,7 +61,7 @@ export const GroupSettings = () => {
 
     try {
       setIsLoading(true);
-      
+
       // Fetch groups where user is creator or member
       const { data: groupsData, error: groupsError } = await supabase
         .from('groups')
@@ -68,6 +70,7 @@ export const GroupSettings = () => {
           name,
           description,
           invite_code,
+          welcome_message,
           created_at,
           is_private,
           created_by
@@ -91,7 +94,7 @@ export const GroupSettings = () => {
             .from('group_members')
             .select('*', { count: 'exact', head: true })
             .eq('group_id', group.id);
-          
+
           return {
             ...group,
             member_count: count || 0
@@ -116,12 +119,14 @@ export const GroupSettings = () => {
     setEditingGroup(group.id);
     setEditingName(group.name);
     setEditingDescription(group.description || '');
+    setEditingWelcomeMessage(group.welcome_message || 'مرحباً بكم في مجموعتنا');
   };
 
   const handleCancelEdit = () => {
     setEditingGroup(null);
     setEditingName('');
     setEditingDescription('');
+    setEditingWelcomeMessage('');
   };
 
   const handleUpdateGroup = async (groupId: string) => {
@@ -136,12 +141,13 @@ export const GroupSettings = () => {
 
     try {
       setIsUpdating(true);
-      
+
       const { error } = await supabase
         .from('groups')
         .update({
           name: editingName.trim(),
           description: editingDescription.trim() || null,
+          welcome_message: editingWelcomeMessage.trim() || null,
           updated_at: new Date().toISOString()
         })
         .eq('id', groupId)
@@ -158,15 +164,21 @@ export const GroupSettings = () => {
       }
 
       // Update local state
-      setGroups(prev => prev.map(group => 
-        group.id === groupId 
-          ? { ...group, name: editingName.trim(), description: editingDescription.trim() || null }
+      setGroups(prev => prev.map(group =>
+        group.id === groupId
+          ? {
+              ...group,
+              name: editingName.trim(),
+              description: editingDescription.trim() || null,
+              welcome_message: editingWelcomeMessage.trim() || null
+            }
           : group
       ));
 
       setEditingGroup(null);
       setEditingName('');
       setEditingDescription('');
+      setEditingWelcomeMessage('');
 
       toast({
         title: "تم التحديث",
@@ -364,15 +376,41 @@ export const GroupSettings = () => {
             </div>
             <CardDescription className="text-gray-400 text-right">
               {editingGroup === group.id ? (
-                <Input
-                  value={editingDescription}
-                  onChange={(e) => setEditingDescription(e.target.value)}
-                  className="bg-white/10 border-white/20 text-gray-300 mt-2"
-                  dir="rtl"
-                  placeholder="وصف المجموعة (اختياري)"
-                />
+                <div className="space-y-4 mt-4">
+                  <div>
+                    <Label className="text-sm text-gray-300 block mb-1">وصف المجموعة (اختياري)</Label>
+                    <Input
+                      value={editingDescription}
+                      onChange={(e) => setEditingDescription(e.target.value)}
+                      className="bg-white/10 border-white/20 text-white w-full"
+                      dir="rtl"
+                      placeholder="وصف المجموعة"
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-sm text-gray-300 block mb-1">رسالة الترحيب</Label>
+                    <Input
+                      value={editingWelcomeMessage}
+                      onChange={(e) => setEditingWelcomeMessage(e.target.value)}
+                      className="bg-white/10 border-white/20 text-white w-full"
+                      dir="rtl"
+                      placeholder="رسالة ترحيب تظهر لأعضاء المجموعة"
+                    />
+                    <p className="text-xs text-gray-500 mt-1 text-right">
+                      هذه الرسالة تظهر في أعلى صفحة المجموعة
+                    </p>
+                  </div>
+                </div>
               ) : (
-                group.description || "لا يوجد وصف"
+                <div className="space-y-2">
+                  <div>{group.description || "لا يوجد وصف للمجموعة"}</div>
+                  {group.welcome_message && (
+                    <div className="mt-2 p-3 bg-white/5 rounded-lg border border-white/10">
+                      <div className="text-sm text-gray-300 mb-1">رسالة الترحيب:</div>
+                      <div className="text-white">{group.welcome_message}</div>
+                    </div>
+                  )}
+                </div>
               )}
             </CardDescription>
           </CardHeader>

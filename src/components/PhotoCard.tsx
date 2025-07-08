@@ -139,7 +139,15 @@ const PhotoCard: React.FC<PhotoCardProps> = ({
       return userEmail.split('@')[0];
     }
     // إذا لم يكن هناك اسم أو إيميل، نستخدم معرف المستخدم
-    return `User ${userId.substring(0, 6)}`;
+    return `User ${userId ? userId.substring(0, 6) : 'unknown'}`;
+  };
+  
+  // الحصول على اسم مالك الصورة
+  const getPhotoOwnerName = () => {
+    if (userDisplayName) return userDisplayName;
+    if (userEmail) return userEmail.split('@')[0];
+    if (photoOwnerId) return `User ${photoOwnerId.substring(0, 6)}`;
+    return 'مستخدم';
   };
 
   // حالة لحفظ قائمة الألبومات
@@ -547,7 +555,7 @@ const PhotoCard: React.FC<PhotoCardProps> = ({
                 <div className="mb-1 text-right">
                   <div className="text-right mb-1">
                     <span className="text-yellow-100 text-[11px] font-medium opacity-80 bg-black/20 px-2 py-0.5 rounded">
-                      {getDisplayName(currentUserId, userEmail, userDisplayName)}
+                      {getPhotoOwnerName()}
                     </span>
                   </div>
                   <p className="text-white text-sm pr-1 text-right" dir="auto" style={{ unicodeBidi: 'plaintext' }}>

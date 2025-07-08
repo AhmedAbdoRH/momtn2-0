@@ -15,6 +15,7 @@ interface Group {
   id: string;
   name: string;
   description: string | null;
+  welcome_message: string | null;
   created_by: string;
   is_private: boolean;
   invite_code: string | null;
@@ -49,7 +50,6 @@ export default function GroupsDropdown({ selectedGroupId, onGroupChange }: Group
   const [selectedGroup, setSelectedGroup] = useState<Group | null>(null);
   const [groupMembers, setGroupMembers] = useState<GroupMember[]>([]);
 
-  const [newGroupDescription, setNewGroupDescription] = useState('');
   const [isPrivate, setIsPrivate] = useState(false);
   const [inviteCode, setInviteCode] = useState('');
   const [creating, setCreating] = useState(false);
@@ -60,19 +60,13 @@ export default function GroupsDropdown({ selectedGroupId, onGroupChange }: Group
   const [isEditingGroupName, setIsEditingGroupName] = useState(false);
   const [editingGroupName, setEditingGroupName] = useState('');
   const [isUpdatingGroupName, setIsUpdatingGroupName] = useState(false);
+  const [isEditingWelcomeMessage, setIsEditingWelcomeMessage] = useState(false);
+  const [editingWelcomeMessage, setEditingWelcomeMessage] = useState('');
+  const [isUpdatingWelcomeMessage, setIsUpdatingWelcomeMessage] = useState(false);
   
   const { user } = useAuth();
   const { toast } = useToast();
   const [newGroupName, setNewGroupName] = useState('');
-
-  // Set default group name when user is available
-  useEffect(() => {
-    if (user?.email) {
-      // First try to get the display name from the user metadata
-      const displayName = user.user_metadata?.full_name || user.email.split('@')[0];
-      setNewGroupName(displayName);
-    }
-  }, [user]);
 
   useEffect(() => {
     if (user) {
@@ -238,7 +232,7 @@ export default function GroupsDropdown({ selectedGroupId, onGroupChange }: Group
         .from('groups')
         .insert({
           name: newGroupName.trim(),
-          description: newGroupDescription.trim() || null,
+          description: null,
           created_by: user.id,
           is_private: isPrivate
         })
@@ -253,8 +247,7 @@ export default function GroupsDropdown({ selectedGroupId, onGroupChange }: Group
 
       await fetchUserGroups();
       setShowCreateDialog(false);
-      setNewGroupName(user?.email?.split('@')[0] || '');
-      setNewGroupDescription('');
+      setNewGroupName('');
       setIsPrivate(false);
       
       toast({ 
@@ -466,9 +459,11 @@ export default function GroupsDropdown({ selectedGroupId, onGroupChange }: Group
     setSelectedGroup(group);
     setShowSettingsDialog(true);
     fetchGroupMembers(group.id);
-    // Reset editing state when opening settings
+    // Reset editing states when opening settings
     setIsEditingGroupName(false);
     setEditingGroupName('');
+    setIsEditingWelcomeMessage(false);
+    setEditingWelcomeMessage(group.welcome_message || 'لحظاتنا السعيدة، والنعم الجميلة في حياتنا');
   };
 
   // Group name editing functions
@@ -556,6 +551,89 @@ export default function GroupsDropdown({ selectedGroupId, onGroupChange }: Group
     setEditingGroupName('');
   };
 
+  const handleEditWelcomeMessage = () => {
+    if (selectedGroup) {
+      setEditingWelcomeMessage(selectedGroup.welcome_message || 'لحظاتنا السعيدة، والنعم الجميلة في حياتنا');
+      setIsEditingWelcomeMessage(true);
+    }
+  };
+
+  const handleSaveWelcomeMessage = async () => {
+    if (!selectedGroup || !user || !editingWelcomeMessage.trim()) {
+      toast({ 
+        title: "خطأ", 
+        description: "يجب كتابة رسالة الترحيب", 
+        variant: "destructive" 
+      });
+      return;
+    }
+
+    // Only allow group creator to edit welcome message
+    if (selectedGroup.created_by !== user.id) {
+      toast({ 
+        title: "غير مسموح", 
+        description: "فقط مؤسس المجموعة يمكنه تعديل رسالة الترحيب", 
+        variant: "destructive" 
+      });
+      return;
+    }
+
+    setIsUpdatingWelcomeMessage(true);
+    try {
+      const { error } = await supabase
+        .from('groups')
+        .update({ 
+          welcome_message: editingWelcomeMessage.trim(),
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', selectedGroup.id)
+        .eq('created_by', user.id);
+
+      if (error) {
+        console.error('Error updating welcome message:', error);
+        toast({ 
+          title: "خطأ في التحديث", 
+          description: "لم نتمكن من تحديث رسالة الترحيب", 
+          variant: "destructive" 
+        });
+        return;
+      }
+
+      // Update local state
+      const updatedGroup = { ...selectedGroup, welcome_message: editingWelcomeMessage.trim() };
+      setSelectedGroup(updatedGroup);
+      
+      // Update groups list
+      setGroups(prev => prev.map(group => 
+        group.id === selectedGroup.id 
+          ? { ...group, welcome_message: editingWelcomeMessage.trim() }
+          : group
+      ));
+
+      setIsEditingWelcomeMessage(false);
+
+      toast({ 
+        title: "تم التحديث", 
+        description: "تم تحديث رسالة الترحيب بنجاح",
+        className: "border-green-400/50 bg-green-900/80"
+      });
+    } catch (err) {
+      console.error('Exception updating welcome message:', err);
+      toast({ 
+        title: "خطأ غير متوقع", 
+        description: "حدث خطأ أثناء تحديث رسالة الترحيب", 
+        variant: "destructive" 
+      });
+    } finally {
+      setIsUpdatingWelcomeMessage(false);
+    }
+  };
+
+  const handleCancelEditWelcomeMessage = () => {
+    setIsEditingWelcomeMessage(false);
+    setEditingWelcomeMessage(selectedGroup?.welcome_message || '');
+  };
+
   const getRoleIcon = (role: string) => {
     switch (role) {
       case 'admin':
@@ -638,10 +716,10 @@ export default function GroupsDropdown({ selectedGroupId, onGroupChange }: Group
                     e.stopPropagation();
                     openGroupSettings(group);
                   }}
-                  className="p-1 rounded-full bg-black/20 hover:bg-black/40 transition-colors"
+                  className="p-1.5 rounded-full bg-black/20 hover:bg-black/40 transition-colors"
                   title="إعدادات المجموعة"
                 >
-                  <Settings className="w-3 h-3 text-white" />
+                  <Settings className="w-4 h-4 text-white" />
                 </button>
               )}
               
@@ -697,17 +775,6 @@ export default function GroupsDropdown({ selectedGroupId, onGroupChange }: Group
                 className="w-full bg-white/10 backdrop-blur-sm text-white text-right border-white/20"
                 placeholder="أدخل اسم المجموعة..."
                 dir="rtl"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium mb-2 text-right">الوصف (اختياري)</label>
-              <Textarea
-                value={newGroupDescription}
-                onChange={(e) => setNewGroupDescription(e.target.value)}
-                className="bg-white/10 backdrop-blur-sm text-white text-right border-white/20"
-                placeholder="وصف المجموعة..."
-                dir="rtl"
-                rows={3}
               />
             </div>
 
@@ -853,7 +920,7 @@ export default function GroupsDropdown({ selectedGroupId, onGroupChange }: Group
                     <Input
                       value={editingGroupName}
                       onChange={(e) => setEditingGroupName(e.target.value)}
-                      className="bg-white/10 border-white/20 text-white text-right text-lg font-semibold max-w-xs"
+                      className="bg-white/10 border-white/20 text-white text-right text-lg font-semibold w-full max-w-lg"
                       dir="rtl"
                       placeholder="اسم المجموعة"
                       autoFocus
@@ -889,6 +956,65 @@ export default function GroupsDropdown({ selectedGroupId, onGroupChange }: Group
                       {selectedGroup.invite_code}
                     </code>
                     <span className="text-sm text-gray-300">كود الدعوة:</span>
+                  </div>
+                )}
+              </div>
+
+              {/* Welcome Message */}
+              <div className="space-y-2 p-4 bg-white/5 rounded-lg">
+                <div className="flex items-center justify-between">
+                  <h4 className="text-md font-medium">رسالة الترحيب</h4>
+                  {selectedGroup.created_by === user?.id && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={isEditingWelcomeMessage ? handleCancelEditWelcomeMessage : handleEditWelcomeMessage}
+                      className="text-blue-400 hover:text-blue-300 hover:bg-blue-900/20 p-1 h-6"
+                      disabled={isUpdatingWelcomeMessage}
+                    >
+                      {isEditingWelcomeMessage ? (
+                        <X className="w-3 h-3" />
+                      ) : (
+                        <Edit2 className="w-3 h-3" />
+                      )}
+                    </Button>
+                  )}
+                </div>
+                
+                {isEditingWelcomeMessage ? (
+                  <div className="space-y-2">
+                    <Textarea
+                      value={editingWelcomeMessage}
+                      onChange={(e) => setEditingWelcomeMessage(e.target.value)}
+                      className="bg-white/10 border-white/20 text-white min-h-[100px]"
+                      dir="rtl"
+                      placeholder="اكتب رسالة ترحيب للمجموعة..."
+                    />
+                    <div className="flex justify-end gap-2">
+                      <Button
+                        onClick={handleCancelEditWelcomeMessage}
+                        variant="outline"
+                        size="sm"
+                        className="bg-transparent border-white/20 text-white hover:bg-white/10"
+                      >
+                        إلغاء
+                      </Button>
+                      <Button
+                        onClick={handleSaveWelcomeMessage}
+                        size="sm"
+                        className="bg-blue-600 hover:bg-blue-700"
+                        disabled={isUpdatingWelcomeMessage || !editingWelcomeMessage.trim()}
+                      >
+                        {isUpdatingWelcomeMessage ? (
+                          <Loader2 className="w-4 h-4 animate-spin ml-2" />
+                        ) : null}
+                        حفظ
+                      </Button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="text-sm text-gray-300 whitespace-pre-line">
+                    {selectedGroup.welcome_message || 'لا توجد رسالة ترحيب مضافة'}
                   </div>
                 )}
               </div>

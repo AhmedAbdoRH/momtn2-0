@@ -10,7 +10,6 @@ import { Label } from "../components/ui/label";
 import { useAuth } from "../components/AuthProvider";
 import { useToast } from "../hooks/use-toast";
 import { supabase } from "../integrations/supabase/client";
-import { GroupSettings } from "../components/GroupSettings";
 
 const SettingsPage = () => {
   const [activeTab, setActiveTab] = useState("general");
@@ -199,18 +198,12 @@ const SettingsPage = () => {
 
       <div className="glass-effect p-8 rounded-2xl shadow-xl backdrop-blur-md bg-black/60 border border-white/10">
         <Tabs defaultValue="general" dir="rtl" onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid grid-cols-3 mb-8 bg-black/30 backdrop-blur-md p-1.5 rounded-lg">
+          <TabsList className="grid grid-cols-2 mb-8 bg-black/30 backdrop-blur-md p-1.5 rounded-lg">
             <TabsTrigger
               value="general"
               className="text-lg py-3 rounded-md data-[state=active]:bg-white/10 data-[state=active]:text-white text-gray-300"
             >
               الإعدادات العامة
-            </TabsTrigger>
-            <TabsTrigger
-              value="groups"
-              className="text-lg py-3 rounded-md data-[state=active]:bg-white/10 data-[state=active]:text-white text-gray-300"
-            >
-              المجموعات
             </TabsTrigger>
             <TabsTrigger
               value="contributors"
@@ -294,10 +287,6 @@ const SettingsPage = () => {
             </section>
 
             <BackgroundSettings />
-          </TabsContent>
-
-          <TabsContent value="groups">
-            <GroupSettings />
           </TabsContent>
 
           <TabsContent value="contributors">

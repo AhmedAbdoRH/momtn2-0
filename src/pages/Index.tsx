@@ -365,8 +365,8 @@ const Index = () => {
             )}
 
             {/* Greeting Message */}
-            <p className="text-2xl text-white font-medium mb-6 max-w-2xl mx-auto">
-              {greetingMessage}
+            <p className="text-2xl text-white font-medium mb-6 max-w-2xl mx-auto text-center">
+              {selectedGroupId ? 'لحظاتنا السعيدة، والنعم الجميلة في حياتنا' : greetingMessage}
             </p>
             {/* Main 'Add New' Button */}
             {/* زر "إضافة جديد" الرئيسي */}

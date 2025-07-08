@@ -271,14 +271,15 @@ const AuthPage = () => {
     <div className="min-h-screen bg-gradient-to-br from-[#2D1F3D] via-[#1A1F2C] to-[#3D1F2C] flex items-center justify-center p-4">
       <div className="max-w-md w-full space-y-6 bg-gray-900/60 backdrop-blur-xl p-6 rounded-2xl shadow-xl"> 
         <div className="text-center">
-          <div className="inline-block mb-4 mt-4 w-29 h-29">
+          <div className="inline-block w-29 h-29">
             <img
               src="/lovable-uploads/2747e89b-5855-4294-9523-b5d3dd0527be.png"
               alt="Logo"
               className="w-full h-full object-contain"
             />
           </div>
-          <h2 className="text-xl font-bold text-white"> 
+          <p className="text-gray-400 text-xs -mt-1 mb-4">Version 2.0</p>
+          <h2 className="text-xl font-bold text-white mt-2"> 
             {mode === 'signIn' 
               ? 'تسجيل الدخول' 
               : mode === 'signUp' 

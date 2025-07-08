@@ -902,8 +902,8 @@ const PhotoGrid: FC<PhotoGridProps> = ({ closeSidebar, selectedGroupId }): JSX.E
                           }
                           onAddComment={(content) => handleAddComment(photo.id, content)}
                           isGroupPhoto={!!selectedGroupId}
-                          userEmail={user?.email || ''}
-                          userDisplayName={userDisplayName}
+                          userEmail={photo.users?.email || user?.email || ''}
+                          userDisplayName={photo.users?.full_name || userDisplayName}
                           selectedGroupId={selectedGroupId}
                           currentUserId={user?.id || ''}
                           photoOwnerId={photo.user_id}
