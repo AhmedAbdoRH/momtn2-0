@@ -23,6 +23,8 @@ interface Comment {
   content: string;
   created_at: string;
   updated_at: string;
+  likes?: number;
+  liked_by?: string;
   user: CommentUser;
 }
 
@@ -37,6 +39,7 @@ interface PhotoCardProps {
   onDelete: () => void; // دالة لحذف الصورة
   onUpdateCaption: (caption: string, hashtags: string[]) => Promise<void>; // دالة لتحديث التعليق والهاشتاجات
   onAddComment: (content: string) => Promise<void>; // دالة لإضافة تعليق جديد
+  onLikeComment: (commentId: string) => Promise<void>; // دالة للإعجاب بالتعليق
   currentUserId: string; // معرف المستخدم الحالي
   photoId: string; // معرف الصورة (مرادف لـ id للتوافق مع المكونات الأخرى)
   dragHandleProps?: any; // خصائص السحب والإفلات
@@ -59,6 +62,7 @@ const PhotoCard: React.FC<PhotoCardProps> = ({
   onDelete,
   onUpdateCaption,
   onAddComment,
+  onLikeComment,
   currentUserId,
   photoId: propPhotoId,
   dragHandleProps,
@@ -719,14 +723,35 @@ const PhotoCard: React.FC<PhotoCardProps> = ({
                               {getDisplayName(comment.user_id, comment.user?.email, comment.user?.full_name)}
                             </span>
                           </div>
-                          <p className="text-white text-sm leading-tight whitespace-pre-line text-right -mb-0.5 mt-0.5" dir="auto">
-                            {comment.content}
-                          </p>
-                          <div className="text-left -mt-0.5 mb-0">
-                            <span className="text-white/30 text-[10px]">
-                              {formatCommentDate(comment.updated_at)}
-                            </span>
-                          </div>
+                           <p className="text-white text-sm leading-tight whitespace-pre-line text-right -mb-0.5 mt-0.5" dir="auto">
+                             {comment.content}
+                           </p>
+                           <div className="flex justify-between items-center -mt-0.5 mb-0">
+                             <div className="flex items-center gap-2">
+                               {/* زر الإعجاب بالتعليق */}
+                               <button
+                                 onClick={(e) => {
+                                   e.stopPropagation();
+                                   onLikeComment(comment.id);
+                                 }}
+                                 className="flex items-center gap-1 text-white/60 hover:text-red-400 transition-colors p-1 rounded-full hover:bg-white/10"
+                               >
+                                 <Heart 
+                                   className={`w-3 h-3 transition-all ${
+                                     comment.liked_by?.split(',').includes(currentUserId) 
+                                       ? 'fill-red-400 text-red-400' 
+                                       : 'hover:scale-110'
+                                   }`} 
+                                 />
+                                 {(comment.likes || 0) > 0 && (
+                                   <span className="text-xs">{comment.likes}</span>
+                                 )}
+                               </button>
+                             </div>
+                             <span className="text-white/30 text-[10px]">
+                               {formatCommentDate(comment.updated_at)}
+                             </span>
+                           </div>
                         </div>
                       </div>
                     )}

@@ -21,6 +21,8 @@ interface Comment {
   content: string;
   created_at: string;
   updated_at: string;
+  likes?: number;
+  liked_by?: string;
   user: CommentUser;
 }
 
@@ -465,6 +467,75 @@ const PhotoGrid: FC<PhotoGridProps> = ({ closeSidebar, selectedGroupId }): JSX.E
     }
   };
 
+  // معالجة الإعجاب بالتعليقات
+  const handleLikeComment = async (commentId: string): Promise<void> => {
+    if (!user?.id) {
+      console.error('No user ID available');
+      return;
+    }
+
+    try {
+      // الحصول على التعليق الحالي
+      const { data: currentComment, error: fetchError } = await supabase
+        .from('comments')
+        .select('likes, liked_by')
+        .eq('id', commentId)
+        .single();
+
+      if (fetchError) {
+        console.error('Error fetching comment:', fetchError);
+        return;
+      }
+
+      const currentLikes = (currentComment as any)?.likes || 0;
+      const likedByList = (currentComment as any)?.liked_by ? (currentComment as any).liked_by.split(',') : [];
+      const userHasLiked = likedByList.includes(user.id);
+
+      let newLikes: number;
+      let newLikedBy: string;
+
+      if (userHasLiked) {
+        // إزالة الإعجاب
+        newLikes = Math.max(0, currentLikes - 1);
+        newLikedBy = likedByList.filter(id => id !== user.id).join(',');
+      } else {
+        // إضافة الإعجاب
+        newLikes = currentLikes + 1;
+        newLikedBy = likedByList.concat([user.id]).join(',');
+      }
+
+      // تحديث قاعدة البيانات
+      const { error: updateError } = await supabase
+        .from('comments')
+        .update({
+          likes: newLikes,
+          liked_by: newLikedBy,
+          updated_at: new Date().toISOString()
+        } as any)
+        .eq('id', commentId);
+
+      if (updateError) {
+        console.error('Error updating comment likes:', updateError);
+        return;
+      }
+
+      // تحديث الواجهة محلياً
+      setPhotos(prev => 
+        prev.map(photo => ({
+          ...photo,
+          comments: photo.comments?.map(comment => 
+            comment.id === commentId 
+              ? { ...comment, likes: newLikes, liked_by: newLikedBy }
+              : comment
+          )
+        }))
+      );
+
+    } catch (error) {
+      console.error('Error in handleLikeComment:', error);
+    }
+  };
+
   const handleLike = async (photoId: string): Promise<void> => {
     if (!user?.id) return;
     
@@ -901,6 +972,7 @@ const PhotoGrid: FC<PhotoGridProps> = ({ closeSidebar, selectedGroupId }): JSX.E
                             handleUpdateCaption(photo.id, caption, hashtags)
                           }
                           onAddComment={(content) => handleAddComment(photo.id, content)}
+                          onLikeComment={(commentId) => handleLikeComment(commentId)}
                           isGroupPhoto={!!selectedGroupId}
                           userEmail={photo.users?.email || user?.email || ''}
                           userDisplayName={photo.users?.full_name || userDisplayName}
