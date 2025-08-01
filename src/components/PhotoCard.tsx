@@ -23,6 +23,8 @@ interface Comment {
   content: string;
   created_at: string;
   updated_at: string;
+  likes?: number;
+  liked_by?: string;
   user: CommentUser;
 }
 
@@ -359,6 +361,61 @@ const PhotoCard: React.FC<PhotoCardProps> = ({
       });
     } finally {
       setIsCommentLoading(false);
+    }
+  };
+
+  // إعجاب بالتعليق
+  const handleCommentLike = async (commentId: string) => {
+    try {
+      // العثور على التعليق الحالي
+      const comment = comments.find(c => c.id === commentId);
+      if (!comment) return;
+
+      const currentLikes = comment.likes || 0;
+      const likedByUsers = comment.liked_by ? comment.liked_by.split(',').filter(id => id) : [];
+      const hasLiked = likedByUsers.includes(currentUserId);
+
+      let newLikes: number;
+      let newLikedBy: string;
+
+      if (hasLiked) {
+        // إلغاء الإعجاب
+        newLikes = Math.max(0, currentLikes - 1);
+        newLikedBy = likedByUsers.filter(id => id !== currentUserId).join(',');
+      } else {
+        // إضافة إعجاب
+        newLikes = currentLikes + 1;
+        newLikedBy = [...likedByUsers, currentUserId].join(',');
+      }
+
+      // تحديث التعليق محلياً أولاً
+      setComments(prev => 
+        prev.map(c => 
+          c.id === commentId 
+            ? { ...c, likes: newLikes, liked_by: newLikedBy }
+            : c
+        )
+      );
+
+      // تحديث التعليق في قاعدة البيانات
+      const { error } = await supabase
+        .from('comments')
+        .update({ 
+          liked_by: newLikedBy
+        })
+        .eq('id', commentId);
+
+      if (error) throw error;
+      
+    } catch (error) {
+      console.error('Error liking comment:', error);
+      
+      // إعادة تحميل التعليقات من الخادم في حالة الخطأ
+      toast({
+        title: 'خطأ',
+        description: 'حدث خطأ أثناء الإعجاب بالتعليق. يرجى المحاولة مرة أخرى.',
+        variant: 'destructive',
+      });
     }
   };
 
@@ -705,21 +762,39 @@ const PhotoCard: React.FC<PhotoCardProps> = ({
                           </div>
                         )}
                         
-                        <div className="w-full">
-                          <div className="flex justify-end mb-1">
-                            <span className="text-blue-300 text-xs font-medium bg-black/10 px-1.5 py-0.5 rounded-md">
-                              {getDisplayName(comment.user_id, comment.user?.email, comment.user?.full_name)}
-                            </span>
-                          </div>
-                          <p className="text-white text-sm leading-tight whitespace-pre-line text-right -mb-0.5 mt-0.5" dir="auto">
-                            {comment.content}
-                          </p>
-                          <div className="text-left -mt-0.5 mb-0">
-                            <span className="text-white/30 text-[10px]">
-                              {formatCommentDate(comment.updated_at)}
-                            </span>
-                          </div>
-                        </div>
+                         <div className="w-full">
+                           <div className="flex justify-end mb-1">
+                             <span className="text-blue-300 text-xs font-medium bg-black/10 px-1.5 py-0.5 rounded-md">
+                               {getDisplayName(comment.user_id, comment.user?.email, comment.user?.full_name)}
+                             </span>
+                           </div>
+                           <p className="text-white text-sm leading-tight whitespace-pre-line text-right -mb-0.5 mt-0.5" dir="auto">
+                             {comment.content}
+                           </p>
+                           <div className="flex items-center justify-between -mt-0.5 mb-0">
+                             <button
+                               onClick={(e) => {
+                                 e.stopPropagation();
+                                 handleCommentLike(comment.id);
+                               }}
+                               className="flex items-center gap-1 px-2 py-1 rounded-full hover:bg-white/10 transition-colors group"
+                             >
+                               <Heart 
+                                 className={`w-3 h-3 transition-colors ${
+                                   comment.liked_by?.split(',').includes(currentUserId) 
+                                     ? 'text-red-500 fill-red-500' 
+                                     : 'text-white/40 group-hover:text-red-400'
+                                 }`} 
+                               />
+                               <span className="text-white/40 text-[10px] group-hover:text-white/60">
+                                 {comment.likes || 0}
+                               </span>
+                             </button>
+                             <span className="text-white/30 text-[10px]">
+                               {formatCommentDate(comment.updated_at)}
+                             </span>
+                           </div>
+                         </div>
                       </div>
                     )}
                   </div>
