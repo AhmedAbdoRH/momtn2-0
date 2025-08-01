@@ -106,8 +106,7 @@ export default function GroupsDropdown({ selectedGroupId, onGroupChange }: Group
             description,
             created_by,
             is_private,
-            invite_code,
-            welcome_message
+            invite_code
           ),
           role
         `)
@@ -124,14 +123,14 @@ export default function GroupsDropdown({ selectedGroupId, onGroupChange }: Group
       }
 
       // Transform the data
-      const transformedGroups = memberGroups?.map((item: any) => ({
+      const transformedGroups = memberGroups?.map(item => ({
         ...item.groups,
         user_role: item.role
       })) || [];
 
       // Get member counts for each group
       const groupsWithCounts = await Promise.all(
-        transformedGroups.map(async (group: any) => {
+        transformedGroups.map(async (group) => {
           const { count } = await supabase
             .from('group_members')
             .select('*', { count: 'exact', head: true })
@@ -140,7 +139,7 @@ export default function GroupsDropdown({ selectedGroupId, onGroupChange }: Group
           return {
             ...group,
             member_count: count || 0
-          } as Group;
+          };
         })
       );
 

@@ -89,7 +89,7 @@ export const GroupSettings = () => {
 
       // Get member count for each group
       const groupsWithCounts = await Promise.all(
-        (groupsData || []).map(async (group: any) => {
+        (groupsData || []).map(async (group) => {
           const { count } = await supabase
             .from('group_members')
             .select('*', { count: 'exact', head: true })
@@ -98,7 +98,7 @@ export const GroupSettings = () => {
           return {
             ...group,
             member_count: count || 0
-          } as Group;
+          };
         })
       );
 
