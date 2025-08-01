@@ -106,7 +106,8 @@ export default function GroupsDropdown({ selectedGroupId, onGroupChange }: Group
             description,
             created_by,
             is_private,
-            invite_code
+            invite_code,
+            welcome_message
           ),
           role
         `)
@@ -124,7 +125,8 @@ export default function GroupsDropdown({ selectedGroupId, onGroupChange }: Group
 
       // Transform the data
       const transformedGroups = memberGroups?.map(item => ({
-        ...item.groups,
+        ...(item.groups as any),
+        welcome_message: (item.groups as any).welcome_message || null,
         user_role: item.role
       })) || [];
 
@@ -139,7 +141,7 @@ export default function GroupsDropdown({ selectedGroupId, onGroupChange }: Group
           return {
             ...group,
             member_count: count || 0
-          };
+          } as Group & { member_count: number };
         })
       );
 
