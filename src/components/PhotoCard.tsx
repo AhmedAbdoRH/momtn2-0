@@ -402,7 +402,7 @@ const PhotoCard: React.FC<PhotoCardProps> = ({
         .from('comments')
         .update({ 
           liked_by: newLikedBy
-        })
+        } as any)
         .eq('id', commentId);
 
       if (error) throw error;
