@@ -210,7 +210,8 @@ const PhotoGrid: FC<PhotoGridProps> = ({ closeSidebar, selectedGroupId }): JSX.E
       if (selectedGroupId) {
         query = query.eq('group_id', selectedGroupId);
       } else {
-        query = query.is('group_id', null);
+        // For personal space, only show current user's photos
+        query = query.is('group_id', null).eq('user_id', user.id);
       }
 
       // Execute the query - order by created_at first (newest first), then by order
