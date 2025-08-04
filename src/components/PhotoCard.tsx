@@ -85,6 +85,11 @@ const PhotoCard: React.FC<PhotoCardProps> = ({
   const [newComment, setNewComment] = useState(''); // حالة لتتبع نص التعليق الجديد
   const [isCommenting, setIsCommenting] = useState(false); // حالة لتتبع ما إذا كان حقل التعليق مفتوحاً
   const [comments, setComments] = useState<Comment[]>(initialComments); // حالة لتخزين التعليقات
+
+  // تحديث التعليقات عندما تتغير في المكون الأب
+  useEffect(() => {
+    setComments(initialComments);
+  }, [initialComments]);
   const [showComments, setShowComments] = useState(false); // حالة لإظهار/إخفاء التعليقات
   const [isCommentLoading, setIsCommentLoading] = useState(false); // حالة لتحميل التعليقات
 
@@ -376,38 +381,16 @@ const PhotoCard: React.FC<PhotoCardProps> = ({
     if (!content.trim() || !onAddComment) return;
     
     setIsCommentLoading(true);
-    const tempId = `temp-${Date.now()}`;
     
     try {
-      // الحصول على بيانات المستخدم الحالي (الذي يعلق) من useAuth
-      const currentUserDisplayName = userDisplayName || userEmail?.split('@')[0] || 'مستخدم';
-      
-      // إنشاء تعليق مؤقت
-      const tempComment: Comment = {
-        id: tempId,
-        photo_id: photoId,
-        user_id: currentUserId,
-        content,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-        user: {
-          email: userEmail || '', // هذا يجب أن يكون إيميل المستخدم الحالي
-          full_name: currentUserDisplayName // اسم المستخدم الحالي الذي يعلق
-        }
-      };
-      
-      // إضافة التعليق محلياً أولاً
-      setComments(prev => [tempComment, ...(prev || [])]);
       setNewComment('');
       
       // إرسال التعليق للخادم من خلال الدالة الأب
+      // PhotoGrid سيتولى التحديث المؤقت بالبيانات الصحيحة
       await onAddComment(content);
       
     } catch (error) {
       console.error('Error adding comment:', error);
-      
-      // إزالة التعليق المؤقت في حالة الخطأ
-      setComments(prev => prev.filter(c => c.id !== tempId));
       
       // إظهار رسالة خطأ للمستخدم
       toast({
