@@ -33,39 +33,9 @@ export const TextToImageGenerator = ({ onImageGenerated, isGenerating, setIsGene
       canvas.width = 800;
       canvas.height = 600;
 
-      // احترافية الزجاج: خلفية شفافة بلون أزرق داكن وطمس متدرج
-      const gradient = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
-      gradient.addColorStop(0, "rgba(20, 30, 60, 0.6)");
-      gradient.addColorStop(1, "rgba(10, 20, 40, 0.85)");
-      ctx.fillStyle = gradient;
+      // خلفية زجاجية مموهة بسيطة فقط بدون عناصر أو تأثيرات إضافية
+      ctx.fillStyle = "rgba(20, 30, 60, 0.5)"; // لون شفاف
       ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-      // تأثير الزجاج المموه (تكرار دوائر ضبابية شفافة)
-      for (let i = 0; i < 50; i++) {
-        ctx.beginPath();
-        ctx.fillStyle = `rgba(255, 255, 255, ${Math.random() * 0.05})`;
-        const radius = Math.random() * 40 + 10;
-        ctx.arc(
-          Math.random() * canvas.width,
-          Math.random() * canvas.height,
-          radius,
-          0,
-          2 * Math.PI
-        );
-        ctx.fill();
-      }
-
-      // خطوط ناعمة لإضافة العمق
-      ctx.globalAlpha = 0.03;
-      ctx.strokeStyle = "#ffffff";
-      ctx.lineWidth = 0.5;
-      for (let i = 0; i < 20; i++) {
-        ctx.beginPath();
-        ctx.moveTo(Math.random() * canvas.width, Math.random() * canvas.height);
-        ctx.lineTo(Math.random() * canvas.width, Math.random() * canvas.height);
-        ctx.stroke();
-      }
-      ctx.globalAlpha = 1;
 
       // إعداد النص
       ctx.fillStyle = "#ffffff";
