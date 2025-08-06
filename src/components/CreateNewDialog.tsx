@@ -1,10 +1,11 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { useState, useEffect, useRef } from "react";
-import { ImagePlus } from "lucide-react";
+import { ImagePlus, Type, Image } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "./AuthProvider";
+import { TextToImageGenerator } from "./TextToImageGenerator";
 
 interface CreateNewDialogProps {
   open: boolean;
@@ -14,9 +15,11 @@ interface CreateNewDialogProps {
 }
 
 const CreateNewDialog = ({ open, onOpenChange, onPhotoAdded, selectedGroupId }: CreateNewDialogProps) => {
+  const [contentType, setContentType] = useState<"image" | "text">("image");
   const [image, setImage] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string>("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isGeneratingText, setIsGeneratingText] = useState(false);
   const [albumName, setAlbumName] = useState<string>("");
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const [showAlbumInput, setShowAlbumInput] = useState(false);
@@ -102,6 +105,7 @@ const CreateNewDialog = ({ open, onOpenChange, onPhotoAdded, selectedGroupId }: 
   };
 
   const resetFormState = () => {
+    setContentType("image");
     setImage(null);
     setPreviewUrl("");
     setAlbumName("");
@@ -109,6 +113,7 @@ const CreateNewDialog = ({ open, onOpenChange, onPhotoAdded, selectedGroupId }: 
     setSelectedAlbums(new Set());
     setShowAlbumInput(false);
     setIsSubmitting(false);
+    setIsGeneratingText(false);
   };
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -188,6 +193,18 @@ const CreateNewDialog = ({ open, onOpenChange, onPhotoAdded, selectedGroupId }: 
   // Function to validate album name (no longer needs to check database)
   const validateAlbumName = (name: string): boolean => {
     return name.trim().length > 0;
+  };
+
+  const handleTextImageGenerated = (imageUrl: string) => {
+    setPreviewUrl(imageUrl);
+    // Convert data URL to File object for upload
+    fetch(imageUrl)
+      .then(res => res.blob())
+      .then(blob => {
+        const file = new File([blob], `gratitude_${Date.now()}.jpeg`, { type: 'image/jpeg' });
+        setImage(file);
+        setShowSuggestions(true);
+      });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -308,41 +325,87 @@ const CreateNewDialog = ({ open, onOpenChange, onPhotoAdded, selectedGroupId }: 
       <DialogContent className="top-[45%] sm:max-w-[350px] max-h-[85vh] overflow-y-auto bg-gray-900/80 backdrop-blur-lg text-white border border-gray-700 shadow-xl rounded-lg">
         <DialogHeader>
           <DialogTitle className="text-right text-white">
-            {selectedGroupId ? "إضافة صورة للمجموعة" : "إضافة صورة جديدة"}
+            {selectedGroupId ? "إضافة امتنان للمجموعة" : "إضافة امتنان جديد"}
           </DialogTitle>
           <DialogDescription className="text-right text-gray-300">
             {selectedGroupId 
-              ? "قم بتحميل صورة وأضفها إلى المجموعة المحددة."
-              : "قم بتحميل صورة وأضفها إلى ألبوم (اختياري)."}
+              ? "اختر بين رفع صورة أو كتابة امتنان نصي وأضفه إلى المجموعة."
+              : "اختر بين رفع صورة أو كتابة امتنان نصي."}
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4 pt-2">
-          <div className="flex flex-col items-center gap-4">
-            <label
-              htmlFor="imageUpload"
-              ref={imageLabelRef} // إضافة المرجع
-              tabIndex={0} // جعل label قابلة للتركيز
-              className="w-full h-40 border-2 border-dashed border-gray-600 rounded-lg flex flex-col items-center justify-center cursor-pointer hover:border-gray-500 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-colors outline-none"
+          {/* Content Type Selection */}
+          <div className="flex gap-2 w-full">
+            <button
+              type="button"
+              onClick={() => setContentType("image")}
+              className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-lg transition-colors ${
+                contentType === "image"
+                  ? "bg-indigo-600 text-white"
+                  : "bg-gray-700/50 text-gray-300 hover:bg-gray-600/50"
+              }`}
             >
-              {previewUrl ? (
-                <img src={previewUrl} alt="Preview" className="w-full h-full object-contain rounded-lg p-1" />
-              ) : (
-                <div className="text-center pointer-events-none">
-                  <ImagePlus className="w-10 h-10 text-gray-400 mx-auto" />
-                  <p className="mt-2 text-sm text-gray-400">اضغط لاختيار صورة</p>
-                </div>
-              )}
-            </label>
-            <input
-              id="imageUpload"
-              type="file"
-              accept="image/*,.heic,.heif"
-              onChange={handleImageChange}
-              className="hidden"
-            />
+              <Image size={18} />
+              <span>رفع صورة</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setContentType("text")}
+              className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-lg transition-colors ${
+                contentType === "text"
+                  ? "bg-indigo-600 text-white"
+                  : "bg-gray-700/50 text-gray-300 hover:bg-gray-600/50"
+              }`}
+            >
+              <Type size={18} />
+              <span>امتنان كتابي</span>
+            </button>
+          </div>
 
-            {/* Caption Input */}
-            {image && (
+          <div className="flex flex-col items-center gap-4">
+            {contentType === "image" ? (
+              <>
+                <label
+                  htmlFor="imageUpload"
+                  ref={imageLabelRef} // إضافة المرجع
+                  tabIndex={0} // جعل label قابلة للتركيز
+                  className="w-full h-40 border-2 border-dashed border-gray-600 rounded-lg flex flex-col items-center justify-center cursor-pointer hover:border-gray-500 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-colors outline-none"
+                >
+                  {previewUrl ? (
+                    <img src={previewUrl} alt="Preview" className="w-full h-full object-contain rounded-lg p-1" />
+                  ) : (
+                    <div className="text-center pointer-events-none">
+                      <ImagePlus className="w-10 h-10 text-gray-400 mx-auto" />
+                      <p className="mt-2 text-sm text-gray-400">اضغط لاختيار صورة</p>
+                    </div>
+                  )}
+                </label>
+                <input
+                  id="imageUpload"
+                  type="file"
+                  accept="image/*,.heic,.heif"
+                  onChange={handleImageChange}
+                  className="hidden"
+                />
+              </>
+            ) : (
+              <div className="w-full">
+                {previewUrl ? (
+                  <div className="w-full">
+                    <img src={previewUrl} alt="Generated gratitude" className="w-full h-40 object-contain rounded-lg border border-gray-600" />
+                  </div>
+                ) : (
+                  <TextToImageGenerator
+                    onImageGenerated={handleTextImageGenerated}
+                    isGenerating={isGeneratingText}
+                    setIsGenerating={setIsGeneratingText}
+                  />
+                )}
+              </div>
+            )}
+
+            {/* Caption Input - only show for image uploads, not text-generated images */}
+            {image && contentType === "image" && (
               <div className="w-full space-y-2">
                 <label htmlFor="photoCaption" className="block text-sm font-medium text-gray-300 text-right">
                   اكتب تعليقاً للصورة (اختياري)
@@ -458,7 +521,7 @@ const CreateNewDialog = ({ open, onOpenChange, onPhotoAdded, selectedGroupId }: 
           <div className="flex justify-start gap-3 pt-4">
             <Button
               type="submit"
-              disabled={!image || isSubmitting}
+              disabled={!image || isSubmitting || isGeneratingText}
               className="bg-[#ea384c] hover:bg-[#d93042] text-white disabled:opacity-50 disabled:cursor-not-allowed focus:ring-[#ea384c]"
             >
               {isSubmitting ? (
