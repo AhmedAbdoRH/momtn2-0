@@ -37,23 +37,35 @@ export const TextToImageGenerator = ({ onImageGenerated, isGenerating, setIsGene
       ctx.fillStyle = "rgba(10, 10, 10, 0.4)";
       ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-      // إضافة تمويه بسيط باستخدام مربعات شفافة
+      // إضافة قلوب شفافة بدلاً من المربعات
       for (let i = 0; i < 30; i++) {
-        ctx.fillStyle = `rgba(255, 255, 255, ${Math.random() * 0.00})`;
-        const size = Math.random() * 100;
-        ctx.fillRect(
-          Math.random() * canvas.width,
-          Math.random() * canvas.height,
-          size,
-          size
-        );
+        const x = Math.random() * canvas.width;
+        const y = Math.random() * canvas.height;
+        const size = Math.random() * 20 + 10;
+        const alpha = Math.random() * 0.05;
+
+        ctx.save();
+        ctx.translate(x, y);
+        ctx.scale(size / 100, size / 100);
+        ctx.beginPath();
+        ctx.moveTo(75, 40);
+        ctx.bezierCurveTo(75, 37, 70, 25, 50, 25);
+        ctx.bezierCurveTo(20, 25, 20, 62.5, 20, 62.5);
+        ctx.bezierCurveTo(20, 80, 40, 102, 75, 120);
+        ctx.bezierCurveTo(110, 102, 130, 80, 130, 62.5);
+        ctx.bezierCurveTo(130, 62.5, 130, 25, 100, 25);
+        ctx.bezierCurveTo(85, 25, 75, 37, 75, 40);
+        ctx.closePath();
+        ctx.fillStyle = `rgba(255, 0, 0, ${alpha})`;
+        ctx.fill();
+        ctx.restore();
       }
 
       // إعداد النص
       ctx.fillStyle = "#ffffff";
       ctx.textAlign = "center";
       ctx.textBaseline = "middle";
-      ctx.font = "bold 48px Arial, 'Noto Sans Arabic', sans-serif";
+      ctx.font = "bold 48px 'Cairo', 'Arial', 'Noto Sans Arabic', sans-serif";
 
       // لف النص العربي
       const words = gratitudeText.split(" ");
