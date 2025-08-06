@@ -77,7 +77,7 @@ export const TextToImageGenerator = ({ onImageGenerated, isGenerating, setIsGene
           const imageUrl = URL.createObjectURL(blob);
           onImageGenerated(imageUrl);
         }
-      }, "image/png");
+      }, "image/png"); // استخدم PNG لدعم الشفافية
 
     } catch (error) {
       console.error("Error generating image:", error);
