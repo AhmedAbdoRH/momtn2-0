@@ -26,73 +26,62 @@ export const TextToImageGenerator = ({ onImageGenerated, isGenerating, setIsGene
     setIsGenerating(true);
 
     try {
-      // Create a canvas to generate the image
       const canvas = document.createElement("canvas");
       const ctx = canvas.getContext("2d");
       if (!ctx) throw new Error("Could not create canvas context");
 
-      // Set canvas dimensions
       canvas.width = 800;
       canvas.height = 600;
 
-      // Create dark glass effect background
-      // Base dark gradient
-      const gradient = ctx.createRadialGradient(
-        canvas.width / 2, canvas.height / 2, 0,
-        canvas.width / 2, canvas.height / 2, Math.max(canvas.width, canvas.height) / 2
-      );
-      gradient.addColorStop(0, "rgba(30, 30, 40, 0.85)");
-      gradient.addColorStop(1, "rgba(15, 15, 25, 0.95)");
-
+      // احترافية الزجاج: خلفية شفافة بلون أزرق داكن وطمس متدرج
+      const gradient = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
+      gradient.addColorStop(0, "rgba(20, 30, 60, 0.6)");
+      gradient.addColorStop(1, "rgba(10, 20, 40, 0.85)");
       ctx.fillStyle = gradient;
       ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-      // Add glass-like subtle patterns
-      ctx.globalAlpha = 0.08;
-      for (let i = 0; i < 30; i++) {
-        ctx.fillStyle = "#ffffff";
+      // تأثير الزجاج المموه (تكرار دوائر ضبابية شفافة)
+      for (let i = 0; i < 50; i++) {
         ctx.beginPath();
+        ctx.fillStyle = `rgba(255, 255, 255, ${Math.random() * 0.05})`;
+        const radius = Math.random() * 40 + 10;
         ctx.arc(
           Math.random() * canvas.width,
           Math.random() * canvas.height,
-          Math.random() * 2 + 1,
+          radius,
           0,
-          Math.PI * 2
+          2 * Math.PI
         );
         ctx.fill();
       }
 
-      // Add subtle blur-like lines for glass effect
-      ctx.globalAlpha = 0.05;
+      // خطوط ناعمة لإضافة العمق
+      ctx.globalAlpha = 0.03;
       ctx.strokeStyle = "#ffffff";
-      ctx.lineWidth = 1;
-      for (let i = 0; i < 10; i++) {
+      ctx.lineWidth = 0.5;
+      for (let i = 0; i < 20; i++) {
         ctx.beginPath();
         ctx.moveTo(Math.random() * canvas.width, Math.random() * canvas.height);
         ctx.lineTo(Math.random() * canvas.width, Math.random() * canvas.height);
         ctx.stroke();
       }
-      
       ctx.globalAlpha = 1;
 
-      // Setup text styling
+      // إعداد النص
       ctx.fillStyle = "#ffffff";
       ctx.textAlign = "center";
       ctx.textBaseline = "middle";
-      
-      // Use Arabic-friendly font
       ctx.font = "bold 48px Arial, 'Noto Sans Arabic', sans-serif";
-      
-      // Word wrap function for Arabic text
+
+      // لف النص العربي
       const words = gratitudeText.split(" ");
       const lines: string[] = [];
       let currentLine = "";
-      const maxWidth = canvas.width - 100; // 50px padding on each side
+      const maxWidth = canvas.width - 100;
 
       for (const word of words) {
         const testLine = currentLine + (currentLine ? " " : "") + word;
         const metrics = ctx.measureText(testLine);
-        
         if (metrics.width > maxWidth && currentLine) {
           lines.push(currentLine);
           currentLine = word;
@@ -100,27 +89,19 @@ export const TextToImageGenerator = ({ onImageGenerated, isGenerating, setIsGene
           currentLine = testLine;
         }
       }
-      if (currentLine) {
-        lines.push(currentLine);
-      }
+      if (currentLine) lines.push(currentLine);
 
-      // Draw text lines
       const lineHeight = 60;
       const startY = canvas.height / 2 - ((lines.length - 1) * lineHeight) / 2;
-      
+
       lines.forEach((line, index) => {
         const y = startY + index * lineHeight;
-        
-        // Add text shadow
         ctx.fillStyle = "rgba(0, 0, 0, 0.3)";
         ctx.fillText(line, canvas.width / 2 + 2, y + 2);
-        
-        // Add main text
         ctx.fillStyle = "#ffffff";
         ctx.fillText(line, canvas.width / 2, y);
       });
 
-      // Convert canvas to blob
       canvas.toBlob((blob) => {
         if (blob) {
           const imageUrl = URL.createObjectURL(blob);
@@ -159,7 +140,6 @@ export const TextToImageGenerator = ({ onImageGenerated, isGenerating, setIsGene
           {gratitudeText.length}/200 حرف
         </p>
       </div>
-
 
       <Button
         type="button"
