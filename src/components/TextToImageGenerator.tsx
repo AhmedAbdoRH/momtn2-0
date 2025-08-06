@@ -33,8 +33,21 @@ export const TextToImageGenerator = ({ onImageGenerated, isGenerating, setIsGene
       canvas.width = 800;
       canvas.height = 600;
 
-      // لا يتم رسم أي خلفية لتكون شفافة تمامًا
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      // خلفية غامقة مموهة شفافة
+      ctx.fillStyle = "rgba(10, 10, 10, 0.4)";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      // إضافة تمويه بسيط باستخدام مربعات شفافة
+      for (let i = 0; i < 30; i++) {
+        ctx.fillStyle = `rgba(255, 255, 255, ${Math.random() * 0.02})`;
+        const size = Math.random() * 100;
+        ctx.fillRect(
+          Math.random() * canvas.width,
+          Math.random() * canvas.height,
+          size,
+          size
+        );
+      }
 
       // إعداد النص
       ctx.fillStyle = "#ffffff";
