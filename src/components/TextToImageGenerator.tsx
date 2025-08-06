@@ -33,9 +33,8 @@ export const TextToImageGenerator = ({ onImageGenerated, isGenerating, setIsGene
       canvas.width = 800;
       canvas.height = 600;
 
-      // خلفية زجاجية مموهة بسيطة فقط بدون عناصر أو تأثيرات إضافية
-      ctx.fillStyle = "rgba(20, 30, 60, 0.5)"; // لون شفاف
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      // لا يتم رسم أي خلفية لتكون شفافة تمامًا
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
 
       // إعداد النص
       ctx.fillStyle = "#ffffff";
@@ -77,7 +76,7 @@ export const TextToImageGenerator = ({ onImageGenerated, isGenerating, setIsGene
           const imageUrl = URL.createObjectURL(blob);
           onImageGenerated(imageUrl);
         }
-      }, "image/jpeg", 0.9);
+      }, "image/png"); // استخدم PNG لدعم الشفافية
 
     } catch (error) {
       console.error("Error generating image:", error);
