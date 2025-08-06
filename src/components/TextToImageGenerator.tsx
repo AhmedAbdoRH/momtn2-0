@@ -9,20 +9,8 @@ interface TextToImageGeneratorProps {
   setIsGenerating: (value: boolean) => void;
 }
 
-const backgroundStyles = [
-  "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
-  "linear-gradient(135deg, #f093fb 0%, #f5576c 100%)",
-  "linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)",
-  "linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)",
-  "linear-gradient(135deg, #fa709a 0%, #fee140 100%)",
-  "linear-gradient(135deg, #a8edea 0%, #fed6e3 100%)",
-  "linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%)",
-  "linear-gradient(135deg, #ff9a9e 0%, #fecfef 100%)",
-];
-
 export const TextToImageGenerator = ({ onImageGenerated, isGenerating, setIsGenerating }: TextToImageGeneratorProps) => {
   const [gratitudeText, setGratitudeText] = useState("");
-  const [selectedBackground, setSelectedBackground] = useState(0);
   const { toast } = useToast();
 
   const generateImage = async () => {
@@ -47,38 +35,44 @@ export const TextToImageGenerator = ({ onImageGenerated, isGenerating, setIsGene
       canvas.width = 800;
       canvas.height = 600;
 
-      // Create gradient background
-      const gradient = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
-      const backgroundStyle = backgroundStyles[selectedBackground];
-      
-      // Parse gradient colors from CSS gradient
-      const gradientMatch = backgroundStyle.match(/#[a-fA-F0-9]{6}/g);
-      if (gradientMatch && gradientMatch.length >= 2) {
-        gradient.addColorStop(0, gradientMatch[0]);
-        gradient.addColorStop(1, gradientMatch[1]);
-      } else {
-        // Fallback colors
-        gradient.addColorStop(0, "#667eea");
-        gradient.addColorStop(1, "#764ba2");
-      }
+      // Create dark glass effect background
+      // Base dark gradient
+      const gradient = ctx.createRadialGradient(
+        canvas.width / 2, canvas.height / 2, 0,
+        canvas.width / 2, canvas.height / 2, Math.max(canvas.width, canvas.height) / 2
+      );
+      gradient.addColorStop(0, "rgba(30, 30, 40, 0.85)");
+      gradient.addColorStop(1, "rgba(15, 15, 25, 0.95)");
 
       ctx.fillStyle = gradient;
       ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-      // Add some texture/pattern
-      ctx.globalAlpha = 0.1;
-      for (let i = 0; i < 50; i++) {
+      // Add glass-like subtle patterns
+      ctx.globalAlpha = 0.08;
+      for (let i = 0; i < 30; i++) {
         ctx.fillStyle = "#ffffff";
         ctx.beginPath();
         ctx.arc(
           Math.random() * canvas.width,
           Math.random() * canvas.height,
-          Math.random() * 3,
+          Math.random() * 2 + 1,
           0,
           Math.PI * 2
         );
         ctx.fill();
       }
+
+      // Add subtle blur-like lines for glass effect
+      ctx.globalAlpha = 0.05;
+      ctx.strokeStyle = "#ffffff";
+      ctx.lineWidth = 1;
+      for (let i = 0; i < 10; i++) {
+        ctx.beginPath();
+        ctx.moveTo(Math.random() * canvas.width, Math.random() * canvas.height);
+        ctx.lineTo(Math.random() * canvas.width, Math.random() * canvas.height);
+        ctx.stroke();
+      }
+      
       ctx.globalAlpha = 1;
 
       // Setup text styling
@@ -166,26 +160,6 @@ export const TextToImageGenerator = ({ onImageGenerated, isGenerating, setIsGene
         </p>
       </div>
 
-      <div className="space-y-2">
-        <label className="block text-sm font-medium text-gray-300 text-right">
-          اختر خلفية
-        </label>
-        <div className="grid grid-cols-4 gap-2">
-          {backgroundStyles.map((style, index) => (
-            <button
-              key={index}
-              type="button"
-              onClick={() => setSelectedBackground(index)}
-              className={`h-12 rounded-lg border-2 transition-all ${
-                selectedBackground === index 
-                  ? "border-white shadow-lg scale-105" 
-                  : "border-gray-600 hover:border-gray-400"
-              }`}
-              style={{ background: style }}
-            />
-          ))}
-        </div>
-      </div>
 
       <Button
         type="button"
