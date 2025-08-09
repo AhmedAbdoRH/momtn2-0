@@ -1,11 +1,12 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { useState, useEffect, useRef } from "react";
-import { ImagePlus, Type, Image } from "lucide-react";
+import { ImagePlus, Type, Image, Edit3 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "./AuthProvider";
 import { TextToImageGenerator } from "./TextToImageGenerator";
+import ImageEditor from "./ImageEditor";
 
 interface CreateNewDialogProps {
   open: boolean;
@@ -27,6 +28,7 @@ const CreateNewDialog = ({ open, onOpenChange, onPhotoAdded, selectedGroupId }: 
   const [selectedAlbums, setSelectedAlbums] = useState<Set<string>>(new Set());
   const [showSuggestions, setShowSuggestions] = useState(true);
   const [caption, setCaption] = useState('');
+  const [showImageEditor, setShowImageEditor] = useState(false);
   const { toast } = useToast();
   const { user } = useAuth();
   // مرجع لعنصر label الخاص برفع الصور
@@ -114,6 +116,7 @@ const CreateNewDialog = ({ open, onOpenChange, onPhotoAdded, selectedGroupId }: 
     setShowAlbumInput(false);
     setIsSubmitting(false);
     setIsGeneratingText(false);
+    setShowImageEditor(false);
   };
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -205,6 +208,22 @@ const CreateNewDialog = ({ open, onOpenChange, onPhotoAdded, selectedGroupId }: 
         setImage(file);
         setShowSuggestions(true);
       });
+  };
+
+  const handleImageEdit = () => {
+    setShowImageEditor(true);
+  };
+
+  const handleImageEditorSave = (editedImageBlob: Blob) => {
+    const file = new File([editedImageBlob], `edited_${Date.now()}.jpeg`, { type: 'image/jpeg' });
+    setImage(file);
+    const newUrl = URL.createObjectURL(editedImageBlob);
+    setPreviewUrl(newUrl);
+    setShowImageEditor(false);
+  };
+
+  const handleImageEditorCancel = () => {
+    setShowImageEditor(false);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -369,10 +388,24 @@ const CreateNewDialog = ({ open, onOpenChange, onPhotoAdded, selectedGroupId }: 
                   htmlFor="imageUpload"
                   ref={imageLabelRef} // إضافة المرجع
                   tabIndex={0} // جعل label قابلة للتركيز
-                  className="w-full h-40 border-2 border-dashed border-gray-600 rounded-lg flex flex-col items-center justify-center cursor-pointer hover:border-gray-500 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-colors outline-none"
+                  className="w-full h-40 border-2 border-dashed border-gray-600 rounded-lg flex flex-col items-center justify-center cursor-pointer hover:border-gray-500 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-colors outline-none relative"
                 >
                   {previewUrl ? (
-                    <img src={previewUrl} alt="Preview" className="w-full h-full object-contain rounded-lg p-1" />
+                    <>
+                      <img src={previewUrl} alt="Preview" className="w-full h-full object-contain rounded-lg p-1" />
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          handleImageEdit();
+                        }}
+                        className="absolute bottom-2 right-2 bg-black/50 backdrop-blur-sm text-white p-2 rounded-full hover:bg-black/70 transition-colors"
+                        title="تعديل الصورة"
+                      >
+                        <Edit3 size={16} />
+                      </button>
+                    </>
                   ) : (
                     <div className="text-center pointer-events-none">
                       <ImagePlus className="w-10 h-10 text-gray-400 mx-auto" />
@@ -556,6 +589,15 @@ const CreateNewDialog = ({ open, onOpenChange, onPhotoAdded, selectedGroupId }: 
           </div>
         </form>
       </DialogContent>
+      
+      {/* Image Editor Modal */}
+      {showImageEditor && previewUrl && (
+        <ImageEditor
+          imageUrl={previewUrl}
+          onSave={handleImageEditorSave}
+          onCancel={handleImageEditorCancel}
+        />
+      )}
     </Dialog>
   );
 };
