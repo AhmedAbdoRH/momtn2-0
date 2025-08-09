@@ -1,7 +1,7 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { useState, useEffect, useRef } from "react";
-import { ImagePlus, Type, Image, Edit3 } from "lucide-react";
+import { ImagePlus, Type, Image, Crop } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "./AuthProvider";
@@ -391,7 +391,7 @@ const CreateNewDialog = ({ open, onOpenChange, onPhotoAdded, selectedGroupId }: 
                   className="w-full h-40 border-2 border-dashed border-gray-600 rounded-lg flex flex-col items-center justify-center cursor-pointer hover:border-gray-500 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-colors outline-none relative"
                 >
                   {previewUrl ? (
-                    <>
+                    <div className="w-full h-full relative">
                       <img src={previewUrl} alt="Preview" className="w-full h-full object-contain rounded-lg p-1" />
                       <button
                         type="button"
@@ -400,12 +400,12 @@ const CreateNewDialog = ({ open, onOpenChange, onPhotoAdded, selectedGroupId }: 
                           e.stopPropagation();
                           handleImageEdit();
                         }}
-                        className="absolute bottom-2 right-2 bg-black/50 backdrop-blur-sm text-white p-2 rounded-full hover:bg-black/70 transition-colors"
+                        className="absolute bottom-2 right-2 bg-black/70 backdrop-blur-sm text-white p-3 rounded-full hover:bg-black/90 transition-all duration-200 shadow-lg z-10"
                         title="تعديل الصورة"
                       >
-                        <Edit3 size={16} />
+                        <Crop size={20} />
                       </button>
-                    </>
+                    </div>
                   ) : (
                     <div className="text-center pointer-events-none">
                       <ImagePlus className="w-10 h-10 text-gray-400 mx-auto" />
