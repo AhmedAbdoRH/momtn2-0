@@ -97,7 +97,7 @@ const ImageEditor: React.FC<ImageEditorProps> = ({ imageUrl, onSave, onCancel })
   };
 
   return (
-    <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+    <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
       <div className="bg-gray-900 rounded-lg p-6 max-w-md w-full">
         <div className="flex justify-between items-center mb-4">
           <h3 className="text-white text-lg font-semibold">تعديل الصورة</h3>
