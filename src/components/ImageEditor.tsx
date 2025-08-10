@@ -248,7 +248,25 @@ const ImageEditor: React.FC<ImageEditorProps> = ({ imageUrl, onSave, onCancel })
   const handleSave = () => {
     if (!canvasRef.current) return;
 
-    canvasRef.current.toBlob((blob) => {
+    // إنشاء canvas نهائي بالصورة الحالية
+    const finalCanvas = document.createElement('canvas');
+    const finalCtx = finalCanvas.getContext('2d');
+    if (!finalCtx) return;
+
+    // تحديد الأبعاد النهائية
+    if (image) {
+      finalCanvas.width = image.width;
+      finalCanvas.height = image.height;
+      
+      // رسم الصورة النهائية
+      finalCtx.save();
+      finalCtx.translate(finalCanvas.width / 2, finalCanvas.height / 2);
+      finalCtx.rotate((rotation * Math.PI) / 180);
+      finalCtx.drawImage(image, -image.width / 2, -image.height / 2);
+      finalCtx.restore();
+    }
+
+    finalCanvas.toBlob((blob) => {
       if (blob) {
         onSave(blob);
       }
