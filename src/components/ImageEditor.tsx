@@ -1,6 +1,5 @@
-import React, { useEffect, useRef, useState } from 'react';
-import { Canvas as FabricCanvas, FabricImage, Rect } from 'fabric';
-import { RotateCw, Crop, Check, X, Square } from 'lucide-react';
+import React, { useEffect, useRef, useState, useCallback } from 'react';
+import { RotateCw, Crop, Check, X, Move, Square } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 interface ImageEditorProps {
@@ -9,167 +8,257 @@ interface ImageEditorProps {
   onCancel: () => void;
 }
 
+interface CropArea {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
 const ImageEditor: React.FC<ImageEditorProps> = ({ imageUrl, onSave, onCancel }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const [fabricCanvas, setFabricCanvas] = useState<FabricCanvas | null>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [image, setImage] = useState<HTMLImageElement | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [rotation, setRotation] = useState(0);
+  const [scale, setScale] = useState(1);
+  const [position, setPosition] = useState({ x: 0, y: 0 });
   const [isCropMode, setIsCropMode] = useState(false);
-  const [cropRect, setCropRect] = useState<Rect | null>(null);
-  const [originalImage, setOriginalImage] = useState<FabricImage | null>(null);
+  const [cropArea, setCropArea] = useState<CropArea>({ x: 50, y: 50, width: 200, height: 150 });
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
+  const [dragType, setDragType] = useState<'move' | 'crop'>('move');
 
+  // تحميل الصورة
   useEffect(() => {
-    if (!canvasRef.current) return;
-
-    const canvas = new FabricCanvas(canvasRef.current, {
-      width: 500,
-      height: 400,
-      backgroundColor: '#1f2937',
-    });
-
-    // Load the image
-    FabricImage.fromURL(imageUrl).then((img) => {
-      // Scale image to fit canvas
-      const canvasWidth = canvas.getWidth();
-      const canvasHeight = canvas.getHeight();
-      const imgWidth = img.width!;
-      const imgHeight = img.height!;
-      
-      const scale = Math.min(canvasWidth / imgWidth, canvasHeight / imgHeight);
-      
-      img.set({
-        scaleX: scale,
-        scaleY: scale,
-        left: (canvasWidth - imgWidth * scale) / 2,
-        top: (canvasHeight - imgHeight * scale) / 2,
-        selectable: false,
-        evented: false,
-      });
-
-      canvas.add(img);
-      setOriginalImage(img);
-      canvas.renderAll();
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onload = () => {
+      setImage(img);
       setIsLoading(false);
-    });
-
-    setFabricCanvas(canvas);
-
-    return () => {
-      canvas.dispose();
-    };
-  }, [imageUrl]);
-
-  const handleRotate = () => {
-    if (!fabricCanvas || !originalImage || isCropMode) return;
-    
-    const currentAngle = originalImage.angle || 0;
-    originalImage.rotate(currentAngle + 90);
-    fabricCanvas.renderAll();
-  };
-
-  const handleCrop = () => {
-    if (!fabricCanvas || !originalImage) return;
-    
-    if (!isCropMode) {
-      // Enter crop mode
-      setIsCropMode(true);
-      
-      // Create crop selection rectangle
-      const rect = new Rect({
-        left: 50,
-        top: 50,
-        width: 200,
-        height: 150,
-        fill: 'transparent',
-        stroke: '#ffffff',
-        strokeWidth: 2,
-        strokeDashArray: [5, 5],
-        cornerColor: '#ffffff',
-        cornerSize: 8,
-        transparentCorners: false,
-        cornerStyle: 'rect',
-      });
-      
-      fabricCanvas.add(rect);
-      fabricCanvas.setActiveObject(rect);
-      setCropRect(rect);
-      fabricCanvas.renderAll();
-    } else {
-      // Apply crop
-      if (cropRect) {
-        const cropArea = {
-          left: cropRect.left!,
-          top: cropRect.top!,
-          width: cropRect.width! * cropRect.scaleX!,
-          height: cropRect.height! * cropRect.scaleY!,
-        };
-        
-        // Create a new canvas with cropped dimensions
-        const croppedCanvas = new FabricCanvas(null, {
-          width: cropArea.width,
-          height: cropArea.height,
-        });
-        
-        // Clone and position the original image
-        originalImage.clone().then((clonedImg) => {
-          clonedImg.set({
-            left: -cropArea.left + originalImage.left!,
-            top: -cropArea.top + originalImage.top!,
-          });
-          
-          croppedCanvas.add(clonedImg);
-          croppedCanvas.renderAll();
-          
-          // Replace current canvas content
-          fabricCanvas.clear();
-          fabricCanvas.setDimensions({
-            width: cropArea.width,
-            height: cropArea.height,
-          });
-          
-          FabricImage.fromURL(croppedCanvas.toDataURL()).then((newImg) => {
-            newImg.set({
-              left: 0,
-              top: 0,
-              selectable: false,
-              evented: false,
-            });
-            fabricCanvas.add(newImg);
-            setOriginalImage(newImg);
-            fabricCanvas.renderAll();
-          });
-          
-          croppedCanvas.dispose();
+      // تحديد الموضع والحجم المناسب
+      if (containerRef.current) {
+        const containerWidth = containerRef.current.clientWidth - 40;
+        const containerHeight = Math.min(400, window.innerHeight * 0.4);
+        const imgScale = Math.min(containerWidth / img.width, containerHeight / img.height);
+        setScale(imgScale);
+        setPosition({
+          x: (containerWidth - img.width * imgScale) / 2,
+          y: (containerHeight - img.height * imgScale) / 2
         });
       }
+    };
+    img.src = imageUrl;
+  }, [imageUrl]);
+
+  // رسم الصورة على الـ Canvas
+  const drawCanvas = useCallback(() => {
+    if (!canvasRef.current || !image || !containerRef.current) return;
+
+    const canvas = canvasRef.current;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    // تحديد أبعاد الـ Canvas
+    const containerWidth = containerRef.current.clientWidth - 40;
+    const containerHeight = Math.min(400, window.innerHeight * 0.4);
+    
+    canvas.width = containerWidth;
+    canvas.height = containerHeight;
+
+    // مسح الـ Canvas
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.fillStyle = '#374151';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    // حفظ حالة السياق
+    ctx.save();
+
+    // تطبيق التحويلات
+    const centerX = position.x + (image.width * scale) / 2;
+    const centerY = position.y + (image.height * scale) / 2;
+    
+    ctx.translate(centerX, centerY);
+    ctx.rotate((rotation * Math.PI) / 180);
+    ctx.scale(scale, scale);
+    
+    // رسم الصورة
+    ctx.drawImage(image, -image.width / 2, -image.height / 2);
+
+    // استعادة حالة السياق
+    ctx.restore();
+
+    // رسم منطقة القص إذا كانت مفعلة
+    if (isCropMode) {
+      ctx.strokeStyle = '#ffffff';
+      ctx.lineWidth = 2;
+      ctx.setLineDash([5, 5]);
+      ctx.strokeRect(cropArea.x, cropArea.y, cropArea.width, cropArea.height);
       
-      setIsCropMode(false);
-      setCropRect(null);
-    }
-  };
-
-  const handleCancelCrop = () => {
-    if (fabricCanvas && cropRect) {
-      fabricCanvas.remove(cropRect);
-      setCropRect(null);
-      setIsCropMode(false);
-      fabricCanvas.renderAll();
-    }
-  };
-
-  const handleSave = () => {
-    if (!fabricCanvas) return;
-
-    const dataURL = fabricCanvas.toDataURL();
-    fetch(dataURL)
-      .then(res => res.blob())
-      .then(blob => {
-        onSave(blob);
+      // رسم مقابض القص
+      const handles = [
+        { x: cropArea.x, y: cropArea.y },
+        { x: cropArea.x + cropArea.width, y: cropArea.y },
+        { x: cropArea.x + cropArea.width, y: cropArea.y + cropArea.height },
+        { x: cropArea.x, y: cropArea.y + cropArea.height }
+      ];
+      
+      ctx.fillStyle = '#ffffff';
+      handles.forEach(handle => {
+        ctx.fillRect(handle.x - 4, handle.y - 4, 8, 8);
       });
+    }
+  }, [image, rotation, scale, position, isCropMode, cropArea]);
+
+  // إعادة رسم الـ Canvas عند تغيير القيم
+  useEffect(() => {
+    drawCanvas();
+  }, [drawCanvas]);
+
+  // تحديث أبعاد الـ Canvas عند تغيير حجم النافذة
+  useEffect(() => {
+    const handleResize = () => {
+      drawCanvas();
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, [drawCanvas]);
+
+  // معالجة بداية السحب
+  const handleMouseDown = (e: React.MouseEvent) => {
+    if (!canvasRef.current) return;
+    
+    const rect = canvasRef.current.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    
+    setIsDragging(true);
+    setDragStart({ x, y });
+    
+    // تحديد نوع السحب
+    if (isCropMode) {
+      // فحص إذا كان المؤشر داخل منطقة القص
+      if (x >= cropArea.x && x <= cropArea.x + cropArea.width &&
+          y >= cropArea.y && y <= cropArea.y + cropArea.height) {
+        setDragType('crop');
+      } else {
+        setDragType('move');
+      }
+    } else {
+      setDragType('move');
+    }
+  };
+
+  // معالجة السحب
+  const handleMouseMove = (e: React.MouseEvent) => {
+    if (!isDragging || !canvasRef.current) return;
+    
+    const rect = canvasRef.current.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    
+    const deltaX = x - dragStart.x;
+    const deltaY = y - dragStart.y;
+    
+    if (dragType === 'crop' && isCropMode) {
+      // تحريك منطقة القص
+      setCropArea(prev => ({
+        ...prev,
+        x: Math.max(0, Math.min(prev.x + deltaX, canvasRef.current!.width - prev.width)),
+        y: Math.max(0, Math.min(prev.y + deltaY, canvasRef.current!.height - prev.height))
+      }));
+    } else {
+      // تحريك الصورة
+      setPosition(prev => ({
+        x: prev.x + deltaX,
+        y: prev.y + deltaY
+      }));
+    }
+    
+    setDragStart({ x, y });
+  };
+
+  // معالجة انتهاء السحب
+  const handleMouseUp = () => {
+    setIsDragging(false);
+  };
+
+  // تدوير الصورة
+  const handleRotate = () => {
+    setRotation(prev => (prev + 90) % 360);
+  };
+
+  // تفعيل/إلغاء وضع القص
+  const handleCropToggle = () => {
+    if (isCropMode) {
+      // تطبيق القص
+      applyCrop();
+    } else {
+      setIsCropMode(true);
+      // تحديد منطقة قص افتراضية
+      if (canvasRef.current) {
+        const canvas = canvasRef.current;
+        setCropArea({
+          x: canvas.width * 0.2,
+          y: canvas.height * 0.2,
+          width: canvas.width * 0.6,
+          height: canvas.height * 0.6
+        });
+      }
+    }
+  };
+
+  // إلغاء وضع القص
+  const handleCancelCrop = () => {
+    setIsCropMode(false);
+  };
+
+  // تطبيق القص
+  const applyCrop = () => {
+    if (!canvasRef.current || !image) return;
+
+    const canvas = canvasRef.current;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    // إنشاء canvas جديد للصورة المقصوصة
+    const croppedCanvas = document.createElement('canvas');
+    croppedCanvas.width = cropArea.width;
+    croppedCanvas.height = cropArea.height;
+    const croppedCtx = croppedCanvas.getContext('2d');
+    if (!croppedCtx) return;
+
+    // نسخ المنطقة المحددة
+    const imageData = ctx.getImageData(cropArea.x, cropArea.y, cropArea.width, cropArea.height);
+    croppedCtx.putImageData(imageData, 0, 0);
+
+    // تحديث الصورة
+    const croppedImg = new Image();
+    croppedImg.onload = () => {
+      setImage(croppedImg);
+      setIsCropMode(false);
+      setRotation(0);
+      setScale(1);
+      setPosition({ x: 0, y: 0 });
+    };
+    croppedImg.src = croppedCanvas.toDataURL();
+  };
+
+  // حفظ الصورة
+  const handleSave = () => {
+    if (!canvasRef.current) return;
+
+    canvasRef.current.toBlob((blob) => {
+      if (blob) {
+        onSave(blob);
+      }
+    }, 'image/jpeg', 0.9);
   };
 
   return (
-    <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[150] flex items-center justify-center p-4">
-      <div className="bg-gray-900 rounded-lg p-6 max-w-2xl w-full">
+    <div className="fixed inset-0 bg-black/90 backdrop-blur-sm z-[150] flex items-center justify-center p-4">
+      <div className="bg-gray-900 rounded-lg p-4 w-full max-w-md mx-auto max-h-[90vh] overflow-hidden">
+        {/* العنوان */}
         <div className="flex justify-between items-center mb-4">
           <h3 className="text-white text-lg font-semibold">تعديل الصورة</h3>
           <Button
@@ -182,68 +271,87 @@ const ImageEditor: React.FC<ImageEditorProps> = ({ imageUrl, onSave, onCancel })
           </Button>
         </div>
 
-        <div className="bg-gray-800 rounded-lg p-4 mb-4">
-          {isLoading && (
-            <div className="flex items-center justify-center h-[400px]">
+        {/* منطقة الـ Canvas */}
+        <div 
+          ref={containerRef}
+          className="bg-gray-800 rounded-lg p-2 mb-4 relative overflow-hidden"
+          style={{ minHeight: '250px', maxHeight: '400px' }}
+        >
+          {isLoading ? (
+            <div className="flex items-center justify-center h-64">
               <div className="text-white">جاري التحميل...</div>
             </div>
+          ) : (
+            <canvas
+              ref={canvasRef}
+              className="w-full h-auto cursor-move border border-gray-600 rounded"
+              onMouseDown={handleMouseDown}
+              onMouseMove={handleMouseMove}
+              onMouseUp={handleMouseUp}
+              onMouseLeave={handleMouseUp}
+            />
           )}
-          <canvas ref={canvasRef} className="max-w-full border border-gray-600 rounded" />
+          
           {isCropMode && (
-            <div className="mt-2 text-center">
-              <p className="text-yellow-400 text-sm">اسحب المنطقة المحددة لتحديد الجزء المراد قصه</p>
+            <div className="absolute bottom-2 left-2 right-2">
+              <p className="text-yellow-400 text-xs text-center">
+                اسحب المنطقة البيضاء لتحديد الجزء المراد قصه
+              </p>
             </div>
           )}
         </div>
 
-        <div className="flex gap-2 mb-4">
-          <Button
-            variant="outline"
-            onClick={handleRotate}
-            disabled={isCropMode}
-            className="flex-1 bg-gray-700 border-gray-600 text-white hover:bg-gray-600 disabled:opacity-50"
-          >
-            <RotateCw size={16} className="mr-2" />
-            تدوير
-          </Button>
-          <Button
-            variant={isCropMode ? "default" : "outline"}
-            onClick={handleCrop}
-            className={`flex-1 ${
-              isCropMode 
-                ? "bg-green-600 hover:bg-green-700 text-white" 
-                : "bg-gray-700 border-gray-600 text-white hover:bg-gray-600"
-            }`}
-          >
-            {isCropMode ? <Check size={16} className="mr-2" /> : <Crop size={16} className="mr-2" />}
-            {isCropMode ? "تطبيق القص" : "قص"}
-          </Button>
-          {isCropMode && (
+        {/* أزرار التحكم */}
+        <div className="space-y-3">
+          <div className="flex gap-2">
             <Button
               variant="outline"
-              onClick={handleCancelCrop}
-              className="bg-red-600 border-red-600 text-white hover:bg-red-700"
+              onClick={handleRotate}
+              disabled={isCropMode}
+              className="flex-1 bg-gray-700 border-gray-600 text-white hover:bg-gray-600 disabled:opacity-50"
             >
-              <X size={16} />
+              <RotateCw size={16} className="mr-1" />
+              تدوير
             </Button>
-          )}
-        </div>
+            <Button
+              variant={isCropMode ? "default" : "outline"}
+              onClick={handleCropToggle}
+              className={`flex-1 ${
+                isCropMode 
+                  ? "bg-green-600 hover:bg-green-700 text-white" 
+                  : "bg-gray-700 border-gray-600 text-white hover:bg-gray-600"
+              }`}
+            >
+              {isCropMode ? <Check size={16} className="mr-1" /> : <Crop size={16} className="mr-1" />}
+              {isCropMode ? "تطبيق" : "قص"}
+            </Button>
+            {isCropMode && (
+              <Button
+                variant="outline"
+                onClick={handleCancelCrop}
+                className="bg-red-600 border-red-600 text-white hover:bg-red-700"
+              >
+                <X size={16} />
+              </Button>
+            )}
+          </div>
 
-        <div className="flex gap-2">
-          <Button
-            variant="outline"
-            onClick={onCancel}
-            className="flex-1 bg-gray-700 border-gray-600 text-white hover:bg-gray-600"
-          >
-            إلغاء
-          </Button>
-          <Button
-            onClick={handleSave}
-            className="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white"
-          >
-            <Check size={16} className="mr-2" />
-            حفظ
-          </Button>
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              onClick={onCancel}
+              className="flex-1 bg-gray-700 border-gray-600 text-white hover:bg-gray-600"
+            >
+              إلغاء
+            </Button>
+            <Button
+              onClick={handleSave}
+              className="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white"
+            >
+              <Check size={16} className="mr-1" />
+              حفظ
+            </Button>
+          </div>
         </div>
       </div>
     </div>
