@@ -112,8 +112,10 @@ const ImageEditor: React.FC<ImageEditorProps> = ({ imageUrl, onSave, onCancel })
 
   // إعادة رسم الـ Canvas عند تغيير القيم
   useEffect(() => {
-    drawCanvas();
-  }, [drawCanvas]);
+    if (image) {
+      requestAnimationFrame(drawCanvas);
+    }
+  }, [drawCanvas, image]);
 
   // تحديث أبعاد الـ Canvas عند تغيير حجم النافذة
   useEffect(() => {
@@ -184,38 +186,19 @@ const ImageEditor: React.FC<ImageEditorProps> = ({ imageUrl, onSave, onCancel })
   };
 
   // تدوير الصورة
-  const handleRotate = () => {
-    setRotation(prev => (prev + 90) % 360);
-  };
-
-  // تفعيل/إلغاء وضع القص
-  const handleCropToggle = () => {
-    if (isCropMode) {
-      // تطبيق القص
-      applyCrop();
-    } else {
-      setIsCropMode(true);
-      // تحديد منطقة قص افتراضية
-      if (canvasRef.current) {
-        const canvas = canvasRef.current;
-        setCropArea({
-          x: canvas.width * 0.2,
-          y: canvas.height * 0.2,
-          width: canvas.width * 0.6,
-          height: canvas.height * 0.6
-        });
-      }
-    }
-  };
-
-  // إلغاء وضع القص
-  const handleCancelCrop = () => {
-    setIsCropMode(false);
-  };
+  const handleRotate = useCallback(() => {
+    setRotation(prev => {
+      const newRotation = (prev + 90) % 360;
+      console.log('تدوير الصورة:', newRotation);
+      return newRotation;
+    });
+  }, []);
 
   // تطبيق القص
-  const applyCrop = () => {
+  const applyCrop = useCallback(() => {
     if (!canvasRef.current || !image) return;
+
+    console.log('تطبيق القص مع المنطقة:', cropArea);
 
     const canvas = canvasRef.current;
     const ctx = canvas.getContext('2d');
@@ -235,6 +218,7 @@ const ImageEditor: React.FC<ImageEditorProps> = ({ imageUrl, onSave, onCancel })
     // تحديث الصورة
     const croppedImg = new Image();
     croppedImg.onload = () => {
+      console.log('تم تحديث الصورة المقصوصة');
       setImage(croppedImg);
       setIsCropMode(false);
       setRotation(0);
@@ -242,7 +226,36 @@ const ImageEditor: React.FC<ImageEditorProps> = ({ imageUrl, onSave, onCancel })
       setPosition({ x: 0, y: 0 });
     };
     croppedImg.src = croppedCanvas.toDataURL();
-  };
+  }, [cropArea, image]);
+
+  // تفعيل/إلغاء وضع القص
+  const handleCropToggle = useCallback(() => {
+    if (isCropMode) {
+      console.log('تطبيق القص');
+      // تطبيق القص
+      applyCrop();
+    } else {
+      console.log('تفعيل وضع القص');
+      setIsCropMode(true);
+      // تحديد منطقة قص افتراضية
+      if (canvasRef.current) {
+        const canvas = canvasRef.current;
+        setCropArea({
+          x: canvas.width * 0.2,
+          y: canvas.height * 0.2,
+          width: canvas.width * 0.6,
+          height: canvas.height * 0.6
+        });
+      }
+    }
+  }, [isCropMode, applyCrop]);
+
+  // إلغاء وضع القص
+  const handleCancelCrop = useCallback(() => {
+    console.log('إلغاء وضع القص');
+    setIsCropMode(false);
+  }, []);
+
 
   // حفظ الصورة
   const handleSave = () => {
