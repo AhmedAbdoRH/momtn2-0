@@ -28,7 +28,8 @@ const ImageEditor: React.FC<ImageEditorProps> = ({ imageUrl, onSave, onCancel })
   const [cropArea, setCropArea] = useState<CropArea>({ x: 50, y: 50, width: 200, height: 150 });
   const [isDragging, setIsDragging] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
-  const [dragType, setDragType] = useState<'move' | 'crop'>('move');
+  const [dragType, setDragType] = useState<'move' | 'crop' | 'resize'>('move');
+  const [activeHandle, setActiveHandle] = useState<'nw' | 'ne' | 'se' | 'sw' | null>(null);
 
   // تحميل الصورة
   useEffect(() => {
@@ -127,6 +128,25 @@ const ImageEditor: React.FC<ImageEditorProps> = ({ imageUrl, onSave, onCancel })
     return () => window.removeEventListener('resize', handleResize);
   }, [drawCanvas]);
 
+  // دوال مساعدة للمقابض
+  const getHandleUnderCursor = (x: number, y: number) : ('nw'|'ne'|'se'|'sw'|null) => {
+    const handles = {
+      nw: { x: cropArea.x, y: cropArea.y },
+      ne: { x: cropArea.x + cropArea.width, y: cropArea.y },
+      se: { x: cropArea.x + cropArea.width, y: cropArea.y + cropArea.height },
+      sw: { x: cropArea.x, y: cropArea.y + cropArea.height },
+    } as const;
+    const size = 8; // نفس حجم الرسم
+    for (const key of Object.keys(handles) as Array<'nw'|'ne'|'se'|'sw'>) {
+      const hx = handles[key].x;
+      const hy = handles[key].y;
+      if (x >= hx - size/2 && x <= hx + size/2 && y >= hy - size/2 && y <= hy + size/2) {
+        return key;
+      }
+    }
+    return null;
+  };
+
   // معالجة بداية السحب
   const handleMouseDown = (e: React.MouseEvent) => {
     if (!canvasRef.current) return;
@@ -140,7 +160,14 @@ const ImageEditor: React.FC<ImageEditorProps> = ({ imageUrl, onSave, onCancel })
     
     // تحديد نوع السحب
     if (isCropMode) {
-      // فحص إذا كان المؤشر داخل منطقة القص
+      // أولوية للمقابض البيضاء
+      const handle = getHandleUnderCursor(x, y);
+      if (handle) {
+        setActiveHandle(handle);
+        setDragType('resize');
+        return;
+      }
+      // داخل المستطيل -> تحريك المستطيل
       if (x >= cropArea.x && x <= cropArea.x + cropArea.width &&
           y >= cropArea.y && y <= cropArea.y + cropArea.height) {
         setDragType('crop');
@@ -154,16 +181,65 @@ const ImageEditor: React.FC<ImageEditorProps> = ({ imageUrl, onSave, onCancel })
 
   // معالجة السحب
   const handleMouseMove = (e: React.MouseEvent) => {
-    if (!isDragging || !canvasRef.current) return;
+    if (!canvasRef.current) return;
     
     const rect = canvasRef.current.getBoundingClientRect();
     const x = e.clientX - rect.left;
     const y = e.clientY - rect.top;
+
+    // تحديث المؤشر عند عدم السحب
+    if (isCropMode && !isDragging) {
+      const canvas = canvasRef.current;
+      const handle = getHandleUnderCursor(x, y);
+      if (handle === 'nw' || handle === 'se') canvas.style.cursor = 'nwse-resize';
+      else if (handle === 'ne' || handle === 'sw') canvas.style.cursor = 'nesw-resize';
+      else if (x >= cropArea.x && x <= cropArea.x + cropArea.width && y >= cropArea.y && y <= cropArea.y + cropArea.height) canvas.style.cursor = 'move';
+      else canvas.style.cursor = 'default';
+    }
+    if (!isDragging) return;
     
     const deltaX = x - dragStart.x;
     const deltaY = y - dragStart.y;
-    
-    if (dragType === 'crop' && isCropMode) {
+
+    if (dragType === 'resize' && isCropMode) {
+      const MIN = 32;
+      setCropArea(prev => {
+        let nx = prev.x, ny = prev.y, nw = prev.width, nh = prev.height;
+        switch (activeHandle) {
+          case 'nw':
+            nx = prev.x + deltaX;
+            ny = prev.y + deltaY;
+            nw = prev.width - deltaX;
+            nh = prev.height - deltaY;
+            break;
+          case 'ne':
+            ny = prev.y + deltaY;
+            nw = prev.width + deltaX;
+            nh = prev.height - deltaY;
+            break;
+          case 'se':
+            nw = prev.width + deltaX;
+            nh = prev.height + deltaY;
+            break;
+          case 'sw':
+            nx = prev.x + deltaX;
+            nw = prev.width - deltaX;
+            nh = prev.height + deltaY;
+            break;
+        }
+        // حد أدنى
+        nw = Math.max(MIN, nw);
+        nh = Math.max(MIN, nh);
+        // إبقاء داخل الكانفس
+        const maxW = canvasRef.current!.width;
+        const maxH = canvasRef.current!.height;
+        if (nx < 0) { nw += nx; nx = 0; }
+        if (ny < 0) { nh += ny; ny = 0; }
+        if (nx + nw > maxW) nw = maxW - nx;
+        if (ny + nh > maxH) nh = maxH - ny;
+        return { x: nx, y: ny, width: nw, height: nh };
+      });
+    } else if (dragType === 'crop' && isCropMode) {
       // تحريك منطقة القص
       setCropArea(prev => ({
         ...prev,
@@ -184,6 +260,8 @@ const ImageEditor: React.FC<ImageEditorProps> = ({ imageUrl, onSave, onCancel })
   // معالجة انتهاء السحب
   const handleMouseUp = () => {
     setIsDragging(false);
+    setActiveHandle(null);
+    if (canvasRef.current) canvasRef.current.style.cursor = 'default';
   };
 
   // تدوير الصورة
