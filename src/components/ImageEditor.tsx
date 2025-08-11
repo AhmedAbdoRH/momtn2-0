@@ -1,6 +1,7 @@
+```tsx
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { createPortal } from 'react-dom';
-import { RotateCw, Crop, Check, X, Move, Square } from 'lucide-react';
+import { X, Check, Square } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 interface ImageEditorProps {
@@ -22,11 +23,9 @@ const ImageEditor: React.FC<ImageEditorProps> = ({ imageUrl, onSave, onCancel })
   const isTouchRef = useRef(false);
   const [image, setImage] = useState<HTMLImageElement | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [rotation, setRotation] = useState(0);
   const [scale, setScale] = useState(1);
   const [position, setPosition] = useState({ x: 0, y: 0 });
-  const [isCropMode, setIsCropMode] = useState(false);
-  const [cropArea, setCropArea] = useState<CropArea>({ x: 50, y: 50, width: 200, height: 150 });
+  const [cropArea, setCropArea] = useState<CropArea>({ x: 0, y: 0, width: 0, height: 0 });
   const [isDragging, setIsDragging] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
   const [dragType, setDragType] = useState<'move' | 'crop' | 'resize'>('move');
@@ -45,9 +44,15 @@ const ImageEditor: React.FC<ImageEditorProps> = ({ imageUrl, onSave, onCancel })
         const containerHeight = Math.min(400, window.innerHeight * 0.4);
         const imgScale = Math.min(containerWidth / img.width, containerHeight / img.height);
         setScale(imgScale);
-        setPosition({
-          x: (containerWidth - img.width * imgScale) / 2,
-          y: (containerHeight - img.height * imgScale) / 2
+        const posX = (containerWidth - img.width * imgScale) / 2;
+        const posY = (containerHeight - img.height * imgScale) / 2;
+        setPosition({ x: posX, y: posY });
+        // تحديد منطقة القص الافتراضية لتغطية الصورة بأكملها
+        setCropArea({
+          x: posX,
+          y: posY,
+          width: img.width * imgScale,
+          height: img.height * imgScale
         });
       }
     };
@@ -82,7 +87,6 @@ const ImageEditor: React.FC<ImageEditorProps> = ({ imageUrl, onSave, onCancel })
     const centerY = position.y + (image.height * scale) / 2;
     
     ctx.translate(centerX, centerY);
-    ctx.rotate((rotation * Math.PI) / 180);
     ctx.scale(scale, scale);
     
     // رسم الصورة
@@ -91,27 +95,25 @@ const ImageEditor: React.FC<ImageEditorProps> = ({ imageUrl, onSave, onCancel })
     // استعادة حالة السياق
     ctx.restore();
 
-    // رسم منطقة القص إذا كانت مفعلة
-    if (isCropMode) {
-      ctx.strokeStyle = '#ffffff';
-      ctx.lineWidth = 2;
-      ctx.setLineDash([5, 5]);
-      ctx.strokeRect(cropArea.x, cropArea.y, cropArea.width, cropArea.height);
-      
-      // رسم مقابض القص
-      const handles = [
-        { x: cropArea.x, y: cropArea.y },
-        { x: cropArea.x + cropArea.width, y: cropArea.y },
-        { x: cropArea.x + cropArea.width, y: cropArea.y + cropArea.height },
-        { x: cropArea.x, y: cropArea.y + cropArea.height }
-      ];
-      
-      ctx.fillStyle = '#ffffff';
-      handles.forEach(handle => {
-        ctx.fillRect(handle.x - 4, handle.y - 4, 8, 8);
-      });
-    }
-  }, [image, rotation, scale, position, isCropMode, cropArea]);
+    // رسم منطقة القص
+    ctx.strokeStyle = '#ffffff';
+    ctx.lineWidth = 2;
+    ctx.setLineDash([5, 5]);
+    ctx.strokeRect(cropArea.x, cropArea.y, cropArea.width, cropArea.height);
+    
+    // رسم مقابض القص
+    const handles = [
+      { x: cropArea.x, y: cropArea.y },
+      { x: cropArea.x + cropArea.width, y: cropArea.y },
+      { x: cropArea.x + cropArea.width, y: cropArea.y + cropArea.height },
+      { x: cropArea.x, y: cropArea.y + cropArea.height }
+    ];
+    
+    ctx.fillStyle = '#ffffff';
+    handles.forEach(handle => {
+      ctx.fillRect(handle.x - 4, handle.y - 4, 8, 8);
+    });
+  }, [image, scale, position, cropArea]);
 
   // إعادة رسم الـ Canvas عند تغيير القيم
   useEffect(() => {
@@ -164,21 +166,17 @@ const ImageEditor: React.FC<ImageEditorProps> = ({ imageUrl, onSave, onCancel })
     setDragStart({ x, y });
 
     // تحديد نوع السحب
-    if (isCropMode) {
-      // أولوية للمقابض البيضاء
-      const handle = getHandleUnderCursor(x, y);
-      if (handle) {
-        setActiveHandle(handle);
-        setDragType('resize');
-        return;
-      }
-      // داخل المستطيل -> تحريك المستطيل
-      if (x >= cropArea.x && x <= cropArea.x + cropArea.width &&
-          y >= cropArea.y && y <= cropArea.y + cropArea.height) {
-        setDragType('crop');
-      } else {
-        setDragType('move');
-      }
+    // أولوية للمقابض البيضاء
+    const handle = getHandleUnderCursor(x, y);
+    if (handle) {
+      setActiveHandle(handle);
+      setDragType('resize');
+      return;
+    }
+    // داخل المستطيل -> تحريك المستطيل
+    if (x >= cropArea.x && x <= cropArea.x + cropArea.width &&
+        y >= cropArea.y && y <= cropArea.y + cropArea.height) {
+      setDragType('crop');
     } else {
       setDragType('move');
     }
@@ -194,7 +192,7 @@ const ImageEditor: React.FC<ImageEditorProps> = ({ imageUrl, onSave, onCancel })
     const x = e.clientX - rect.left;
     const y = e.clientY - rect.top;
 
-    if (isCropMode && !isDragging) {
+    if (!isDragging) {
       const canvas = canvasRef.current;
       const handle = getHandleUnderCursor(x, y);
       if (handle === 'nw' || handle === 'se') canvas.style.cursor = 'nwse-resize';
@@ -207,7 +205,7 @@ const ImageEditor: React.FC<ImageEditorProps> = ({ imageUrl, onSave, onCancel })
     const deltaX = x - dragStart.x;
     const deltaY = y - dragStart.y;
 
-    if (dragType === 'resize' && isCropMode) {
+    if (dragType === 'resize') {
       const MIN = 32;
       setCropArea(prev => {
         let nx = prev.x, ny = prev.y, nw = prev.width, nh = prev.height;
@@ -245,7 +243,7 @@ const ImageEditor: React.FC<ImageEditorProps> = ({ imageUrl, onSave, onCancel })
         if (ny + nh > maxH) nh = maxH - ny;
         return { x: nx, y: ny, width: nw, height: nh };
       });
-    } else if (dragType === 'crop' && isCropMode) {
+    } else if (dragType === 'crop') {
       // تحريك منطقة القص
       setCropArea(prev => ({
         ...prev,
@@ -273,35 +271,33 @@ const ImageEditor: React.FC<ImageEditorProps> = ({ imageUrl, onSave, onCancel })
     }
   };
 
-  // تدوير الصورة
-  const handleRotate = useCallback(() => {
-    setRotation(prev => {
-      const newRotation = (prev + 90) % 360;
-      console.log('تدوير الصورة:', newRotation);
-      return newRotation;
-    });
+  // تعيين نسبة الأبعاد
+  const handleSetAspect = useCallback((ratio: number) => {
+    if (!canvasRef.current) return;
+    const cw = canvasRef.current.width;
+    const ch = canvasRef.current.height;
+    let w = cw;
+    let h = w / ratio;
+    if (h > ch) {
+      h = ch;
+      w = h * ratio;
+    }
+    const x = (cw - w) / 2;
+    const y = (ch - h) / 2;
+    setCropArea({ x, y, width: w, height: h });
   }, []);
 
-  // تطبيق القص
-  const applyCrop = useCallback(() => {
-    if (!image || !canvasRef.current || !containerRef.current) return;
-
-    const imgW = image.width;
-    const imgH = image.height;
-    const s = scale;
-    const centerX = position.x + (imgW * s) / 2;
-    const centerY = position.y + (imgH * s) / 2;
-    const rad = (rotation * Math.PI) / 180;
+  // حفظ الصورة
+  const handleSave = () => {
+    if (!image || !canvasRef.current) return;
 
     const toImage = (px: number, py: number) => {
+      const centerX = position.x + (image.width * scale) / 2;
+      const centerY = position.y + (image.height * scale) / 2;
       const dx = px - centerX;
       const dy = py - centerY;
-      const cos = Math.cos(rad);
-      const sin = Math.sin(rad);
-      const rx = dx * cos + dy * sin;
-      const ry = -dx * sin + dy * cos;
-      const ix = rx / s + imgW / 2;
-      const iy = ry / s + imgH / 2;
+      const ix = dx / scale + image.width / 2;
+      const iy = dy / scale + image.height / 2;
       return { x: ix, y: iy };
     };
 
@@ -318,25 +314,25 @@ const ImageEditor: React.FC<ImageEditorProps> = ({ imageUrl, onSave, onCancel })
     let maxY = Math.max(...pts.map((p) => p.y));
 
     // Clamp to image bounds
-    minX = Math.max(0, Math.min(minX, imgW));
-    minY = Math.max(0, Math.min(minY, imgH));
-    maxX = Math.max(0, Math.min(maxX, imgW));
-    maxY = Math.max(0, Math.min(maxY, imgH));
+    minX = Math.max(0, Math.min(minX, image.width));
+    minY = Math.max(0, Math.min(minY, image.height));
+    maxX = Math.max(0, Math.min(maxX, image.width));
+    maxY = Math.max(0, Math.min(maxY, image.height));
 
     const cropW = Math.max(1, Math.round(maxX - minX));
     const cropH = Math.max(1, Math.round(maxY - minY));
 
     // Create high-quality crop at source resolution
-    const srcCanvas = document.createElement('canvas');
-    srcCanvas.width = cropW;
-    srcCanvas.height = cropH;
-    const sctx = srcCanvas.getContext('2d');
-    if (!sctx) return;
-    sctx.imageSmoothingEnabled = true;
-    if ((sctx as any).imageSmoothingQuality !== undefined) {
-      (sctx as any).imageSmoothingQuality = 'high';
+    const finalCanvas = document.createElement('canvas');
+    finalCanvas.width = cropW;
+    finalCanvas.height = cropH;
+    const ctx = finalCanvas.getContext('2d');
+    if (!ctx) return;
+    ctx.imageSmoothingEnabled = true;
+    if ((ctx as any).imageSmoothingQuality !== undefined) {
+      (ctx as any).imageSmoothingQuality = 'high';
     }
-    sctx.drawImage(
+    ctx.drawImage(
       image,
       Math.floor(minX),
       Math.floor(minY),
@@ -347,92 +343,6 @@ const ImageEditor: React.FC<ImageEditorProps> = ({ imageUrl, onSave, onCancel })
       cropW,
       cropH
     );
-
-    // Apply rotation to the cropped output so it matches what user sees
-    let outCanvas = srcCanvas;
-    const rot = ((rotation % 360) + 360) % 360;
-    if (rot !== 0) {
-      const rotated = document.createElement('canvas');
-      if (rot === 90 || rot === 270) {
-        rotated.width = cropH;
-        rotated.height = cropW;
-      } else {
-        rotated.width = cropW;
-        rotated.height = cropH;
-      }
-      const rctx = rotated.getContext('2d');
-      if (!rctx) return;
-      rctx.imageSmoothingEnabled = true;
-      if ((rctx as any).imageSmoothingQuality !== undefined) {
-        (rctx as any).imageSmoothingQuality = 'high';
-      }
-      rctx.translate(rotated.width / 2, rotated.height / 2);
-      rctx.rotate((rot * Math.PI) / 180);
-      rctx.drawImage(srcCanvas, -cropW / 2, -cropH / 2);
-      outCanvas = rotated;
-    }
-
-    const newImg = new Image();
-    newImg.onload = () => {
-      setImage(newImg);
-      setIsCropMode(false);
-      setRotation(0);
-      setScale(1);
-      setPosition({ x: 0, y: 0 });
-    };
-    newImg.src = outCanvas.toDataURL('image/png');
-  }, [image, cropArea, rotation, scale, position]);
-
-  // تفعيل/إلغاء وضع القص
-  const handleCropToggle = useCallback(() => {
-    if (isCropMode) {
-      console.log('تطبيق القص');
-      // تطبيق القص
-      applyCrop();
-    } else {
-      console.log('تفعيل وضع القص');
-      setIsCropMode(true);
-      // تحديد منطقة قص افتراضية
-      if (canvasRef.current) {
-        const canvas = canvasRef.current;
-        setCropArea({
-          x: canvas.width * 0.2,
-          y: canvas.height * 0.2,
-          width: canvas.width * 0.6,
-          height: canvas.height * 0.6
-        });
-      }
-    }
-  }, [isCropMode, applyCrop]);
-
-  // إلغاء وضع القص
-  const handleCancelCrop = useCallback(() => {
-    console.log('إلغاء وضع القص');
-    setIsCropMode(false);
-  }, []);
-
-
-  // حفظ الصورة
-  const handleSave = () => {
-    if (!canvasRef.current) return;
-
-    // إنشاء canvas نهائي بالصورة الحالية
-    const finalCanvas = document.createElement('canvas');
-    const finalCtx = finalCanvas.getContext('2d');
-    if (!finalCtx) return;
-
-    // تحديد الأبعاد النهائية
-    if (image) {
-      finalCanvas.width = image.width;
-      finalCanvas.height = image.height;
-      
-      // رسم الصورة النهائية
-      finalCtx.save();
-      finalCtx.translate(finalCanvas.width / 2, finalCanvas.height / 2);
-      finalCtx.rotate((rotation * Math.PI) / 180);
-      finalCtx.drawImage(image, -image.width / 2, -image.height / 2);
-      finalCtx.restore();
-    }
 
     finalCanvas.toBlob((blob) => {
       if (blob) {
@@ -450,7 +360,7 @@ const ImageEditor: React.FC<ImageEditorProps> = ({ imageUrl, onSave, onCancel })
       <div className="bg-gray-900 rounded-lg p-4 w-full max-w-md mx-auto max-h-[90vh] overflow-hidden" onClick={(e) => e.stopPropagation()}>
         {/* العنوان */}
         <div className="flex justify-between items-center mb-4">
-          <h3 className="text-white text-lg font-semibold">تعديل الصورة</h3>
+          <h3 className="text-white text-lg font-semibold">اقتصاص الصورة</h3>
           <Button
             variant="ghost"
             size="icon"
@@ -482,48 +392,59 @@ const ImageEditor: React.FC<ImageEditorProps> = ({ imageUrl, onSave, onCancel })
             />
           )}
           
-          {isCropMode && (
-            <div className="absolute bottom-2 left-2 right-2">
-              <p className="text-yellow-400 text-xs text-center">
-                اسحب المنطقة البيضاء لتحديد الجزء المراد قصه
-              </p>
-            </div>
-          )}
+          <div className="absolute bottom-2 left-2 right-2">
+            <p className="text-yellow-400 text-xs text-center">
+              اسحب المقابض لتعديل الاقتصاص أو حرك الصورة لضبط الموقع
+            </p>
+          </div>
         </div>
 
         {/* أزرار التحكم */}
         <div className="space-y-3">
-          <div className="flex gap-2">
+          <div className="flex gap-2 justify-center flex-wrap">
             <Button
               variant="outline"
-              onClick={handleRotate}
-              disabled={isCropMode}
-              className="flex-1 bg-gray-700 border-gray-600 text-white hover:bg-gray-600 disabled:opacity-50"
+              onClick={() => handleSetAspect(image ? image.width / image.height : 1)}
+              className="bg-gray-700 border-gray-600 text-white hover:bg-gray-600"
             >
-              <RotateCw size={16} className="mr-1" />
-              تدوير
+              أصلي
             </Button>
             <Button
-              variant={isCropMode ? "default" : "outline"}
-              onClick={handleCropToggle}
-              className={`flex-1 ${
-                isCropMode 
-                  ? "bg-green-600 hover:bg-green-700 text-white" 
-                  : "bg-gray-700 border-gray-600 text-white hover:bg-gray-600"
-              }`}
+              variant="outline"
+              onClick={() => handleSetAspect(1)}
+              className="bg-gray-700 border-gray-600 text-white hover:bg-gray-600"
             >
-              {isCropMode ? <Check size={16} className="mr-1" /> : <Crop size={16} className="mr-1" />}
-              {isCropMode ? "تطبيق" : "قص"}
+              <Square size={16} className="mr-1" />
+              1:1
             </Button>
-            {isCropMode && (
-              <Button
-                variant="outline"
-                onClick={handleCancelCrop}
-                className="bg-red-600 border-red-600 text-white hover:bg-red-700"
-              >
-                <X size={16} />
-              </Button>
-            )}
+            <Button
+              variant="outline"
+              onClick={() => handleSetAspect(4 / 3)}
+              className="bg-gray-700 border-gray-600 text-white hover:bg-gray-600"
+            >
+              4:3
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => handleSetAspect(3 / 4)}
+              className="bg-gray-700 border-gray-600 text-white hover:bg-gray-600"
+            >
+              3:4
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => handleSetAspect(16 / 9)}
+              className="bg-gray-700 border-gray-600 text-white hover:bg-gray-600"
+            >
+              16:9
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => handleSetAspect(9 / 16)}
+              className="bg-gray-700 border-gray-600 text-white hover:bg-gray-600"
+            >
+              9:16
+            </Button>
           </div>
 
           <div className="flex gap-2">
@@ -550,3 +471,4 @@ const ImageEditor: React.FC<ImageEditorProps> = ({ imageUrl, onSave, onCancel })
 };
 
 export default ImageEditor;
+```
