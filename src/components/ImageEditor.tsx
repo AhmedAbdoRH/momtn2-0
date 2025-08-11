@@ -275,37 +275,104 @@ const ImageEditor: React.FC<ImageEditorProps> = ({ imageUrl, onSave, onCancel })
 
   // تطبيق القص
   const applyCrop = useCallback(() => {
-    if (!canvasRef.current || !image) return;
+    if (!image || !canvasRef.current || !containerRef.current) return;
 
-    console.log('تطبيق القص مع المنطقة:', cropArea);
+    const imgW = image.width;
+    const imgH = image.height;
+    const s = scale;
+    const centerX = position.x + (imgW * s) / 2;
+    const centerY = position.y + (imgH * s) / 2;
+    const rad = (rotation * Math.PI) / 180;
 
-    const canvas = canvasRef.current;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
+    const toImage = (px: number, py: number) => {
+      const dx = px - centerX;
+      const dy = py - centerY;
+      const cos = Math.cos(rad);
+      const sin = Math.sin(rad);
+      const rx = dx * cos + dy * sin;
+      const ry = -dx * sin + dy * cos;
+      const ix = rx / s + imgW / 2;
+      const iy = ry / s + imgH / 2;
+      return { x: ix, y: iy };
+    };
 
-    // إنشاء canvas جديد للصورة المقصوصة
-    const croppedCanvas = document.createElement('canvas');
-    croppedCanvas.width = cropArea.width;
-    croppedCanvas.height = cropArea.height;
-    const croppedCtx = croppedCanvas.getContext('2d');
-    if (!croppedCtx) return;
+    const x1 = cropArea.x;
+    const y1 = cropArea.y;
+    const x2 = cropArea.x + cropArea.width;
+    const y2 = cropArea.y + cropArea.height;
 
-    // نسخ المنطقة المحددة
-    const imageData = ctx.getImageData(cropArea.x, cropArea.y, cropArea.width, cropArea.height);
-    croppedCtx.putImageData(imageData, 0, 0);
+    const pts = [toImage(x1, y1), toImage(x2, y1), toImage(x2, y2), toImage(x1, y2)];
 
-    // تحديث الصورة
-    const croppedImg = new Image();
-    croppedImg.onload = () => {
-      console.log('تم تحديث الصورة المقصوصة');
-      setImage(croppedImg);
+    let minX = Math.min(...pts.map((p) => p.x));
+    let maxX = Math.max(...pts.map((p) => p.x));
+    let minY = Math.min(...pts.map((p) => p.y));
+    let maxY = Math.max(...pts.map((p) => p.y));
+
+    // Clamp to image bounds
+    minX = Math.max(0, Math.min(minX, imgW));
+    minY = Math.max(0, Math.min(minY, imgH));
+    maxX = Math.max(0, Math.min(maxX, imgW));
+    maxY = Math.max(0, Math.min(maxY, imgH));
+
+    const cropW = Math.max(1, Math.round(maxX - minX));
+    const cropH = Math.max(1, Math.round(maxY - minY));
+
+    // Create high-quality crop at source resolution
+    const srcCanvas = document.createElement('canvas');
+    srcCanvas.width = cropW;
+    srcCanvas.height = cropH;
+    const sctx = srcCanvas.getContext('2d');
+    if (!sctx) return;
+    sctx.imageSmoothingEnabled = true;
+    if ((sctx as any).imageSmoothingQuality !== undefined) {
+      (sctx as any).imageSmoothingQuality = 'high';
+    }
+    sctx.drawImage(
+      image,
+      Math.floor(minX),
+      Math.floor(minY),
+      cropW,
+      cropH,
+      0,
+      0,
+      cropW,
+      cropH
+    );
+
+    // Apply rotation to the cropped output so it matches what user sees
+    let outCanvas = srcCanvas;
+    const rot = ((rotation % 360) + 360) % 360;
+    if (rot !== 0) {
+      const rotated = document.createElement('canvas');
+      if (rot === 90 || rot === 270) {
+        rotated.width = cropH;
+        rotated.height = cropW;
+      } else {
+        rotated.width = cropW;
+        rotated.height = cropH;
+      }
+      const rctx = rotated.getContext('2d');
+      if (!rctx) return;
+      rctx.imageSmoothingEnabled = true;
+      if ((rctx as any).imageSmoothingQuality !== undefined) {
+        (rctx as any).imageSmoothingQuality = 'high';
+      }
+      rctx.translate(rotated.width / 2, rotated.height / 2);
+      rctx.rotate((rot * Math.PI) / 180);
+      rctx.drawImage(srcCanvas, -cropW / 2, -cropH / 2);
+      outCanvas = rotated;
+    }
+
+    const newImg = new Image();
+    newImg.onload = () => {
+      setImage(newImg);
       setIsCropMode(false);
       setRotation(0);
       setScale(1);
       setPosition({ x: 0, y: 0 });
     };
-    croppedImg.src = croppedCanvas.toDataURL();
-  }, [cropArea, image]);
+    newImg.src = outCanvas.toDataURL('image/png');
+  }, [image, cropArea, rotation, scale, position]);
 
   // تفعيل/إلغاء وضع القص
   const handleCropToggle = useCallback(() => {
