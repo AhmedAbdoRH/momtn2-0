@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { RotateCw, Crop, Check, X, Move, Square } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
@@ -286,9 +287,13 @@ const ImageEditor: React.FC<ImageEditorProps> = ({ imageUrl, onSave, onCancel })
     }, 'image/jpeg', 0.9);
   };
 
-  return (
-    <div className="fixed inset-0 bg-black/90 backdrop-blur-sm z-[150] flex items-center justify-center p-4">
-      <div className="bg-gray-900 rounded-lg p-4 w-full max-w-md mx-auto max-h-[90vh] overflow-hidden">
+  return createPortal(
+    <div
+      className="fixed inset-0 bg-black/90 backdrop-blur-sm z-[9999] flex items-center justify-center p-4 pointer-events-auto"
+      role="dialog"
+      aria-modal="true"
+    >
+      <div className="bg-gray-900 rounded-lg p-4 w-full max-w-md mx-auto max-h-[90vh] overflow-hidden" onClick={(e) => e.stopPropagation()}>
         {/* العنوان */}
         <div className="flex justify-between items-center mb-4">
           <h3 className="text-white text-lg font-semibold">تعديل الصورة</h3>
@@ -385,7 +390,8 @@ const ImageEditor: React.FC<ImageEditorProps> = ({ imageUrl, onSave, onCancel })
           </div>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };
 
