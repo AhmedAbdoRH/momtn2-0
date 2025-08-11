@@ -19,6 +19,7 @@ interface CropArea {
 const ImageEditor: React.FC<ImageEditorProps> = ({ imageUrl, onSave, onCancel }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const isTouchRef = useRef(false);
   const [image, setImage] = useState<HTMLImageElement | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [rotation, setRotation] = useState(0);
@@ -136,7 +137,7 @@ const ImageEditor: React.FC<ImageEditorProps> = ({ imageUrl, onSave, onCancel })
       se: { x: cropArea.x + cropArea.width, y: cropArea.y + cropArea.height },
       sw: { x: cropArea.x, y: cropArea.y + cropArea.height },
     } as const;
-    const size = 8; // نفس حجم الرسم
+    const size = isTouchRef.current ? 24 : 12; // تكبير منطقة الالتقاط للمس
     for (const key of Object.keys(handles) as Array<'nw'|'ne'|'se'|'sw'>) {
       const hx = handles[key].x;
       const hy = handles[key].y;
@@ -148,16 +149,20 @@ const ImageEditor: React.FC<ImageEditorProps> = ({ imageUrl, onSave, onCancel })
   };
 
   // معالجة بداية السحب
-  const handleMouseDown = (e: React.MouseEvent) => {
+  const handlePointerDown = (e: React.PointerEvent) => {
     if (!canvasRef.current) return;
+
+    e.preventDefault();
+    try { e.currentTarget.setPointerCapture(e.pointerId); } catch {}
+    isTouchRef.current = e.pointerType !== 'mouse';
     
     const rect = canvasRef.current.getBoundingClientRect();
     const x = e.clientX - rect.left;
     const y = e.clientY - rect.top;
-    
+
     setIsDragging(true);
     setDragStart({ x, y });
-    
+
     // تحديد نوع السحب
     if (isCropMode) {
       // أولوية للمقابض البيضاء
@@ -180,14 +185,15 @@ const ImageEditor: React.FC<ImageEditorProps> = ({ imageUrl, onSave, onCancel })
   };
 
   // معالجة السحب
-  const handleMouseMove = (e: React.MouseEvent) => {
+  const handlePointerMove = (e: React.PointerEvent) => {
     if (!canvasRef.current) return;
-    
+
+    e.preventDefault();
+
     const rect = canvasRef.current.getBoundingClientRect();
     const x = e.clientX - rect.left;
     const y = e.clientY - rect.top;
 
-    // تحديث المؤشر عند عدم السحب
     if (isCropMode && !isDragging) {
       const canvas = canvasRef.current;
       const handle = getHandleUnderCursor(x, y);
@@ -197,7 +203,7 @@ const ImageEditor: React.FC<ImageEditorProps> = ({ imageUrl, onSave, onCancel })
       else canvas.style.cursor = 'default';
     }
     if (!isDragging) return;
-    
+
     const deltaX = x - dragStart.x;
     const deltaY = y - dragStart.y;
 
@@ -253,15 +259,18 @@ const ImageEditor: React.FC<ImageEditorProps> = ({ imageUrl, onSave, onCancel })
         y: prev.y + deltaY
       }));
     }
-    
+
     setDragStart({ x, y });
   };
 
   // معالجة انتهاء السحب
-  const handleMouseUp = () => {
+  const handlePointerUp = (e?: React.PointerEvent) => {
     setIsDragging(false);
     setActiveHandle(null);
-    if (canvasRef.current) canvasRef.current.style.cursor = 'default';
+    if (canvasRef.current) {
+      canvasRef.current.style.cursor = 'default';
+      try { if (e) e.currentTarget.releasePointerCapture(e.pointerId); } catch {}
+    }
   };
 
   // تدوير الصورة
@@ -465,11 +474,11 @@ const ImageEditor: React.FC<ImageEditorProps> = ({ imageUrl, onSave, onCancel })
           ) : (
             <canvas
               ref={canvasRef}
-              className="w-full h-auto cursor-move border border-gray-600 rounded"
-              onMouseDown={handleMouseDown}
-              onMouseMove={handleMouseMove}
-              onMouseUp={handleMouseUp}
-              onMouseLeave={handleMouseUp}
+              className="w-full h-auto cursor-move border border-gray-600 rounded touch-none select-none"
+              onPointerDown={handlePointerDown}
+              onPointerMove={handlePointerMove}
+              onPointerUp={handlePointerUp}
+              onPointerLeave={handlePointerUp}
             />
           )}
           
