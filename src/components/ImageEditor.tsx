@@ -140,31 +140,44 @@ const ImageEditor: React.FC<ImageEditorProps> = ({ imageUrl, onSave, onCancel })
   const handlePointerDown = (e: React.PointerEvent) => {
     if (!canvasRef.current) return;
     e.preventDefault();
-    try { e.currentTarget.setPointerCapture(e.pointerId); } catch {}
     isTouchRef.current = e.pointerType !== 'mouse';
 
     const rect = canvasRef.current.getBoundingClientRect();
     const x = e.clientX - rect.left;
     const y = e.clientY - rect.top;
 
-    setIsDragging(true);
-    setDragStart({ x, y });
+    // لا نلتقط المؤشر إلا عندما نقرر فعلاً أننا سنسحب
+    let willDrag = false as boolean;
+    let nextDragType: 'move' | 'crop' | 'resize' = 'move';
 
     if (isCropMode) {
       const handle = getHandleUnderCursor(x, y);
       if (handle) {
         setActiveHandle(handle);
-        setDragType('resize');
+        nextDragType = 'resize';
+        willDrag = true;
+      } else if (
+        x >= cropArea.x && x <= cropArea.x + cropArea.width &&
+        y >= cropArea.y && y <= cropArea.y + cropArea.height
+      ) {
+        nextDragType = 'crop';
+        willDrag = true;
+      } else {
+        // منع تحريك الصورة أثناء وضع القص
+        setIsDragging(false);
+        setDragType('move');
         return;
       }
-      if (x >= cropArea.x && x <= cropArea.x + cropArea.width &&
-          y >= cropArea.y && y <= cropArea.y + cropArea.height) {
-        setDragType('crop');
-      } else {
-        setIsDragging(false); // منع تحريك الصورة أثناء وضع القص
-      }
     } else {
-      setDragType('move');
+      nextDragType = 'move';
+      willDrag = true;
+    }
+
+    if (willDrag) {
+      setIsDragging(true);
+      setDragType(nextDragType);
+      setDragStart({ x, y });
+      try { (e.currentTarget as Element & { setPointerCapture: any }).setPointerCapture(e.pointerId); } catch {}
     }
   };
 
@@ -287,7 +300,7 @@ const ImageEditor: React.FC<ImageEditorProps> = ({ imageUrl, onSave, onCancel })
         </div>
         <div ref={containerRef} className="bg-gray-800 rounded-lg p-2 mb-4 relative overflow-hidden" style={{ minHeight: '250px', maxHeight: '400px' }}>
           {isLoading ? <div className="flex items-center justify-center h-64 text-white">جاري التحميل...</div> :
-            <canvas ref={canvasRef} className="w-full h-auto border border-gray-600 rounded" style={{ touchAction: 'none' }} onPointerDown={handlePointerDown} onPointerMove={handlePointerMove} onPointerUp={handlePointerUp} onPointerLeave={handlePointerUp} />}
+            <canvas ref={canvasRef} className="w-full h-auto border border-gray-600 rounded" style={{ touchAction: 'none' }} onPointerDown={handlePointerDown} onPointerMove={handlePointerMove} onPointerUp={handlePointerUp} onPointerLeave={handlePointerUp} onPointerCancel={handlePointerUp} />}
         </div>
         <div className="space-y-3">
           <div className="flex gap-2">
