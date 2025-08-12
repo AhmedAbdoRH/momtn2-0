@@ -32,7 +32,7 @@ const ImageEditor: React.FC<ImageEditorProps> = ({ imageUrl, onSave, onCancel })
   const [isDragging, setIsDragging] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
   const [dragType, setDragType] = useState<'move' | 'crop' | 'resize'>('move');
-  const [activeHandle, setActiveHandle] = useState<'nw' | 'ne' | 'se' | 'sw' | null>(null);
+  const [activeHandle, setActiveHandle] = useState<'nw' | 'ne' | 'se' | 'sw' | 'n' | 'e' | 's' | 'w' | null>(null);
 
   useEffect(() => {
     const img = new Image();
@@ -85,14 +85,20 @@ const ImageEditor: React.FC<ImageEditorProps> = ({ imageUrl, onSave, onCancel })
       ctx.strokeRect(cropArea.x, cropArea.y, cropArea.width, cropArea.height);
 
       const handles = [
+        // corners
         { x: cropArea.x, y: cropArea.y },
         { x: cropArea.x + cropArea.width, y: cropArea.y },
         { x: cropArea.x + cropArea.width, y: cropArea.y + cropArea.height },
-        { x: cropArea.x, y: cropArea.y + cropArea.height }
+        { x: cropArea.x, y: cropArea.y + cropArea.height },
+        // edges midpoints
+        { x: cropArea.x + cropArea.width / 2, y: cropArea.y }, // n
+        { x: cropArea.x + cropArea.width, y: cropArea.y + cropArea.height / 2 }, // e
+        { x: cropArea.x + cropArea.width / 2, y: cropArea.y + cropArea.height }, // s
+        { x: cropArea.x, y: cropArea.y + cropArea.height / 2 } // w
       ];
 
       ctx.fillStyle = '#ffffff';
-      const handleSize = isTouchRef.current ? 16 : 12; // تكبير المقابض
+      const handleSize = isTouchRef.current ? 24 : 16; // تكبير المقابض
       handles.forEach(handle => {
         ctx.fillRect(handle.x - handleSize / 2, handle.y - handleSize / 2, handleSize, handleSize);
       });
@@ -109,15 +115,19 @@ const ImageEditor: React.FC<ImageEditorProps> = ({ imageUrl, onSave, onCancel })
     return () => window.removeEventListener('resize', handleResize);
   }, [drawCanvas]);
 
-  const getHandleUnderCursor = (x: number, y: number) : ('nw'|'ne'|'se'|'sw'|null) => {
+  const getHandleUnderCursor = (x: number, y: number) : ('nw'|'ne'|'se'|'sw'|'n'|'e'|'s'|'w'|null) => {
     const handles = {
       nw: { x: cropArea.x, y: cropArea.y },
       ne: { x: cropArea.x + cropArea.width, y: cropArea.y },
       se: { x: cropArea.x + cropArea.width, y: cropArea.y + cropArea.height },
       sw: { x: cropArea.x, y: cropArea.y + cropArea.height },
+      n:  { x: cropArea.x + cropArea.width / 2, y: cropArea.y },
+      e:  { x: cropArea.x + cropArea.width, y: cropArea.y + cropArea.height / 2 },
+      s:  { x: cropArea.x + cropArea.width / 2, y: cropArea.y + cropArea.height },
+      w:  { x: cropArea.x, y: cropArea.y + cropArea.height / 2 },
     } as const;
-    const size = isTouchRef.current ? 24 : 16; // تكبير منطقة الالتقاط
-    for (const key of Object.keys(handles) as Array<'nw'|'ne'|'se'|'sw'>) {
+    const size = isTouchRef.current ? 44 : 28; // تكبير منطقة الالتقاط
+    for (const key of Object.keys(handles) as Array<'nw'|'ne'|'se'|'sw'|'n'|'e'|'s'|'w'>) {
       const hx = handles[key].x;
       const hy = handles[key].y;
       if (x >= hx - size/2 && x <= hx + size/2 && y >= hy - size/2 && y <= hy + size/2) {
@@ -171,6 +181,8 @@ const ImageEditor: React.FC<ImageEditorProps> = ({ imageUrl, onSave, onCancel })
       const canvas = canvasRef.current;
       if (handle === 'nw' || handle === 'se') canvas.style.cursor = 'nwse-resize';
       else if (handle === 'ne' || handle === 'sw') canvas.style.cursor = 'nesw-resize';
+      else if (handle === 'n' || handle === 's') canvas.style.cursor = 'ns-resize';
+      else if (handle === 'e' || handle === 'w') canvas.style.cursor = 'ew-resize';
       else if (x >= cropArea.x && x <= cropArea.x + cropArea.width && y >= cropArea.y && y <= cropArea.y + cropArea.height) canvas.style.cursor = 'move';
       else canvas.style.cursor = 'default';
     }
@@ -188,6 +200,10 @@ const ImageEditor: React.FC<ImageEditorProps> = ({ imageUrl, onSave, onCancel })
           case 'ne': ny += deltaY; nw += deltaX; nh -= deltaY; break;
           case 'se': nw += deltaX; nh += deltaY; break;
           case 'sw': nx += deltaX; nw -= deltaX; nh += deltaY; break;
+          case 'n':  ny += deltaY; nh -= deltaY; break;
+          case 'e':  nw += deltaX; break;
+          case 's':  nh += deltaY; break;
+          case 'w':  nx += deltaX; nw -= deltaX; break;
         }
         nw = Math.max(MIN, nw);
         nh = Math.max(MIN, nh);
@@ -271,7 +287,7 @@ const ImageEditor: React.FC<ImageEditorProps> = ({ imageUrl, onSave, onCancel })
         </div>
         <div ref={containerRef} className="bg-gray-800 rounded-lg p-2 mb-4 relative overflow-hidden" style={{ minHeight: '250px', maxHeight: '400px' }}>
           {isLoading ? <div className="flex items-center justify-center h-64 text-white">جاري التحميل...</div> :
-            <canvas ref={canvasRef} className="w-full h-auto border border-gray-600 rounded" onPointerDown={handlePointerDown} onPointerMove={handlePointerMove} onPointerUp={handlePointerUp} onPointerLeave={handlePointerUp} />}
+            <canvas ref={canvasRef} className="w-full h-auto border border-gray-600 rounded" style={{ touchAction: 'none' }} onPointerDown={handlePointerDown} onPointerMove={handlePointerMove} onPointerUp={handlePointerUp} onPointerLeave={handlePointerUp} />}
         </div>
         <div className="space-y-3">
           <div className="flex gap-2">
