@@ -98,7 +98,7 @@ const ImageEditor: React.FC<ImageEditorProps> = ({ imageUrl, onSave, onCancel })
       ];
 
       ctx.fillStyle = '#ffffff';
-      const handleSize = isTouchRef.current ? 24 : 16; // تكبير المقابض
+      const handleSize = isTouchRef.current ? 28 : 20; // تكبير المقابض
       handles.forEach(handle => {
         ctx.fillRect(handle.x - handleSize / 2, handle.y - handleSize / 2, handleSize, handleSize);
       });
@@ -126,7 +126,7 @@ const ImageEditor: React.FC<ImageEditorProps> = ({ imageUrl, onSave, onCancel })
       s:  { x: cropArea.x + cropArea.width / 2, y: cropArea.y + cropArea.height },
       w:  { x: cropArea.x, y: cropArea.y + cropArea.height / 2 },
     } as const;
-    const size = isTouchRef.current ? 44 : 28; // تكبير منطقة الالتقاط
+    const size = isTouchRef.current ? 56 : 36; // تكبير منطقة الالتقاط
     for (const key of Object.keys(handles) as Array<'nw'|'ne'|'se'|'sw'|'n'|'e'|'s'|'w'>) {
       const hx = handles[key].x;
       const hy = handles[key].y;
@@ -140,31 +140,44 @@ const ImageEditor: React.FC<ImageEditorProps> = ({ imageUrl, onSave, onCancel })
   const handlePointerDown = (e: React.PointerEvent) => {
     if (!canvasRef.current) return;
     e.preventDefault();
-    try { e.currentTarget.setPointerCapture(e.pointerId); } catch {}
     isTouchRef.current = e.pointerType !== 'mouse';
 
     const rect = canvasRef.current.getBoundingClientRect();
     const x = e.clientX - rect.left;
     const y = e.clientY - rect.top;
 
-    setIsDragging(true);
-    setDragStart({ x, y });
+    let willDrag = false;
+    let nextDragType: 'move' | 'crop' | 'resize' = 'move';
 
     if (isCropMode) {
       const handle = getHandleUnderCursor(x, y);
       if (handle) {
         setActiveHandle(handle);
-        setDragType('resize');
+        nextDragType = 'resize';
+        willDrag = true;
+      } else if (
+        x >= cropArea.x && x <= cropArea.x + cropArea.width &&
+        y >= cropArea.y && y <= cropArea.y + cropArea.height
+      ) {
+        nextDragType = 'crop';
+        willDrag = true;
+      } else {
+        // خارج مستطيل القص: لا نبدأ سحب ولا نلتقط المؤشر
+        setIsDragging(false);
+        setActiveHandle(null);
         return;
       }
-      if (x >= cropArea.x && x <= cropArea.x + cropArea.width &&
-          y >= cropArea.y && y <= cropArea.y + cropArea.height) {
-        setDragType('crop');
-      } else {
-        setIsDragging(false); // منع تحريك الصورة أثناء وضع القص
-      }
     } else {
-      setDragType('move');
+      nextDragType = 'move';
+      willDrag = true;
+    }
+
+    setDragType(nextDragType);
+    setDragStart({ x, y });
+
+    if (willDrag) {
+      setIsDragging(true);
+      try { e.currentTarget.setPointerCapture(e.pointerId); } catch {}
     }
   };
 
@@ -236,6 +249,15 @@ const ImageEditor: React.FC<ImageEditorProps> = ({ imageUrl, onSave, onCancel })
     }
   };
 
+  const handlePointerCancel = (e: React.PointerEvent) => {
+    setIsDragging(false);
+    setActiveHandle(null);
+    if (canvasRef.current) {
+      try { e.currentTarget.releasePointerCapture(e.pointerId); } catch {}
+      canvasRef.current.style.cursor = 'default';
+    }
+  };
+
   const handleRotate = useCallback(() => {
     setRotation(prev => (prev + 90) % 360);
   }, []);
@@ -287,7 +309,7 @@ const ImageEditor: React.FC<ImageEditorProps> = ({ imageUrl, onSave, onCancel })
         </div>
         <div ref={containerRef} className="bg-gray-800 rounded-lg p-2 mb-4 relative overflow-hidden" style={{ minHeight: '250px', maxHeight: '400px' }}>
           {isLoading ? <div className="flex items-center justify-center h-64 text-white">جاري التحميل...</div> :
-            <canvas ref={canvasRef} className="w-full h-auto border border-gray-600 rounded" style={{ touchAction: 'none' }} onPointerDown={handlePointerDown} onPointerMove={handlePointerMove} onPointerUp={handlePointerUp} onPointerLeave={handlePointerUp} />}
+            <canvas ref={canvasRef} className="w-full h-auto border border-gray-600 rounded" style={{ touchAction: 'none' }} onPointerDown={handlePointerDown} onPointerMove={handlePointerMove} onPointerUp={handlePointerUp} onPointerLeave={handlePointerUp} onPointerCancel={handlePointerCancel} />}
         </div>
         <div className="space-y-3">
           <div className="flex gap-2">
