@@ -138,8 +138,9 @@ const ImageEditor: React.FC<ImageEditorProps> = ({ imageUrl, onSave, onCancel })
   };
 
   const handlePointerDown = (e: React.PointerEvent) => {
-    if (!canvasRef.current) return;
+    if (!canvasRef.current || e.target !== canvasRef.current) return;
     e.preventDefault();
+    e.stopPropagation();
     isTouchRef.current = e.pointerType !== 'mouse';
 
     const rect = canvasRef.current.getBoundingClientRect();
@@ -164,8 +165,6 @@ const ImageEditor: React.FC<ImageEditorProps> = ({ imageUrl, onSave, onCancel })
         willDrag = true;
       } else {
         // منع تحريك الصورة أثناء وضع القص
-        setIsDragging(false);
-        setDragType('move');
         return;
       }
     } else {
@@ -177,7 +176,7 @@ const ImageEditor: React.FC<ImageEditorProps> = ({ imageUrl, onSave, onCancel })
       setIsDragging(true);
       setDragType(nextDragType);
       setDragStart({ x, y });
-      try { (e.currentTarget as Element & { setPointerCapture: any }).setPointerCapture(e.pointerId); } catch {}
+      canvasRef.current.setPointerCapture(e.pointerId);
     }
   };
 
