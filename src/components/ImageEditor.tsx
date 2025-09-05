@@ -1,6 +1,6 @@
-import React, { useState, useRef, useCallback } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { RotateCw, Crop, Check, X } from 'lucide-react';
+import { RotateCw, Check, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 interface ImageEditorProps {
@@ -15,15 +15,23 @@ const ImageEditor: React.FC<ImageEditorProps> = ({ imageUrl, onSave, onCancel })
   const [rotation, setRotation] = useState(0);
   const [isLoaded, setIsLoaded] = useState(false);
 
-  const handleImageLoad = useCallback(() => {
+  useEffect(() => {
+    // Prevent scrolling on background
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = 'unset';
+    };
+  }, []);
+
+  const handleImageLoad = () => {
     setIsLoaded(true);
-  }, []);
+  };
 
-  const rotateImage = useCallback(() => {
+  const handleRotate = () => {
     setRotation(prev => (prev + 90) % 360);
-  }, []);
+  };
 
-  const saveImage = useCallback(() => {
+  const handleSave = () => {
     if (!imageRef.current || !canvasRef.current) return;
 
     const canvas = canvasRef.current;
@@ -53,36 +61,62 @@ const ImageEditor: React.FC<ImageEditorProps> = ({ imageUrl, onSave, onCancel })
     canvas.toBlob(blob => {
       if (blob) onSave(blob);
     }, 'image/jpeg', 0.9);
-  }, [rotation, onSave]);
+  };
+
+  const handleCancel = () => {
+    onCancel();
+  };
+
+  const handleBackdropClick = (e: React.MouseEvent) => {
+    if (e.target === e.currentTarget) {
+      onCancel();
+    }
+  };
+
+  const handleModalClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+  };
 
   return createPortal(
     <div 
-      className="fixed inset-0 bg-black/80 flex items-center justify-center p-4"
-      style={{ zIndex: 999999 }}
-      onClick={onCancel}
+      className="fixed inset-0 bg-black/90 flex items-center justify-center p-4 touch-manipulation"
+      style={{ 
+        zIndex: 2147483647,
+        WebkitTouchCallout: 'none',
+        WebkitUserSelect: 'none',
+        userSelect: 'none'
+      }}
+      onClick={handleBackdropClick}
+      onTouchStart={(e) => e.stopPropagation()}
     >
       <div 
-        className="bg-card rounded-lg p-6 w-full max-w-md mx-auto"
-        onClick={(e) => e.stopPropagation()}
+        className="bg-white rounded-xl p-6 w-full max-w-sm mx-auto shadow-2xl border border-gray-200"
+        onClick={handleModalClick}
+        style={{ 
+          touchAction: 'manipulation',
+          WebkitTouchCallout: 'none'
+        }}
       >
-        <div className="flex justify-between items-center mb-4">
-          <h3 className="text-lg font-semibold text-foreground">تعديل الصورة</h3>
-          <Button 
-            variant="ghost" 
-            size="icon" 
-            onClick={onCancel}
-            className="text-muted-foreground hover:text-foreground"
+        {/* Header */}
+        <div className="flex justify-between items-center mb-6">
+          <h3 className="text-xl font-bold text-gray-900">تعديل الصورة</h3>
+          <button 
+            onClick={handleCancel}
+            className="w-8 h-8 flex items-center justify-center text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-full transition-colors"
+            style={{ touchAction: 'manipulation' }}
           >
             <X size={20} />
-          </Button>
+          </button>
         </div>
         
+        {/* Image Preview */}
         <div className="mb-6 flex justify-center">
-          <div className="relative bg-muted rounded-lg p-4 max-w-full max-h-64 overflow-hidden">
+          <div className="relative bg-gray-100 rounded-xl p-4 max-w-full max-h-64 overflow-hidden border">
             <img 
               ref={imageRef}
               src={imageUrl}
-              alt="Image to edit"
+              alt="معاينة الصورة"
               className="max-w-full max-h-full object-contain transition-transform duration-300"
               style={{ transform: `rotate(${rotation}deg)` }}
               onLoad={handleImageLoad}
@@ -91,33 +125,35 @@ const ImageEditor: React.FC<ImageEditorProps> = ({ imageUrl, onSave, onCancel })
           </div>
         </div>
         
-        <div className="space-y-3">
-          <Button 
-            variant="outline" 
-            onClick={rotateImage}
+        {/* Action Buttons */}
+        <div className="space-y-4">
+          <button 
+            onClick={handleRotate}
             disabled={!isLoaded}
-            className="w-full flex items-center justify-center gap-2 h-12"
+            className="w-full h-12 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 rounded-xl flex items-center justify-center gap-2 font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            style={{ touchAction: 'manipulation' }}
           >
-            <RotateCw size={16} />
+            <RotateCw size={18} />
             تدوير
-          </Button>
+          </button>
           
           <div className="flex gap-3">
-            <Button 
-              variant="outline" 
-              onClick={onCancel}
-              className="flex-1 h-12"
+            <button 
+              onClick={handleCancel}
+              className="flex-1 h-12 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl font-medium transition-colors"
+              style={{ touchAction: 'manipulation' }}
             >
               إلغاء
-            </Button>
-            <Button 
-              onClick={saveImage}
+            </button>
+            <button 
+              onClick={handleSave}
               disabled={!isLoaded}
-              className="flex-1 h-12 flex items-center justify-center gap-2"
+              className="flex-1 h-12 bg-green-600 hover:bg-green-700 text-white rounded-xl flex items-center justify-center gap-2 font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              style={{ touchAction: 'manipulation' }}
             >
-              <Check size={16} />
+              <Check size={18} />
               حفظ
-            </Button>
+            </button>
           </div>
         </div>
         
