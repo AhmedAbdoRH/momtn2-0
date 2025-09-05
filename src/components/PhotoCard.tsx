@@ -93,6 +93,7 @@ const PhotoCard: React.FC<PhotoCardProps> = ({
   const [showComments, setShowComments] = useState(false); // حالة لإظهار/إخفاء التعليقات
   const [isCommentLoading, setIsCommentLoading] = useState(false); // حالة لتحميل التعليقات
 
+
   // دالة لمعالجة الإعجاب بالصورة
   const handleLike = async () => {
     setIsHeartAnimating(true); // تفعيل أنيميشن القلب

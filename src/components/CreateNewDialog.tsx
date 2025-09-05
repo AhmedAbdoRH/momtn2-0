@@ -1,12 +1,11 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { useState, useEffect, useRef } from "react";
-import { ImagePlus, Type, Image, Crop } from "lucide-react";
+import { ImagePlus, Type, Image, Crop, RotateCw, Check } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "./AuthProvider";
 import { TextToImageGenerator } from "./TextToImageGenerator";
-import ImageEditor from "./ImageEditor";
 
 interface CreateNewDialogProps {
   open: boolean;
@@ -28,7 +27,12 @@ const CreateNewDialog = ({ open, onOpenChange, onPhotoAdded, selectedGroupId }: 
   const [selectedAlbums, setSelectedAlbums] = useState<Set<string>>(new Set());
   const [showSuggestions, setShowSuggestions] = useState(true);
   const [caption, setCaption] = useState('');
-  const [showImageEditor, setShowImageEditor] = useState(false);
+  const [rotation, setRotation] = useState(0); // حالة لتتبع دوران الصورة
+  const [isCropMode, setIsCropMode] = useState(false); // حالة لوضع القص
+  const [cropArea, setCropArea] = useState({ x: 0, y: 0, width: 0, height: 0 }); // منطقة القص
+  const [isDragging, setIsDragging] = useState(false); // حالة السحب
+  const [dragStart, setDragStart] = useState({ x: 0, y: 0 }); // نقطة بداية السحب
+  const [activeHandle, setActiveHandle] = useState<string | null>(null); // المقبض النشط
   const { toast } = useToast();
   const { user } = useAuth();
   // مرجع لعنصر label الخاص برفع الصور
@@ -116,7 +120,292 @@ const CreateNewDialog = ({ open, onOpenChange, onPhotoAdded, selectedGroupId }: 
     setShowAlbumInput(false);
     setIsSubmitting(false);
     setIsGeneratingText(false);
-    setShowImageEditor(false);
+    setRotation(0);
+    setIsCropMode(false);
+  };
+
+  // دالة لتدوير الصورة
+  const handleRotate = () => {
+    setRotation(prev => (prev + 90) % 360);
+  };
+
+  // دالة لتبديل وضع القص
+  const handleCropToggle = () => {
+    if (!isCropMode) {
+      // تفعيل وضع القص ووضع منطقة افتراضية
+      setIsCropMode(true);
+      setCropArea({ x: 20, y: 20, width: 120, height: 80 });
+    } else {
+      // إلغاء وضع القص
+      setIsCropMode(false);
+      setCropArea({ x: 0, y: 0, width: 0, height: 0 });
+    }
+  };
+
+  // دالة لتطبيق القص
+  const handleApplyCrop = () => {
+    // التأكد من وجود منطقة قص صحيحة
+    if (cropArea.width <= 0 || cropArea.height <= 0) {
+      toast({
+        title: "خطأ في القص",
+        description: "يرجى تحديد منطقة قص صحيحة",
+        variant: "destructive",
+      });
+      return;
+    }
+    applyCrop();
+  };
+
+  // دالة لتطبيق القص فعلياً
+  const applyCrop = async () => {
+    if (!previewUrl || !image) return;
+
+    try {
+      // إنشاء كانفاس للقص
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return;
+
+      // تحميل الصورة
+      const img = document.createElement('img');
+      img.crossOrigin = 'anonymous';
+      
+      img.onload = () => {
+        try {
+          // الحصول على أبعاد الصورة المعروضة الفعلية
+          const imgElement = document.querySelector('img[alt="Preview"], img[alt="Generated gratitude"]') as HTMLImageElement;
+          if (!imgElement) {
+            throw new Error('Image element not found');
+          }
+
+          const imgRect = imgElement.getBoundingClientRect();
+          const containerRect = imgElement.parentElement?.getBoundingClientRect();
+          if (!containerRect) {
+            throw new Error('Container not found');
+          }
+
+          // حساب أبعاد الصورة الفعلية في الحاوية
+          const imgDisplayWidth = imgRect.width;
+          const imgDisplayHeight = imgRect.height;
+          const containerWidth = containerRect.width;
+          const containerHeight = containerRect.height;
+
+          // حساب النسب الصحيحة
+          const scaleX = img.width / imgDisplayWidth;
+          const scaleY = img.height / imgDisplayHeight;
+
+          // حساب موضع الصورة في الحاوية (object-contain)
+          const imgOffsetX = (containerWidth - imgDisplayWidth) / 2;
+          const imgOffsetY = (containerHeight - imgDisplayHeight) / 2;
+
+          // حساب منطقة القص في الصورة الأصلية
+          const cropX = Math.round((cropArea.x - imgOffsetX) * scaleX);
+          const cropY = Math.round((cropArea.y - imgOffsetY) * scaleY);
+          const cropWidth = Math.round(cropArea.width * scaleX);
+          const cropHeight = Math.round(cropArea.height * scaleY);
+
+          // التأكد من أن القيم صحيحة
+          if (cropWidth <= 0 || cropHeight <= 0 || cropX < 0 || cropY < 0) {
+            throw new Error('Invalid crop dimensions');
+          }
+
+          // التأكد من أن القص لا يتجاوز حدود الصورة
+          const finalCropX = Math.max(0, Math.min(cropX, img.width - cropWidth));
+          const finalCropY = Math.max(0, Math.min(cropY, img.height - cropHeight));
+          const finalCropWidth = Math.min(cropWidth, img.width - finalCropX);
+          const finalCropHeight = Math.min(cropHeight, img.height - finalCropY);
+
+          // تعيين أبعاد الكانفاس
+          canvas.width = finalCropWidth;
+          canvas.height = finalCropHeight;
+
+          // رسم الجزء المقطوع
+          ctx.drawImage(
+            img,
+            finalCropX, finalCropY, finalCropWidth, finalCropHeight,
+            0, 0, canvas.width, canvas.height
+          );
+
+          // تحويل إلى blob
+          canvas.toBlob((blob) => {
+            if (blob) {
+              const file = new File([blob], `cropped_${Date.now()}.jpeg`, { type: 'image/jpeg' });
+              setImage(file);
+              const newUrl = URL.createObjectURL(blob);
+              setPreviewUrl(newUrl);
+              
+              // إعادة تعيين القص
+              setIsCropMode(false);
+              setCropArea({ x: 0, y: 0, width: 0, height: 0 });
+              setRotation(0);
+              
+              toast({
+                title: "تم القص بنجاح",
+                description: "تم تطبيق القص على الصورة بدقة عالية",
+              });
+            } else {
+              throw new Error('Failed to create blob');
+            }
+          }, 'image/jpeg', 0.95);
+        } catch (error) {
+          console.error('Error in crop processing:', error);
+          toast({
+            title: "خطأ في القص",
+            description: "حدث خطأ أثناء معالجة القص",
+            variant: "destructive",
+          });
+        }
+      };
+      
+      img.onerror = () => {
+        console.error('Error loading image for crop');
+        toast({
+          title: "خطأ في تحميل الصورة",
+          description: "فشل في تحميل الصورة للقص",
+          variant: "destructive",
+        });
+      };
+      
+      img.src = previewUrl;
+    } catch (error) {
+      console.error('Error in crop:', error);
+      toast({
+        title: "خطأ في القص",
+        description: "حدث خطأ أثناء تطبيق القص",
+        variant: "destructive",
+      });
+    }
+  };
+
+  // دالة للحصول على المقبض تحت المؤشر
+  const getHandleUnderCursor = (x: number, y: number) => {
+    const handles = {
+      'nw': { x: cropArea.x, y: cropArea.y },
+      'ne': { x: cropArea.x + cropArea.width, y: cropArea.y },
+      'se': { x: cropArea.x + cropArea.width, y: cropArea.y + cropArea.height },
+      'sw': { x: cropArea.x, y: cropArea.y + cropArea.height },
+      'n': { x: cropArea.x + cropArea.width / 2, y: cropArea.y },
+      'e': { x: cropArea.x + cropArea.width, y: cropArea.y + cropArea.height / 2 },
+      's': { x: cropArea.x + cropArea.width / 2, y: cropArea.y + cropArea.height },
+      'w': { x: cropArea.x, y: cropArea.y + cropArea.height / 2 }
+    };
+
+    const handleSize = 20;
+    for (const [key, handle] of Object.entries(handles)) {
+      if (x >= handle.x - handleSize/2 && x <= handle.x + handleSize/2 && 
+          y >= handle.y - handleSize/2 && y <= handle.y + handleSize/2) {
+        return key;
+      }
+    }
+    return null;
+  };
+
+  // دالة لمعالجة بداية السحب
+  const handleMouseDown = (e: React.MouseEvent) => {
+    if (!isCropMode) return;
+    
+    e.preventDefault();
+    e.stopPropagation();
+    e.nativeEvent.stopImmediatePropagation();
+    
+    const rect = e.currentTarget.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+
+    const handle = getHandleUnderCursor(x, y);
+    if (handle) {
+      setActiveHandle(handle);
+      setIsDragging(true);
+      setDragStart({ x, y });
+    } else if (x >= cropArea.x && x <= cropArea.x + cropArea.width && 
+               y >= cropArea.y && y <= cropArea.y + cropArea.height) {
+      // سحب منطقة القص كاملة
+      setActiveHandle('move');
+      setIsDragging(true);
+      setDragStart({ x: x - cropArea.x, y: y - cropArea.y });
+    }
+  };
+
+  // دالة لمعالجة حركة الماوس
+  const handleMouseMove = (e: React.MouseEvent) => {
+    if (!isDragging || !isCropMode) return;
+
+    e.preventDefault();
+    e.stopPropagation();
+    e.nativeEvent.stopImmediatePropagation();
+
+    const rect = e.currentTarget.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+
+    setCropArea(prev => {
+      let newArea = { ...prev };
+      const minSize = 30;
+      const maxWidth = rect.width;
+      const maxHeight = rect.height;
+
+      switch (activeHandle) {
+        case 'nw':
+          newArea.x = Math.max(0, Math.min(x, prev.x + prev.width - minSize));
+          newArea.y = Math.max(0, Math.min(y, prev.y + prev.height - minSize));
+          newArea.width = prev.x + prev.width - newArea.x;
+          newArea.height = prev.y + prev.height - newArea.y;
+          break;
+        case 'ne':
+          newArea.y = Math.max(0, Math.min(y, prev.y + prev.height - minSize));
+          newArea.width = Math.max(minSize, Math.min(x - prev.x, maxWidth - prev.x));
+          newArea.height = prev.y + prev.height - newArea.y;
+          break;
+        case 'se':
+          newArea.width = Math.max(minSize, Math.min(x - prev.x, maxWidth - prev.x));
+          newArea.height = Math.max(minSize, Math.min(y - prev.y, maxHeight - prev.y));
+          break;
+        case 'sw':
+          newArea.x = Math.max(0, Math.min(x, prev.x + prev.width - minSize));
+          newArea.width = prev.x + prev.width - newArea.x;
+          newArea.height = Math.max(minSize, Math.min(y - prev.y, maxHeight - prev.y));
+          break;
+        case 'n':
+          newArea.y = Math.max(0, Math.min(y, prev.y + prev.height - minSize));
+          newArea.height = prev.y + prev.height - newArea.y;
+          break;
+        case 'e':
+          newArea.width = Math.max(minSize, Math.min(x - prev.x, maxWidth - prev.x));
+          break;
+        case 's':
+          newArea.height = Math.max(minSize, Math.min(y - prev.y, maxHeight - prev.y));
+          break;
+        case 'w':
+          newArea.x = Math.max(0, Math.min(x, prev.x + prev.width - minSize));
+          newArea.width = prev.x + prev.width - newArea.x;
+          break;
+        case 'move':
+          const newX = x - dragStart.x;
+          const newY = y - dragStart.y;
+          newArea.x = Math.max(0, Math.min(newX, maxWidth - newArea.width));
+          newArea.y = Math.max(0, Math.min(newY, maxHeight - newArea.height));
+          break;
+      }
+
+      // التأكد من أن المقابض لا تخرج خارج الصورة
+      newArea.x = Math.max(0, Math.min(newArea.x, maxWidth - newArea.width));
+      newArea.y = Math.max(0, Math.min(newArea.y, maxHeight - newArea.height));
+      newArea.width = Math.max(minSize, Math.min(newArea.width, maxWidth - newArea.x));
+      newArea.height = Math.max(minSize, Math.min(newArea.height, maxHeight - newArea.y));
+
+      return newArea;
+    });
+  };
+
+  // دالة لمعالجة انتهاء السحب
+  const handleMouseUp = (e?: React.MouseEvent) => {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+      e.nativeEvent.stopImmediatePropagation();
+    }
+    setIsDragging(false);
+    setActiveHandle(null);
   };
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -210,21 +499,6 @@ const CreateNewDialog = ({ open, onOpenChange, onPhotoAdded, selectedGroupId }: 
       });
   };
 
-  const handleImageEdit = () => {
-    setShowImageEditor(true);
-  };
-
-  const handleImageEditorSave = (editedImageBlob: Blob) => {
-    const file = new File([editedImageBlob], `edited_${Date.now()}.jpeg`, { type: 'image/jpeg' });
-    setImage(file);
-    const newUrl = URL.createObjectURL(editedImageBlob);
-    setPreviewUrl(newUrl);
-    setShowImageEditor(false);
-  };
-
-  const handleImageEditorCancel = () => {
-    setShowImageEditor(false);
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -389,22 +663,167 @@ const CreateNewDialog = ({ open, onOpenChange, onPhotoAdded, selectedGroupId }: 
                   ref={imageLabelRef} // إضافة المرجع
                   tabIndex={0} // جعل label قابلة للتركيز
                   className="w-full h-40 border-2 border-dashed border-gray-600 rounded-lg flex flex-col items-center justify-center cursor-pointer hover:border-gray-500 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-colors outline-none relative"
+                  style={{ pointerEvents: isCropMode ? 'none' : 'auto' }}
                 >
                   {previewUrl ? (
-                    <div className="w-full h-full relative">
-                      <img src={previewUrl} alt="Preview" className="w-full h-full object-contain rounded-lg p-1" />
+                    <div 
+                      className="w-full h-full relative"
+                      onMouseDown={handleMouseDown}
+                      onMouseMove={handleMouseMove}
+                      onMouseUp={handleMouseUp}
+                      onMouseLeave={handleMouseUp}
+                      style={{ pointerEvents: isCropMode ? 'auto' : 'none' }}
+                    >
+                      <img 
+                        src={previewUrl} 
+                        alt="Preview" 
+                        className="w-full h-full object-contain rounded-lg p-1" 
+                        style={{ transform: `rotate(${rotation}deg)` }}
+                      />
+                      
+                      {/* منطقة القص */}
+                      {isCropMode && (
+                        <>
+                          {/* خلفية شفافة */}
+                          <div className="absolute inset-0 bg-black/30" />
+                          
+                          {/* منطقة القص المحددة */}
+                          <div 
+                            className="absolute border-2 border-white border-dashed bg-transparent"
+                            style={{
+                              left: cropArea.x,
+                              top: cropArea.y,
+                              width: cropArea.width,
+                              height: cropArea.height,
+                              pointerEvents: isDragging ? 'auto' : 'none',
+                            }}
+                          >
+                            {/* المقابض */}
+                            {['nw', 'ne', 'se', 'sw', 'n', 'e', 's', 'w'].map((handle) => (
+                              <div
+                                key={handle}
+                                className={`absolute w-4 h-4 bg-white border-2 border-blue-500 rounded-full cursor-pointer z-10 ${
+                                  activeHandle === handle ? 'bg-blue-500 scale-110' : 'hover:scale-110'
+                                } transition-transform duration-150`}
+                                style={{
+                                  left: handle.includes('w') ? -6 : handle.includes('e') ? cropArea.width - 6 : cropArea.width / 2 - 6,
+                                  top: handle.includes('n') ? -6 : handle.includes('s') ? cropArea.height - 6 : cropArea.height / 2 - 6,
+                                }}
+                              />
+                            ))}
+                          </div>
+                        </>
+                      )}
+                      
+                      {/* أزرار التعديل العادية */}
+                      <div 
+                        className="absolute top-2 right-2 flex gap-2"
+                        style={{ pointerEvents: isCropMode ? 'none' : 'auto' }}
+                      >
                       <button
                         type="button"
                         onClick={(e) => {
                           e.preventDefault();
                           e.stopPropagation();
-                          handleImageEdit();
+                            handleRotate();
                         }}
-                        className="absolute bottom-2 right-2 bg-black/70 backdrop-blur-sm text-white p-3 rounded-full hover:bg-black/90 transition-all duration-200 shadow-lg z-10"
-                        title="تعديل الصورة"
+                          className="bg-black/70 backdrop-blur-sm text-white p-2 rounded-full hover:bg-black/90 transition-all duration-200 shadow-lg"
+                          title="تدوير الصورة"
                       >
-                        <Crop size={20} />
+                          <RotateCw size={16} />
                       </button>
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            handleCropToggle();
+                          }}
+                          className={`backdrop-blur-sm text-white p-2 rounded-full transition-all duration-200 shadow-lg ${
+                            isCropMode 
+                              ? 'bg-blue-600 hover:bg-blue-700' 
+                              : 'bg-black/70 hover:bg-black/90'
+                          }`}
+                          title={isCropMode ? "إلغاء القص" : "قص الصورة"}
+                        >
+                          <Crop size={16} />
+                        </button>
+                        {isCropMode && (
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              handleApplyCrop();
+                            }}
+                            className="bg-green-600 hover:bg-green-700 text-white p-2 rounded-full transition-all duration-200 shadow-lg"
+                            title="تطبيق القص"
+                          >
+                            <Check size={16} />
+                          </button>
+                        )}
+                        {(rotation > 0 || isCropMode) && (
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                              // إعادة تعيين التعديلات
+                              setRotation(0);
+                              setIsCropMode(false);
+                        }}
+                            className="bg-indigo-600 hover:bg-indigo-700 text-white p-2 rounded-full transition-all duration-200 shadow-lg"
+                            title="إعادة تعيين"
+                      >
+                            <Check size={16} />
+                      </button>
+                        )}
+                      </div>
+                      
+                      {/* أزرار القص المنفصلة */}
+                      {isCropMode && (
+                        <div className="absolute top-2 right-2 flex gap-2 z-20">
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              e.nativeEvent.stopImmediatePropagation();
+                              handleRotate();
+                            }}
+                            className="bg-black/70 backdrop-blur-sm text-white p-2 rounded-full hover:bg-black/90 transition-all duration-200 shadow-lg"
+                            title="تدوير الصورة"
+                          >
+                            <RotateCw size={16} />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              e.nativeEvent.stopImmediatePropagation();
+                              handleCropToggle();
+                            }}
+                            className="bg-blue-600 hover:bg-blue-700 text-white p-2 rounded-full transition-all duration-200 shadow-lg"
+                            title="إلغاء القص"
+                          >
+                            <Crop size={16} />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              e.nativeEvent.stopImmediatePropagation();
+                              handleApplyCrop();
+                            }}
+                            className="bg-green-600 hover:bg-green-700 text-white p-2 rounded-full transition-all duration-200 shadow-lg"
+                            title="تطبيق القص"
+                          >
+                            <Check size={16} />
+                          </button>
+                        </div>
+                      )}
                     </div>
                   ) : (
                     <div className="text-center pointer-events-none">
@@ -424,8 +843,163 @@ const CreateNewDialog = ({ open, onOpenChange, onPhotoAdded, selectedGroupId }: 
             ) : (
               <div className="w-full">
                 {previewUrl ? (
-                  <div className="w-full">
-                    <img src={previewUrl} alt="Generated gratitude" className="w-full h-40 object-contain rounded-lg border border-gray-600" />
+                  <div 
+                    className="w-full relative"
+                    onMouseDown={handleMouseDown}
+                    onMouseMove={handleMouseMove}
+                    onMouseUp={handleMouseUp}
+                    onMouseLeave={handleMouseUp}
+                    style={{ pointerEvents: isCropMode ? 'auto' : 'none' }}
+                  >
+                    <img 
+                      src={previewUrl} 
+                      alt="Generated gratitude" 
+                      className="w-full h-40 object-contain rounded-lg border border-gray-600" 
+                      style={{ transform: `rotate(${rotation}deg)` }}
+                    />
+                    
+                    {/* منطقة القص للصورة المولدة */}
+                    {isCropMode && (
+                      <>
+                        {/* خلفية شفافة */}
+                        <div className="absolute inset-0 bg-black/30" />
+                        
+                        {/* منطقة القص المحددة */}
+                        <div 
+                          className="absolute border-2 border-white border-dashed bg-transparent"
+                          style={{
+                            left: cropArea.x,
+                            top: cropArea.y,
+                            width: cropArea.width,
+                            height: cropArea.height,
+                            pointerEvents: isDragging ? 'auto' : 'none',
+                          }}
+                        >
+                          {/* المقابض */}
+                          {['nw', 'ne', 'se', 'sw', 'n', 'e', 's', 'w'].map((handle) => (
+                            <div
+                              key={handle}
+                              className={`absolute w-4 h-4 bg-white border-2 border-blue-500 rounded-full cursor-pointer z-10 ${
+                                activeHandle === handle ? 'bg-blue-500 scale-110' : 'hover:scale-110'
+                              } transition-transform duration-150`}
+                              style={{
+                                left: handle.includes('w') ? -6 : handle.includes('e') ? cropArea.width - 6 : cropArea.width / 2 - 6,
+                                top: handle.includes('n') ? -6 : handle.includes('s') ? cropArea.height - 6 : cropArea.height / 2 - 6,
+                              }}
+                            />
+                          ))}
+                        </div>
+                      </>
+                    )}
+                    
+                    {/* أزرار التعديل العادية للصورة المولدة */}
+                    <div 
+                      className="absolute top-2 right-2 flex gap-2"
+                      style={{ pointerEvents: isCropMode ? 'none' : 'auto' }}
+                    >
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          handleRotate();
+                        }}
+                        className="bg-black/70 backdrop-blur-sm text-white p-2 rounded-full hover:bg-black/90 transition-all duration-200 shadow-lg"
+                        title="تدوير الصورة"
+                      >
+                        <RotateCw size={16} />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          handleCropToggle();
+                        }}
+                        className={`backdrop-blur-sm text-white p-2 rounded-full transition-all duration-200 shadow-lg ${
+                          isCropMode 
+                            ? 'bg-blue-600 hover:bg-blue-700' 
+                            : 'bg-black/70 hover:bg-black/90'
+                        }`}
+                        title={isCropMode ? "إلغاء القص" : "قص الصورة"}
+                      >
+                        <Crop size={16} />
+                      </button>
+                      {isCropMode && (
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            handleApplyCrop();
+                          }}
+                          className="bg-green-600 hover:bg-green-700 text-white p-2 rounded-full transition-all duration-200 shadow-lg"
+                          title="تطبيق القص"
+                        >
+                          <Check size={16} />
+                        </button>
+                      )}
+                      {(rotation > 0 || isCropMode) && (
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            setRotation(0);
+                            setIsCropMode(false);
+                          }}
+                          className="bg-indigo-600 hover:bg-indigo-700 text-white p-2 rounded-full transition-all duration-200 shadow-lg"
+                          title="إعادة تعيين"
+                        >
+                          <Check size={16} />
+                        </button>
+                      )}
+                    </div>
+                    
+                    {/* أزرار القص المنفصلة للصورة المولدة */}
+                    {isCropMode && (
+                      <div className="absolute top-2 right-2 flex gap-2 z-20">
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            e.nativeEvent.stopImmediatePropagation();
+                            handleRotate();
+                          }}
+                          className="bg-black/70 backdrop-blur-sm text-white p-2 rounded-full hover:bg-black/90 transition-all duration-200 shadow-lg"
+                          title="تدوير الصورة"
+                        >
+                          <RotateCw size={16} />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            e.nativeEvent.stopImmediatePropagation();
+                            handleCropToggle();
+                          }}
+                          className="bg-blue-600 hover:bg-blue-700 text-white p-2 rounded-full transition-all duration-200 shadow-lg"
+                          title="إلغاء القص"
+                        >
+                          <Crop size={16} />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            e.nativeEvent.stopImmediatePropagation();
+                            handleApplyCrop();
+                          }}
+                          className="bg-green-600 hover:bg-green-700 text-white p-2 rounded-full transition-all duration-200 shadow-lg"
+                          title="تطبيق القص"
+                        >
+                          <Check size={16} />
+                        </button>
+                      </div>
+                    )}
                   </div>
                 ) : (
                   <TextToImageGenerator
@@ -590,14 +1164,6 @@ const CreateNewDialog = ({ open, onOpenChange, onPhotoAdded, selectedGroupId }: 
         </form>
       </DialogContent>
       
-      {/* Image Editor Modal */}
-      {showImageEditor && previewUrl && (
-        <ImageEditor
-          imageUrl={previewUrl}
-          onSave={handleImageEditorSave}
-          onCancel={handleImageEditorCancel}
-        />
-      )}
     </Dialog>
   );
 };
