@@ -301,16 +301,17 @@ const CreateNewDialog = ({ open, onOpenChange, onPhotoAdded, selectedGroupId }: 
   };
 
   // دالة لمعالجة بداية السحب
-  const handleMouseDown = (e: React.MouseEvent) => {
+  const handleMouseDown = (e: React.MouseEvent | React.TouchEvent) => {
     if (!isCropMode) return;
     
     e.preventDefault();
     e.stopPropagation();
-    e.nativeEvent.stopImmediatePropagation();
     
     const rect = e.currentTarget.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
+    const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX;
+    const clientY = 'touches' in e ? e.touches[0].clientY : e.clientY;
+    const x = clientX - rect.left;
+    const y = clientY - rect.top;
 
     const handle = getHandleUnderCursor(x, y);
     if (handle) {
@@ -327,16 +328,20 @@ const CreateNewDialog = ({ open, onOpenChange, onPhotoAdded, selectedGroupId }: 
   };
 
   // دالة لمعالجة حركة الماوس
-  const handleMouseMove = (e: React.MouseEvent) => {
+  const handleMouseMove = (e: React.MouseEvent | React.TouchEvent) => {
     if (!isDragging || !isCropMode) return;
+    
+    e.preventDefault();
 
     e.preventDefault();
     e.stopPropagation();
     e.nativeEvent.stopImmediatePropagation();
 
     const rect = e.currentTarget.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
+    const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX;
+    const clientY = 'touches' in e ? e.touches[0].clientY : e.clientY;
+    const x = clientX - rect.left;
+    const y = clientY - rect.top;
 
     setCropArea(prev => {
       let newArea = { ...prev };
@@ -398,7 +403,7 @@ const CreateNewDialog = ({ open, onOpenChange, onPhotoAdded, selectedGroupId }: 
   };
 
   // دالة لمعالجة انتهاء السحب
-  const handleMouseUp = (e?: React.MouseEvent) => {
+  const handleMouseUp = (e?: React.MouseEvent | React.TouchEvent) => {
     if (e) {
       e.preventDefault();
       e.stopPropagation();
@@ -672,6 +677,9 @@ const CreateNewDialog = ({ open, onOpenChange, onPhotoAdded, selectedGroupId }: 
                       onMouseMove={handleMouseMove}
                       onMouseUp={handleMouseUp}
                       onMouseLeave={handleMouseUp}
+                      onTouchStart={handleMouseDown}
+                      onTouchMove={handleMouseMove}
+                      onTouchEnd={handleMouseUp}
                       style={{ pointerEvents: isCropMode ? 'auto' : 'none' }}
                     >
                       <img 
@@ -695,7 +703,8 @@ const CreateNewDialog = ({ open, onOpenChange, onPhotoAdded, selectedGroupId }: 
                               top: cropArea.y,
                               width: cropArea.width,
                               height: cropArea.height,
-                              pointerEvents: isDragging ? 'auto' : 'none',
+                              pointerEvents: 'auto',
+                              touchAction: 'none',
                             }}
                           >
                             {/* المقابض */}
