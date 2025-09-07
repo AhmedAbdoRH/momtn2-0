@@ -348,8 +348,6 @@ const CreateNewDialog = ({ open, onOpenChange, onPhotoAdded, selectedGroupId }: 
     if (!isDragging || !isCropMode) return;
     
     e.preventDefault();
-
-    e.preventDefault();
     e.stopPropagation();
     e.nativeEvent.stopImmediatePropagation();
 
@@ -413,6 +411,17 @@ const CreateNewDialog = ({ open, onOpenChange, onPhotoAdded, selectedGroupId }: 
       newArea.y = Math.max(0, Math.min(newArea.y, maxHeight - newArea.height));
       newArea.width = Math.max(minSize, Math.min(newArea.width, maxWidth - newArea.x));
       newArea.height = Math.max(minSize, Math.min(newArea.height, maxHeight - newArea.y));
+
+      // تحديث فوري للعنصر المرئي أثناء السحب
+      requestAnimationFrame(() => {
+        const overlay = document.querySelector('.cropping-overlay') as HTMLElement;
+        if (overlay) {
+          overlay.style.left = `${newArea.x}px`;
+          overlay.style.top = `${newArea.y}px`;
+          overlay.style.width = `${newArea.width}px`;
+          overlay.style.height = `${newArea.height}px`;
+        }
+      });
 
       return newArea;
     });
