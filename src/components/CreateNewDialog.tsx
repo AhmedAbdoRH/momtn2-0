@@ -172,35 +172,51 @@ const CreateNewDialog = ({ open, onOpenChange, onPhotoAdded, selectedGroupId }: 
       
       img.onload = () => {
         try {
-          // الحصول على أبعاد الصورة المعروضة الفعلية
+          // الحصول على الحاوية والصورة
           const imgElement = document.querySelector('img[alt="Preview"], img[alt="Generated gratitude"]') as HTMLImageElement;
           if (!imgElement) {
             throw new Error('Image element not found');
           }
 
-          const imgRect = imgElement.getBoundingClientRect();
-          const containerRect = imgElement.parentElement?.getBoundingClientRect();
-          if (!containerRect) {
+          const containerElement = imgElement.parentElement;
+          if (!containerElement) {
             throw new Error('Container not found');
           }
 
-          // حساب أبعاد الصورة الفعلية في الحاوية
-          const imgDisplayWidth = imgRect.width;
-          const imgDisplayHeight = imgRect.height;
-          const containerWidth = containerRect.width;
-          const containerHeight = containerRect.height;
+          // حساب أبعاد الصورة الأصلية والمعروضة
+          const originalWidth = img.width;
+          const originalHeight = img.height;
+          const containerWidth = containerElement.clientWidth;
+          const containerHeight = containerElement.clientHeight;
 
-          // حساب النسب الصحيحة
-          const scaleX = img.width / imgDisplayWidth;
-          const scaleY = img.height / imgDisplayHeight;
+          // حساب نسبة العرض إلى الارتفاع
+          const originalAspectRatio = originalWidth / originalHeight;
+          const containerAspectRatio = containerWidth / containerHeight;
 
-          // حساب موضع الصورة في الحاوية (object-contain)
-          const imgOffsetX = (containerWidth - imgDisplayWidth) / 2;
-          const imgOffsetY = (containerHeight - imgDisplayHeight) / 2;
+          // حساب الأبعاد الفعلية للصورة المعروضة مع object-contain
+          let displayWidth, displayHeight, offsetX, offsetY;
+          
+          if (originalAspectRatio > containerAspectRatio) {
+            // الصورة أعرض، تحديد العرض بحجم الحاوية
+            displayWidth = containerWidth;
+            displayHeight = containerWidth / originalAspectRatio;
+            offsetX = 0;
+            offsetY = (containerHeight - displayHeight) / 2;
+          } else {
+            // الصورة أطول، تحديد الارتفاع بحجم الحاوية
+            displayWidth = containerHeight * originalAspectRatio;
+            displayHeight = containerHeight;
+            offsetX = (containerWidth - displayWidth) / 2;
+            offsetY = 0;
+          }
 
-          // حساب منطقة القص في الصورة الأصلية
-          const cropX = Math.round((cropArea.x - imgOffsetX) * scaleX);
-          const cropY = Math.round((cropArea.y - imgOffsetY) * scaleY);
+          // حساب نسب التحويل
+          const scaleX = originalWidth / displayWidth;
+          const scaleY = originalHeight / displayHeight;
+
+          // تحويل منطقة القص إلى إحداثيات الصورة الأصلية
+          const cropX = Math.round((cropArea.x - offsetX) * scaleX);
+          const cropY = Math.round((cropArea.y - offsetY) * scaleY);
           const cropWidth = Math.round(cropArea.width * scaleX);
           const cropHeight = Math.round(cropArea.height * scaleY);
 
