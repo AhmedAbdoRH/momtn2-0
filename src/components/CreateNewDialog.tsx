@@ -348,10 +348,7 @@ const CreateNewDialog = ({ open, onOpenChange, onPhotoAdded, selectedGroupId }: 
     if (!isDragging || !isCropMode) return;
     
     e.preventDefault();
-
-    e.preventDefault();
     e.stopPropagation();
-    e.nativeEvent.stopImmediatePropagation();
 
     const rect = e.currentTarget.getBoundingClientRect();
     const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX;
@@ -359,7 +356,9 @@ const CreateNewDialog = ({ open, onOpenChange, onPhotoAdded, selectedGroupId }: 
     const x = clientX - rect.left;
     const y = clientY - rect.top;
 
-    setCropArea(prev => {
+    // استخدام requestAnimationFrame لضمان التحديث السلس
+    requestAnimationFrame(() => {
+      setCropArea(prev => {
       let newArea = { ...prev };
       const minSize = 30;
       const maxWidth = rect.width;
@@ -414,7 +413,8 @@ const CreateNewDialog = ({ open, onOpenChange, onPhotoAdded, selectedGroupId }: 
       newArea.width = Math.max(minSize, Math.min(newArea.width, maxWidth - newArea.x));
       newArea.height = Math.max(minSize, Math.min(newArea.height, maxHeight - newArea.y));
 
-      return newArea;
+        return newArea;
+      });
     });
   };
 
@@ -711,19 +711,19 @@ const CreateNewDialog = ({ open, onOpenChange, onPhotoAdded, selectedGroupId }: 
                           {/* خلفية شفافة */}
                           <div className="absolute inset-0 bg-black/30" />
                           
-                          {/* منطقة القص المحددة */}
-                          <div 
-                            className="absolute border-2 border-white border-dashed bg-transparent"
-                            style={{
-                              left: cropArea.x,
-                              top: cropArea.y,
-                              width: cropArea.width,
-                              height: cropArea.height,
-                              pointerEvents: 'auto',
-                              touchAction: 'none',
-                            }}
-                          >
-                            {/* المقابض */}
+                           {/* منطقة القص المحددة */}
+                           <div 
+                             className="cropping-overlay absolute border-2 border-white border-dashed bg-transparent"
+                             style={{
+                               left: cropArea.x,
+                               top: cropArea.y,
+                               width: cropArea.width,
+                               height: cropArea.height,
+                               pointerEvents: 'auto',
+                               touchAction: 'none',
+                             }}
+                            >
+                             {/* المقابض */}
                             {['nw', 'ne', 'se', 'sw', 'n', 'e', 's', 'w'].map((handle) => (
                               <div
                                 key={handle}
@@ -874,7 +874,13 @@ const CreateNewDialog = ({ open, onOpenChange, onPhotoAdded, selectedGroupId }: 
                     onMouseMove={handleMouseMove}
                     onMouseUp={handleMouseUp}
                     onMouseLeave={handleMouseUp}
-                    style={{ pointerEvents: isCropMode ? 'auto' : 'none' }}
+                    onTouchStart={handleMouseDown}
+                    onTouchMove={handleMouseMove}
+                    onTouchEnd={handleMouseUp}
+                    style={{ 
+                      pointerEvents: isCropMode ? 'auto' : 'none',
+                      touchAction: isCropMode ? 'none' : 'auto'
+                    }}
                   >
                     <img 
                       src={previewUrl} 
@@ -891,7 +897,7 @@ const CreateNewDialog = ({ open, onOpenChange, onPhotoAdded, selectedGroupId }: 
                         
                         {/* منطقة القص المحددة */}
                         <div 
-                          className="absolute border-2 border-white border-dashed bg-transparent"
+                          className="cropping-overlay absolute border-2 border-white border-dashed bg-transparent"
                           style={{
                             left: cropArea.x,
                             top: cropArea.y,
