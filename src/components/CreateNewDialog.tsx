@@ -1042,6 +1042,7 @@ const CreateNewDialog = ({ open, onOpenChange, onPhotoAdded, selectedGroupId }: 
                   />
                 )}
               </div>
+            )}
 
             {/* Caption Input - only show for image uploads, not text-generated images */}
             {image && contentType === "image" && (
