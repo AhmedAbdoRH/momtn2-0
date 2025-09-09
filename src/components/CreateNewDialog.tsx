@@ -892,11 +892,8 @@ const CreateNewDialog = ({ open, onOpenChange, onPhotoAdded, selectedGroupId }: 
                       </>
                     )}
                     
-                    {/* أزرار التعديل العادية للصورة المولدة */}
-                    <div 
-                      className="absolute top-2 right-2 flex gap-2"
-                      style={{ pointerEvents: isCropMode ? 'none' : 'auto' }}
-                    >
+                    {/* أزرار التعديل للصورة المولدة */}
+                    <div className="absolute top-2 right-2 flex gap-2 z-20">
                       {!isCropMode && (
                         <button
                           type="button"
@@ -916,11 +913,15 @@ const CreateNewDialog = ({ open, onOpenChange, onPhotoAdded, selectedGroupId }: 
                           }}
                           className="bg-black/70 backdrop-blur-sm text-white p-2 rounded-full hover:bg-black/90 transition-all duration-200 shadow-lg"
                           title="تدوير الصورة"
-                          style={{ touchAction: 'manipulation' }}
+                          style={{ 
+                            touchAction: 'manipulation',
+                            pointerEvents: 'auto'
+                          }}
                         >
                           <RotateCw size={16} />
                         </button>
                       )}
+                      
                       <button
                         type="button"
                         onClick={(e) => {
@@ -943,34 +944,46 @@ const CreateNewDialog = ({ open, onOpenChange, onPhotoAdded, selectedGroupId }: 
                             : 'bg-black/70 hover:bg-black/90'
                         }`}
                         title={isCropMode ? "إلغاء القص" : "قص الصورة"}
-                        style={{ touchAction: 'manipulation' }}
+                        style={{ 
+                          touchAction: 'manipulation',
+                          pointerEvents: 'auto'
+                        }}
                       >
                         <Crop size={16} />
                       </button>
+                      
                       {isCropMode && (
                         <button
                           type="button"
                           onClick={(e) => {
                             e.preventDefault();
                             e.stopPropagation();
+                            console.log('Crop apply button clicked');
                             handleApplyCrop();
                           }}
                           onTouchStart={(e) => {
                             e.preventDefault();
                             e.stopPropagation();
+                            console.log('Crop apply button touch start');
                           }}
                           onTouchEnd={(e) => {
                             e.preventDefault();
                             e.stopPropagation();
+                            console.log('Crop apply button touch end');
                             handleApplyCrop();
                           }}
-                          className="bg-green-600 hover:bg-green-700 text-white p-2 rounded-full transition-all duration-200 shadow-lg"
+                          className="bg-green-600 hover:bg-green-700 text-white p-2 rounded-full transition-all duration-200 shadow-lg border-2 border-white/20"
                           title="تطبيق القص"
-                          style={{ touchAction: 'manipulation' }}
+                          style={{ 
+                            touchAction: 'manipulation',
+                            pointerEvents: 'auto',
+                            zIndex: 30
+                          }}
                         >
                           <Check size={16} />
                         </button>
                       )}
+                      
                       {(rotation > 0 || isCropMode) && (
                         <button
                           type="button"
@@ -992,89 +1005,15 @@ const CreateNewDialog = ({ open, onOpenChange, onPhotoAdded, selectedGroupId }: 
                           }}
                           className="bg-indigo-600 hover:bg-indigo-700 text-white p-2 rounded-full transition-all duration-200 shadow-lg"
                           title="إعادة تعيين"
-                          style={{ touchAction: 'manipulation' }}
+                          style={{ 
+                            touchAction: 'manipulation',
+                            pointerEvents: 'auto'
+                          }}
                         >
                           <Check size={16} />
                         </button>
                       )}
                     </div>
-                    
-                    {/* أزرار القص المنفصلة للصورة المولدة */}
-                    {isCropMode && (
-                      <div className="absolute top-2 right-2 flex gap-2 z-20">
-                        {!isCropMode && (
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.preventDefault();
-                              e.stopPropagation();
-                              e.nativeEvent.stopImmediatePropagation();
-                              handleRotate();
-                            }}
-                            onTouchStart={(e) => {
-                              e.preventDefault();
-                              e.stopPropagation();
-                            }}
-                            onTouchEnd={(e) => {
-                              e.preventDefault();
-                              e.stopPropagation();
-                              handleRotate();
-                            }}
-                            className="bg-black/70 backdrop-blur-sm text-white p-2 rounded-full hover:bg-black/90 transition-all duration-200 shadow-lg"
-                            title="تدوير الصورة"
-                            style={{ touchAction: 'manipulation' }}
-                          >
-                            <RotateCw size={16} />
-                          </button>
-                        )}
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.preventDefault();
-                            e.stopPropagation();
-                            e.nativeEvent.stopImmediatePropagation();
-                            handleCropToggle();
-                          }}
-                          onTouchStart={(e) => {
-                            e.preventDefault();
-                            e.stopPropagation();
-                          }}
-                          onTouchEnd={(e) => {
-                            e.preventDefault();
-                            e.stopPropagation();
-                            handleCropToggle();
-                          }}
-                          className="bg-blue-600 hover:bg-blue-700 text-white p-2 rounded-full transition-all duration-200 shadow-lg"
-                          title="إلغاء القص"
-                          style={{ touchAction: 'manipulation' }}
-                        >
-                          <Crop size={16} />
-                        </button>
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.preventDefault();
-                            e.stopPropagation();
-                            e.nativeEvent.stopImmediatePropagation();
-                            handleApplyCrop();
-                          }}
-                          onTouchStart={(e) => {
-                            e.preventDefault();
-                            e.stopPropagation();
-                          }}
-                          onTouchEnd={(e) => {
-                            e.preventDefault();
-                            e.stopPropagation();
-                            handleApplyCrop();
-                          }}
-                          className="bg-green-600 hover:bg-green-700 text-white p-2 rounded-full transition-all duration-200 shadow-lg"
-                          title="تطبيق القص"
-                          style={{ touchAction: 'manipulation' }}
-                        >
-                          <Check size={16} />
-                        </button>
-                      </div>
-                    )}
                   </div>
                 ) : (
                   <TextToImageGenerator
