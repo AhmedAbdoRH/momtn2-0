@@ -144,8 +144,12 @@ const CreateNewDialog = ({ open, onOpenChange, onPhotoAdded, selectedGroupId }: 
 
   // دالة لتطبيق القص
   const handleApplyCrop = () => {
+    console.log('handleApplyCrop called');
+    console.log('Current crop area:', cropArea);
+    
     // التأكد من وجود منطقة قص صحيحة
     if (cropArea.width <= 0 || cropArea.height <= 0) {
+      console.log('Invalid crop area - showing error toast');
       toast({
         title: "خطأ في القص",
         description: "يرجى تحديد منطقة قص صحيحة",
@@ -153,6 +157,8 @@ const CreateNewDialog = ({ open, onOpenChange, onPhotoAdded, selectedGroupId }: 
       });
       return;
     }
+    
+    console.log('Applying crop...');
     applyCrop();
   };
 
@@ -953,35 +959,48 @@ const CreateNewDialog = ({ open, onOpenChange, onPhotoAdded, selectedGroupId }: 
                       </button>
                       
                       {isCropMode && (
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.preventDefault();
-                            e.stopPropagation();
-                            console.log('Crop apply button clicked');
-                            handleApplyCrop();
-                          }}
-                          onTouchStart={(e) => {
-                            e.preventDefault();
-                            e.stopPropagation();
-                            console.log('Crop apply button touch start');
-                          }}
-                          onTouchEnd={(e) => {
-                            e.preventDefault();
-                            e.stopPropagation();
-                            console.log('Crop apply button touch end');
-                            handleApplyCrop();
-                          }}
-                          className="bg-green-600 hover:bg-green-700 text-white p-2 rounded-full transition-all duration-200 shadow-lg border-2 border-white/20"
-                          title="تطبيق القص"
-                          style={{ 
-                            touchAction: 'manipulation',
-                            pointerEvents: 'auto',
-                            zIndex: 30
+                        <div 
+                          style={{
+                            position: 'absolute',
+                            top: '8px',
+                            right: '120px',
+                            zIndex: 10000,
+                            pointerEvents: 'auto'
                           }}
                         >
-                          <Check size={16} />
-                        </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              console.log('=== CROP APPLY BUTTON CLICKED ===');
+                              handleApplyCrop();
+                            }}
+                            onMouseDown={(e) => {
+                              console.log('=== CROP APPLY BUTTON MOUSE DOWN ===');
+                              e.stopPropagation();
+                            }}
+                            onTouchStart={(e) => {
+                              console.log('=== CROP APPLY BUTTON TOUCH START ===');
+                              e.stopPropagation();
+                            }}
+                            onTouchEnd={(e) => {
+                              console.log('=== CROP APPLY BUTTON TOUCH END ===');
+                              e.stopPropagation();
+                              handleApplyCrop();
+                            }}
+                            className="bg-green-600 hover:bg-green-700 active:bg-green-800 text-white p-4 rounded-full transition-all duration-200 shadow-lg border-2 border-white cursor-pointer"
+                            title="تطبيق القص"
+                            style={{ 
+                              touchAction: 'manipulation',
+                              userSelect: 'none',
+                              WebkitUserSelect: 'none',
+                              WebkitTouchCallout: 'none',
+                              minWidth: '48px',
+                              minHeight: '48px'
+                            }}
+                          >
+                            <Check size={20} />
+                          </button>
+                        </div>
                       )}
                       
                       {(rotation > 0 || isCropMode) && (
@@ -1023,7 +1042,6 @@ const CreateNewDialog = ({ open, onOpenChange, onPhotoAdded, selectedGroupId }: 
                   />
                 )}
               </div>
-            )}
 
             {/* Caption Input - only show for image uploads, not text-generated images */}
             {image && contentType === "image" && (
