@@ -144,7 +144,7 @@ const CreateNewDialog = ({ open, onOpenChange, onPhotoAdded, selectedGroupId }: 
 
   // دالة لتطبيق القص
   const handleApplyCrop = () => {
-    console.log('handleApplyCrop called');
+    console.log('=== handleApplyCrop clicked ===');
     console.log('Current crop area:', cropArea);
     
     // التأكد من وجود منطقة قص صحيحة
@@ -158,19 +158,30 @@ const CreateNewDialog = ({ open, onOpenChange, onPhotoAdded, selectedGroupId }: 
       return;
     }
     
-    console.log('Applying crop...');
+    console.log('Crop area is valid, applying crop...');
     applyCrop();
   };
 
   // دالة لتطبيق القص فعلياً
   const applyCrop = async () => {
-    if (!previewUrl || !image) return;
+    console.log('=== applyCrop called ===');
+    console.log('previewUrl:', previewUrl);
+    console.log('image:', image);
+    console.log('cropArea:', cropArea);
+    
+    if (!previewUrl || !image) {
+      console.log('Missing previewUrl or image');
+      return;
+    }
 
     try {
       // إنشاء كانفاس للقص
       const canvas = document.createElement('canvas');
       const ctx = canvas.getContext('2d');
-      if (!ctx) return;
+      if (!ctx) {
+        console.log('Failed to get canvas context');
+        return;
+      }
 
       // تحميل الصورة
       const img = document.createElement('img');
@@ -178,13 +189,25 @@ const CreateNewDialog = ({ open, onOpenChange, onPhotoAdded, selectedGroupId }: 
       
       img.onload = () => {
         try {
-          // الحصول على الحاوية والصورة
-          const imgElement = document.querySelector('img[alt="Preview"], img[alt="Generated gratitude"]') as HTMLImageElement;
+          console.log('Image loaded successfully');
+          // البحث عن عنصر الصورة في الحاوي
+          const imgElement = document.querySelector('img[alt="Preview"]') as HTMLImageElement;
+          console.log('Found image element:', imgElement);
+          
           if (!imgElement) {
+            console.log('Image element not found, trying alternative selectors');
+            // محاولة بديلة للعثور على الصورة
+            const allImages = document.querySelectorAll('img');
+            console.log('All images found:', allImages.length);
+            for (let i = 0; i < allImages.length; i++) {
+              console.log(`Image ${i}:`, allImages[i].src, allImages[i].alt);
+            }
             throw new Error('Image element not found');
           }
 
           const containerElement = imgElement.parentElement;
+          console.log('Container element:', containerElement);
+          
           if (!containerElement) {
             throw new Error('Container not found');
           }
@@ -194,6 +217,9 @@ const CreateNewDialog = ({ open, onOpenChange, onPhotoAdded, selectedGroupId }: 
           const originalHeight = img.height;
           const containerWidth = containerElement.clientWidth;
           const containerHeight = containerElement.clientHeight;
+          
+          console.log('Original dimensions:', originalWidth, 'x', originalHeight);
+          console.log('Container dimensions:', containerWidth, 'x', containerHeight);
 
           // حساب نسبة العرض إلى الارتفاع
           const originalAspectRatio = originalWidth / originalHeight;
@@ -797,32 +823,7 @@ const CreateNewDialog = ({ open, onOpenChange, onPhotoAdded, selectedGroupId }: 
                           style={{ touchAction: 'manipulation' }}
                         >
                           <Crop size={16} />
-                        </button>
-                          {isCropMode && (
-                            <button
-                              type="button"
-                              onClick={(e) => {
-                                e.preventDefault();
-                                e.stopPropagation();
-                                e.nativeEvent.stopImmediatePropagation();
-                                handleApplyCrop();
-                              }}
-                              onTouchStart={(e) => {
-                                e.preventDefault();
-                                e.stopPropagation();
-                              }}
-                              onTouchEnd={(e) => {
-                                e.preventDefault();
-                                e.stopPropagation();
-                                handleApplyCrop();
-                              }}
-                              className="bg-green-600 hover:bg-green-700 text-white p-2 rounded-full transition-all duration-200 shadow-lg"
-                              title="تطبيق القص"
-                              style={{ touchAction: 'manipulation' }}
-                            >
-                              <Check size={16} />
-                            </button>
-                          )}
+                         </button>
                         </div>
                     </div>
                   ) : (
