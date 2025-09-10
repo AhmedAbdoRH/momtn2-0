@@ -866,9 +866,24 @@ const CreateNewDialog = ({ open, onOpenChange, onPhotoAdded, selectedGroupId }: 
                     
                     {/* منطقة القص للصورة المولدة */}
                     {isCropMode && (
-                      <>
+                      <div 
+                        className="absolute inset-0 cursor-crosshair select-none"
+                        style={{ 
+                          pointerEvents: 'auto',
+                          zIndex: 10
+                        }}
+                        onMouseDown={handleMouseDown}
+                        onMouseMove={handleMouseMove}
+                        onMouseUp={handleMouseUp}
+                        onTouchStart={handleMouseDown}
+                        onTouchMove={handleMouseMove}
+                        onTouchEnd={handleMouseUp}
+                      >
                         {/* خلفية شفافة */}
-                        <div className="absolute inset-0 bg-black/30" />
+                        <div 
+                          className="absolute inset-0 bg-black/30"
+                          style={{ pointerEvents: 'none' }}
+                        />
                         
                         {/* منطقة القص المحددة */}
                         <div 
@@ -878,24 +893,41 @@ const CreateNewDialog = ({ open, onOpenChange, onPhotoAdded, selectedGroupId }: 
                             top: cropArea.y,
                             width: cropArea.width,
                             height: cropArea.height,
-                            pointerEvents: isDragging ? 'auto' : 'none',
+                            pointerEvents: 'none',
                           }}
                         >
-                          {/* المقابض */}
-                          {['nw', 'ne', 'se', 'sw', 'n', 'e', 's', 'w'].map((handle) => (
-                            <div
-                              key={handle}
-                              className={`absolute w-4 h-4 bg-white border-2 border-blue-500 rounded-full cursor-pointer z-10 ${
-                                activeHandle === handle ? 'bg-blue-500 scale-110' : 'hover:scale-110'
-                              } transition-transform duration-150`}
-                              style={{
-                                left: handle.includes('w') ? -6 : handle.includes('e') ? cropArea.width - 6 : cropArea.width / 2 - 6,
-                                top: handle.includes('n') ? -6 : handle.includes('s') ? cropArea.height - 6 : cropArea.height / 2 - 6,
-                              }}
-                            />
-                          ))}
+                          {/* خطوط الشبكة */}
+                          <div className="absolute inset-0 grid grid-cols-3 grid-rows-3">
+                            {Array.from({ length: 9 }).map((_, i) => (
+                              <div key={i} className="border border-white/30" />
+                            ))}
+                          </div>
                         </div>
-                      </>
+
+                        {/* مقابض تغيير الحجم */}
+                        {[
+                          { key: 'nw', x: cropArea.x, y: cropArea.y, cursor: 'nw-resize' },
+                          { key: 'ne', x: cropArea.x + cropArea.width, y: cropArea.y, cursor: 'ne-resize' },
+                          { key: 'se', x: cropArea.x + cropArea.width, y: cropArea.y + cropArea.height, cursor: 'se-resize' },
+                          { key: 'sw', x: cropArea.x, y: cropArea.y + cropArea.height, cursor: 'sw-resize' },
+                          { key: 'n', x: cropArea.x + cropArea.width / 2, y: cropArea.y, cursor: 'n-resize' },
+                          { key: 'e', x: cropArea.x + cropArea.width, y: cropArea.y + cropArea.height / 2, cursor: 'e-resize' },
+                          { key: 's', x: cropArea.x + cropArea.width / 2, y: cropArea.y + cropArea.height, cursor: 's-resize' },
+                          { key: 'w', x: cropArea.x, y: cropArea.y + cropArea.height / 2, cursor: 'w-resize' }
+                        ].map(handle => (
+                          <div
+                            key={handle.key}
+                            className="absolute w-4 h-4 bg-white border-2 border-blue-500 rounded-full transform -translate-x-1/2 -translate-y-1/2 hover:bg-blue-100 transition-colors"
+                            style={{
+                              left: `${handle.x}px`,
+                              top: `${handle.y}px`,
+                              cursor: handle.cursor,
+                              pointerEvents: 'auto',
+                              zIndex: 15
+                            }}
+                          />
+                        ))}
+                      </div>
                     )}
                     
                     {/* أزرار التعديل للصورة المولدة */}
@@ -959,48 +991,32 @@ const CreateNewDialog = ({ open, onOpenChange, onPhotoAdded, selectedGroupId }: 
                       </button>
                       
                       {isCropMode && (
-                        <div 
-                          style={{
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            console.log('=== CROP APPLY BUTTON CLICKED ===');
+                            e.preventDefault();
+                            e.stopPropagation();
+                            handleApplyCrop();
+                          }}
+                          className="bg-green-600 hover:bg-green-700 active:bg-green-800 text-white p-3 rounded-full transition-all duration-200 shadow-lg border-2 border-white cursor-pointer"
+                          title="تطبيق القص"
+                          style={{ 
                             position: 'absolute',
-                            top: '8px',
-                            right: '120px',
+                            bottom: '8px',
+                            left: '8px',
                             zIndex: 10000,
-                            pointerEvents: 'auto'
+                            pointerEvents: 'auto',
+                            touchAction: 'manipulation',
+                            userSelect: 'none',
+                            WebkitUserSelect: 'none',
+                            WebkitTouchCallout: 'none',
+                            minWidth: '44px',
+                            minHeight: '44px'
                           }}
                         >
-                          <button
-                            type="button"
-                            onClick={() => {
-                              console.log('=== CROP APPLY BUTTON CLICKED ===');
-                              handleApplyCrop();
-                            }}
-                            onMouseDown={(e) => {
-                              console.log('=== CROP APPLY BUTTON MOUSE DOWN ===');
-                              e.stopPropagation();
-                            }}
-                            onTouchStart={(e) => {
-                              console.log('=== CROP APPLY BUTTON TOUCH START ===');
-                              e.stopPropagation();
-                            }}
-                            onTouchEnd={(e) => {
-                              console.log('=== CROP APPLY BUTTON TOUCH END ===');
-                              e.stopPropagation();
-                              handleApplyCrop();
-                            }}
-                            className="bg-green-600 hover:bg-green-700 active:bg-green-800 text-white p-4 rounded-full transition-all duration-200 shadow-lg border-2 border-white cursor-pointer"
-                            title="تطبيق القص"
-                            style={{ 
-                              touchAction: 'manipulation',
-                              userSelect: 'none',
-                              WebkitUserSelect: 'none',
-                              WebkitTouchCallout: 'none',
-                              minWidth: '48px',
-                              minHeight: '48px'
-                            }}
-                          >
-                            <Check size={20} />
-                          </button>
-                        </div>
+                          <Check size={18} />
+                        </button>
                       )}
                       
                       {(rotation > 0 || isCropMode) && (
