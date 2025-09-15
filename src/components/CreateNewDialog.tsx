@@ -690,7 +690,7 @@ const CreateNewDialog = ({ open, onOpenChange, onPhotoAdded, selectedGroupId }: 
                   ref={imageLabelRef} // إضافة المرجع
                   tabIndex={0} // جعل label قابلة للتركيز
                   className="w-full h-40 border-2 border-dashed border-gray-600 rounded-lg flex flex-col items-center justify-center cursor-pointer hover:border-gray-500 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-colors outline-none relative"
-                  style={{ pointerEvents: isCropMode ? 'none' : 'auto' }}
+                  style={{ pointerEvents: 'auto' }}
                 >
                   {previewUrl ? (
                     <div 
@@ -749,7 +749,7 @@ const CreateNewDialog = ({ open, onOpenChange, onPhotoAdded, selectedGroupId }: 
                       {/* أزرار التعديل العادية */}
                       <div 
                         className="absolute top-2 right-2 flex gap-2"
-                        style={{ pointerEvents: isCropMode ? 'none' : 'auto' }}
+                        style={{ pointerEvents: 'auto' }}
                       >
                         {!isCropMode && (
                           <button
