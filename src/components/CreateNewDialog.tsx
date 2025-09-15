@@ -160,6 +160,10 @@ const CreateNewDialog = ({ open, onOpenChange, onPhotoAdded, selectedGroupId }: 
     
     console.log('Applying crop...');
     applyCrop();
+    
+    // إعادة تعيين وضع القص فوراً
+    setIsCropMode(false);
+    setCropArea({ x: 0, y: 0, width: 0, height: 0 });
   };
 
   // دالة لتطبيق القص فعلياً
