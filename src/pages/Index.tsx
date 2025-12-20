@@ -1,6 +1,7 @@
 import * as React from 'react'; // Import React
 import { useState, useEffect } from "react"; // Import useState and useEffect hooks
-import { Plus, Menu, LogOut, User, Settings, Users, X, Home } from "lucide-react"; // Removed Edit2 icon
+import { Plus, Menu, LogOut, User, Settings, Users, X, Home } from "lucide-react";
+import FloatingChatButton from "@/components/FloatingChatButton";
 import { useNavigate } from "react-router-dom";
 
 // --- افتراضيات لمسارات الاستيراد ---
@@ -449,15 +450,23 @@ const Index = () => {
             {/* The actual button */}
             {/* الزر الفعلي */}
             <Button
-              onClick={handleCreateNew} // Opens the 'Create New' dialog / يفتح مربع حوار "إنشاء جديد"
-              variant="glass" // Custom variant (assuming defined elsewhere) / متغير مخصص (نفترض أنه معرف في مكان آخر)
-              size="circle" // Circular button / زر دائري
-              aria-label="إضافة امتنان جديد" // Accessibility label / تسمية الوصولية
-              className="w-14 h-14 shadow-lg relative rounded-full" // Styling / تنسيق
+              onClick={handleCreateNew}
+              variant="glass"
+              size="circle"
+              aria-label="إضافة امتنان جديد"
+              className="w-14 h-14 shadow-lg relative rounded-full"
             >
               <Plus className="w-7 h-7 text-white/70" />
             </Button>
           </div>
+
+          {/* Floating Chat Button - Only shown in shared spaces */}
+          {selectedGroupId && selectedGroupName && (
+            <FloatingChatButton 
+              groupId={selectedGroupId} 
+              groupName={selectedGroupName} 
+            />
+          )}
         </main>
 
         {/* Bottom Navigation Bar - Reduced height */}
