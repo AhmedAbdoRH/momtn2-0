@@ -2,6 +2,7 @@ import * as React from 'react'; // Import React
 import { useState, useEffect } from "react"; // Import useState and useEffect hooks
 import { Plus, Menu, LogOut, User, Settings, Users, X, Home } from "lucide-react";
 import FloatingChatButton from "@/components/FloatingChatButton";
+import NotificationsDropdown from "@/components/NotificationsDropdown";
 import { useNavigate } from "react-router-dom";
 
 // --- افتراضيات لمسارات الاستيراد ---
@@ -232,9 +233,13 @@ const Index = () => {
           <Menu className="h-5 w-5 text-gray-300 hover:text-white" />
         </Button>
 
-        {/* User Menu Dropdown (Top Left) */}
-        {/* قائمة المستخدم المنسدلة (أعلى اليسار) */}
-        <div className="fixed top-4 left-4 z-50">
+        {/* Notifications & User Menu (Top Left) */}
+        {/* الإشعارات وقائمة المستخدم (أعلى اليسار) */}
+        <div className="fixed top-4 left-4 z-50 flex items-center gap-2">
+          {/* Notifications Button */}
+          <NotificationsDropdown />
+          
+          {/* User Menu Dropdown */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" size="icon" aria-label="User Menu" className="glass-effect">

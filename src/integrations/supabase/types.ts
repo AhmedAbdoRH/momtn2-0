@@ -162,6 +162,56 @@ export type Database = {
         }
         Relationships: []
       }
+      notifications: {
+        Row: {
+          body: string
+          created_at: string | null
+          data: Json | null
+          group_id: string | null
+          id: string
+          is_read: boolean | null
+          sender_id: string | null
+          sender_name: string | null
+          title: string
+          type: string
+          user_id: string
+        }
+        Insert: {
+          body: string
+          created_at?: string | null
+          data?: Json | null
+          group_id?: string | null
+          id?: string
+          is_read?: boolean | null
+          sender_id?: string | null
+          sender_name?: string | null
+          title: string
+          type: string
+          user_id: string
+        }
+        Update: {
+          body?: string
+          created_at?: string | null
+          data?: Json | null
+          group_id?: string | null
+          id?: string
+          is_read?: boolean | null
+          sender_id?: string | null
+          sender_name?: string | null
+          title?: string
+          type?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notifications_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "groups"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       photos: {
         Row: {
           caption: string | null
