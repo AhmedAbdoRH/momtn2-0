@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/components/AuthProvider';
+import { NotificationsService } from '@/services/notificationsService';
 
 export interface GroupMessage {
   id: string;
@@ -72,6 +73,27 @@ export const useGroupChat = (groupId: string | null) => {
         });
 
       if (error) throw error;
+
+      // Get user display name
+      const { data: userData } = await supabase
+        .from('users')
+        .select('full_name')
+        .eq('id', user.id)
+        .single();
+      
+      const senderName = userData?.full_name || user.email?.split('@')[0] || 'مستخدم';
+
+      // Send notification to group members
+      NotificationsService.notifyGroupMembers({
+        groupId,
+        senderId: user.id,
+        senderName,
+        type: 'new_message',
+        title: 'رسالة جديدة',
+        body: `${senderName}: ${content.trim().substring(0, 50)}${content.length > 50 ? '...' : ''}`,
+        data: { messagePreview: content.trim().substring(0, 100) }
+      });
+
       return true;
     } catch (error) {
       console.error('Error sending message:', error);

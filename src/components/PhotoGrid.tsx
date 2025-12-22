@@ -8,6 +8,7 @@ import { useAuth } from "./AuthProvider";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "./ui/dialog";
 import { Button } from "./ui/button";
 import { PostgrestError } from "@supabase/supabase-js";
+import { NotificationsService } from "@/services/notificationsService";
 
 interface CommentUser {
   email: string;
@@ -760,6 +761,20 @@ const PhotoGrid: FC<PhotoGridProps> = ({ closeSidebar, selectedGroupId }): JSX.E
         if (!selectedGroupId && isFirstPhoto && !tutorialDismissed) {
           console.log('Showing first time modal after adding first photo');
           setShowFirstTimeModal(true);
+        }
+        
+        // Send notification to group members when adding photo to a group
+        const groupIdToNotify = params.groupId || selectedGroupId;
+        if (groupIdToNotify && user.id) {
+          NotificationsService.notifyGroupMembers({
+            groupId: groupIdToNotify,
+            senderId: user.id,
+            senderName: userDisplayName,
+            type: 'new_photo',
+            title: 'صورة جديدة',
+            body: `أضاف ${userDisplayName} صورة جديدة في المجموعة`,
+            data: { photoId: data[0].id }
+          });
         }
         
         toast({ 
