@@ -6,6 +6,7 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "./AuthProvider";
 import { TextToImageGenerator } from "./TextToImageGenerator";
+import { NotificationsService } from "@/services/notificationsService";
 
 interface CreateNewDialogProps {
   open: boolean;
@@ -610,13 +611,45 @@ const CreateNewDialog = ({ open, onOpenChange, onPhotoAdded, selectedGroupId }: 
         throw insertError;
       }
 
+      // إشعار: عند رفع صورة جديدة داخل مجموعة
+      if (selectedGroupId && insertData?.id) {
+        try {
+          const { data: userData } = await supabase
+            .from("users")
+            .select("full_name,email")
+            .eq("id", user.id)
+            .single();
+
+          const senderName =
+            userData?.full_name || user.email?.split("@")[0] || "مستخدم";
+
+          const { data: group } = await supabase
+            .from("groups")
+            .select("name")
+            .eq("id", selectedGroupId)
+            .single();
+
+          await NotificationsService.notifyGroupMembers(
+            selectedGroupId,
+            user.id,
+            senderName,
+            "new_photo",
+            "صورة جديدة في المجموعة",
+            `قام ${senderName} بإضافة صورة جديدة في مجموعة ${group?.name || ""}`,
+            { photo_id: insertData.id }
+          );
+        } catch (notifyError) {
+          console.warn("Could not send new photo notifications:", notifyError);
+        }
+      }
+
       const isFirstPhoto = !selectedGroupId; // Only show tutorial for personal photos
-      
-      toast({ 
-        title: "🎉 تمت الإضافة بنجاح 🎉", 
-        description: isFirstPhoto 
+
+      toast({
+        title: "🎉 تمت الإضافة بنجاح 🎉",
+        description: isFirstPhoto
           ? "تهانينا! الصورة الأولى في ألبومك.\n\nإلمس الصورة لإضافة تعليق, التحريك أو الإزالة"
-          : selectedGroupId 
+          : selectedGroupId
             ? "تم إضافة الصورة إلى المجموعة بنجاح"
             : "تم إضافة الصورة بنجاح"
       });
