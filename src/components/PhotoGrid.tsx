@@ -438,6 +438,37 @@ const PhotoGrid: FC<PhotoGridProps> = ({ closeSidebar, selectedGroupId }): JSX.E
         return updated;
       });
 
+      // Send notification for new comment
+      try {
+        const photo = photos.find(p => p.id === photoId);
+        
+        if (photo && photo.group_id) {
+          // Group photo - notify all group members
+          await NotificationsService.notifyGroupMembers(
+            photo.group_id,
+            user.id,
+            userDisplayName,
+            'comment',
+            'تعليق جديد',
+            `علق ${userDisplayName} على صورة في المجموعة`,
+            { photo_id: photoId, comment_id: savedComment.id }
+          );
+        } else if (photo && photo.user_id && photo.user_id !== user.id) {
+          // Personal photo - notify photo owner only
+          await NotificationsService.saveNotification({
+            user_id: photo.user_id,
+            type: 'comment',
+            title: 'تعليق جديد',
+            body: `علق ${userDisplayName} على صورتك`,
+            sender_id: user.id,
+            sender_name: userDisplayName,
+            data: { photo_id: photoId, comment_id: savedComment.id }
+          });
+        }
+      } catch (notifyError) {
+        console.warn('Could not send comment notification:', notifyError);
+      }
+
       toast({
         title: 'تمت الإضافة',
         description: 'تم إضافة تعليقك بنجاح',
@@ -532,6 +563,36 @@ const PhotoGrid: FC<PhotoGridProps> = ({ closeSidebar, selectedGroupId }): JSX.E
           )
         }))
       );
+
+      // Send notification for like (only if user hasn't liked before and it's not their own comment)
+      if (!userHasLiked && currentComment) {
+        try {
+          // Find the comment to get user_id and content
+          let commentUserId: string | undefined;
+          let commentContent = '';
+          photos.forEach(photo => {
+            const found = photo.comments?.find(c => c.id === commentId);
+            if (found) {
+              commentUserId = found.user_id;
+              commentContent = found.content;
+            }
+          });
+
+          if (commentUserId && commentUserId !== user.id) {
+            await NotificationsService.saveNotification({
+              user_id: commentUserId,
+              type: 'like',
+              title: 'إعجاب جديد',
+              body: `أعجب ${userDisplayName} بتعليقك: ${commentContent.substring(0, 30)}${commentContent.length > 30 ? '...' : ''}`,
+              sender_id: user.id,
+              sender_name: userDisplayName,
+              data: { comment_id: commentId }
+            });
+          }
+        } catch (notifyError) {
+          console.warn('Could not send like notification:', notifyError);
+        }
+      }
 
     } catch (error) {
       console.error('Error in handleLikeComment:', error);
@@ -766,15 +827,15 @@ const PhotoGrid: FC<PhotoGridProps> = ({ closeSidebar, selectedGroupId }): JSX.E
         // Send notification to group members when adding photo to a group
         const groupIdToNotify = params.groupId || selectedGroupId;
         if (groupIdToNotify && user.id) {
-          NotificationsService.notifyGroupMembers({
-            groupId: groupIdToNotify,
-            senderId: user.id,
-            senderName: userDisplayName,
-            type: 'new_photo',
-            title: 'صورة جديدة',
-            body: `أضاف ${userDisplayName} صورة جديدة في المجموعة`,
-            data: { photoId: data[0].id }
-          });
+          NotificationsService.notifyGroupMembers(
+            groupIdToNotify,
+            user.id,
+            userDisplayName,
+            'new_photo',
+            'صورة جديدة',
+            `أضاف ${userDisplayName} صورة جديدة في المجموعة`,
+            { photo_id: data[0].id }
+          );
         }
         
         toast({ 

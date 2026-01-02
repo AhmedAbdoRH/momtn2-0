@@ -62,6 +62,33 @@ export type Database = {
           },
         ]
       }
+      device_tokens: {
+        Row: {
+          created_at: string
+          id: string
+          platform: string
+          token: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          platform: string
+          token: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          platform?: string
+          token?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       group_members: {
         Row: {
           group_id: string
@@ -259,6 +286,30 @@ export type Database = {
           },
         ]
       }
+      profiles: {
+        Row: {
+          avatar_url: string | null
+          full_name: string | null
+          id: string
+          updated_at: string | null
+          user_welcome_message: string | null
+        }
+        Insert: {
+          avatar_url?: string | null
+          full_name?: string | null
+          id: string
+          updated_at?: string | null
+          user_welcome_message?: string | null
+        }
+        Update: {
+          avatar_url?: string | null
+          full_name?: string | null
+          id?: string
+          updated_at?: string | null
+          user_welcome_message?: string | null
+        }
+        Relationships: []
+      }
       users: {
         Row: {
           created_at: string | null
@@ -267,6 +318,7 @@ export type Database = {
           id: string
           tutorial_dismissed: boolean | null
           updated_at: string | null
+          user_welcome_message: string | null
         }
         Insert: {
           created_at?: string | null
@@ -275,6 +327,7 @@ export type Database = {
           id: string
           tutorial_dismissed?: boolean | null
           updated_at?: string | null
+          user_welcome_message?: string | null
         }
         Update: {
           created_at?: string | null
@@ -283,6 +336,7 @@ export type Database = {
           id?: string
           tutorial_dismissed?: boolean | null
           updated_at?: string | null
+          user_welcome_message?: string | null
         }
         Relationships: []
       }

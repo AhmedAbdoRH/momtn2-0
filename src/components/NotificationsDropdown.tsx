@@ -69,7 +69,7 @@ const NotificationsDropdown: React.FC = () => {
       </DropdownMenuTrigger>
       <DropdownMenuContent 
         align="start" 
-        className="w-80 glass-effect border border-border p-0 max-h-[70vh]"
+        className="w-80 bg-[#1a1a2e]/95 backdrop-blur-xl border border-white/10 p-0 max-h-[70vh] shadow-2xl"
       >
         {/* Header */}
         <div className="flex items-center justify-between p-3 border-b border-border" dir="rtl">

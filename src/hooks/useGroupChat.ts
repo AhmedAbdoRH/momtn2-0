@@ -84,15 +84,15 @@ export const useGroupChat = (groupId: string | null) => {
       const senderName = userData?.full_name || user.email?.split('@')[0] || 'مستخدم';
 
       // Send notification to group members
-      NotificationsService.notifyGroupMembers({
+      NotificationsService.notifyGroupMembers(
         groupId,
-        senderId: user.id,
+        user.id,
         senderName,
-        type: 'new_message',
-        title: 'رسالة جديدة',
-        body: `${senderName}: ${content.trim().substring(0, 50)}${content.length > 50 ? '...' : ''}`,
-        data: { messagePreview: content.trim().substring(0, 100) }
-      });
+        'new_message',
+        'رسالة جديدة',
+        `${senderName}: ${content.trim().substring(0, 50)}${content.length > 50 ? '...' : ''}`,
+        { message_preview: content.trim().substring(0, 100) }
+      );
 
       return true;
     } catch (error) {
