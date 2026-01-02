@@ -56,6 +56,12 @@ export const NotificationsService = {
     extraData?: Record<string, unknown>
   ): Promise<boolean> {
     try {
+      console.log('[NotificationsService] notifyGroupMembers', {
+        groupId,
+        excludeUserId,
+        type,
+      });
+
       // Get all group members except the sender
       const { data: members, error: membersError } = await supabase
         .from('group_members')
@@ -64,9 +70,11 @@ export const NotificationsService = {
         .neq('user_id', excludeUserId);
 
       if (membersError) {
-        console.error('Error fetching group members:', membersError);
+        console.error('[NotificationsService] Error fetching group members:', membersError);
         return false;
       }
+
+      console.log('[NotificationsService] Members to notify:', members?.length ?? 0);
 
       if (!members || members.length === 0) {
         return true; // No one to notify
