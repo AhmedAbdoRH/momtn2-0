@@ -827,17 +827,32 @@ const PhotoGrid: FC<PhotoGridProps> = ({ closeSidebar, selectedGroupId }): JSX.E
         // Send notification to group members when adding photo to a group
         const groupIdToNotify = params.groupId || selectedGroupId;
         if (groupIdToNotify && user.id) {
-          NotificationsService.notifyGroupMembers(
-            groupIdToNotify,
-            user.id,
-            userDisplayName,
-            'new_photo',
-            'صورة جديدة',
-            `أضاف ${userDisplayName} صورة جديدة في المجموعة`,
-            { photo_id: data[0].id }
-          );
+          let groupName = '';
+          try {
+            const { data: group } = await supabase
+              .from('groups')
+              .select('name')
+              .eq('id', groupIdToNotify)
+              .single();
+            groupName = group?.name || '';
+          } catch (e) {
+            console.warn('Could not fetch group name for notification:', e);
+          }
+
+          try {
+            await NotificationsService.notifyGroupMembers(
+              groupIdToNotify,
+              user.id,
+              userDisplayName,
+              'new_photo',
+              'صورة جديدة في المجموعة',
+              `قام ${userDisplayName} بإضافة صورة جديدة في مجموعة ${groupName}`,
+              { photo_id: data[0].id }
+            );
+          } catch (notifyError) {
+            console.warn('Could not send new photo notifications:', notifyError);
+          }
         }
-        
         toast({ 
           title: "✨ تمت الإضافة بنجاح", 
           description: isFirstPhoto ? "تهانينا! لقد أضفت صورتك الأولى" : "تمت إضافة صورتك بنجاح",
