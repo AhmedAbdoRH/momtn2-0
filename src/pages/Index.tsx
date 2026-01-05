@@ -2,6 +2,7 @@ import * as React from 'react'; // Import React
 import { useState, useEffect } from "react"; // Import useState and useEffect hooks
 import { Plus, Menu, LogOut, User, Settings, Users, X, Home } from "lucide-react";
 import FloatingChatButton from "@/components/FloatingChatButton";
+import GroupChatWindow from "@/components/GroupChatWindow";
 import NotificationsDropdown from "@/components/NotificationsDropdown";
 import { useNavigate } from "react-router-dom";
 
@@ -58,6 +59,10 @@ const Index = () => {
 
   // State for shared spaces dropdown
   const [showGroupsDropdown, setShowGroupsDropdown] = useState(false);
+
+  // State for group chat window
+  const [chatWindowGroupId, setChatWindowGroupId] = useState<string | null>(null);
+  const [chatWindowGroupName, setChatWindowGroupName] = useState<string>('');
 
   // State for bottom navigation
   const [activeTab, setActiveTab] = useState<'personal' | 'groups'>('personal');
@@ -175,6 +180,41 @@ const Index = () => {
   };
 
   /**
+   * Handle opening a group from notification
+   */
+  const handleOpenGroupFromNotification = async (groupId: string) => {
+    setSelectedGroupId(groupId);
+    setActiveTab('groups');
+    setShowGroupsDropdown(false);
+    
+    // Fetch and set group name
+    try {
+      const { data } = await supabase
+        .from('groups')
+        .select('name')
+        .eq('id', groupId)
+        .single();
+      if (data?.name) {
+        setSelectedGroupName(data.name);
+      }
+    } catch (err) {
+      console.error('Error fetching group name:', err);
+    }
+  };
+
+  /**
+   * Handle opening group chat from notification
+   */
+  const handleOpenGroupChatFromNotification = async (groupId: string, groupName: string) => {
+    // First open the group
+    await handleOpenGroupFromNotification(groupId);
+    
+    // Then open the chat window
+    setChatWindowGroupId(groupId);
+    setChatWindowGroupName(groupName || 'المجموعة');
+  };
+
+  /**
    * Effect to add/remove Escape key listener for closing the sidebar.
    * تأثير لإضافة/إزالة مستمع مفتاح Escape لإغلاق الشريط الجانبي.
    */
@@ -237,7 +277,10 @@ const Index = () => {
         {/* الإشعارات وقائمة المستخدم (أعلى اليسار) */}
         <div className="fixed top-4 left-4 z-50 flex items-center gap-2">
           {/* Notifications Button */}
-          <NotificationsDropdown />
+          <NotificationsDropdown 
+            onOpenGroup={handleOpenGroupFromNotification}
+            onOpenGroupChat={handleOpenGroupChatFromNotification}
+          />
           
           {/* User Menu Dropdown */}
           <DropdownMenu>
@@ -505,6 +548,18 @@ const Index = () => {
             </button>
           </div>
         </div>
+
+        {/* Group Chat Window from notification */}
+        {chatWindowGroupId && chatWindowGroupName && (
+          <GroupChatWindow
+            groupId={chatWindowGroupId}
+            groupName={chatWindowGroupName}
+            onClose={() => {
+              setChatWindowGroupId(null);
+              setChatWindowGroupName('');
+            }}
+          />
+        )}
       </div>
     </HeartSoundProvider>
   );
