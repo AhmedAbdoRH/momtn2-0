@@ -21,7 +21,16 @@ import { formatDistanceToNow } from 'date-fns';
 import { ar } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 
-const NotificationsDropdown: React.FC = () => {
+interface NotificationsDropdownProps {
+  onOpenGroup?: (groupId: string) => void;
+  onOpenGroupChat?: (groupId: string, groupName: string) => void;
+}
+
+const NotificationsDropdown: React.FC<NotificationsDropdownProps> = ({
+  onOpenGroup,
+  onOpenGroupChat,
+}) => {
+  const [isOpen, setIsOpen] = React.useState(false);
   const {
     notifications,
     unreadCount,
@@ -30,6 +39,34 @@ const NotificationsDropdown: React.FC = () => {
     markAllAsRead,
     deleteNotification,
   } = useNotifications();
+
+  const handleNotificationClick = (notification: typeof notifications[0]) => {
+    // Mark as read first
+    if (!notification.is_read) {
+      markAsRead(notification.id);
+    }
+
+    const groupId = notification.group_id;
+    if (!groupId) return;
+
+    // Close dropdown
+    setIsOpen(false);
+
+    // Navigate based on notification type
+    if (notification.type === 'new_message') {
+      // Open group chat
+      if (onOpenGroupChat) {
+        // Fetch group name from notification data or use a default
+        const groupName = (notification.data as { group_name?: string })?.group_name || 'المجموعة';
+        onOpenGroupChat(groupId, groupName);
+      }
+    } else if (['new_photo', 'comment', 'like'].includes(notification.type)) {
+      // Open the group to see photos
+      if (onOpenGroup) {
+        onOpenGroup(groupId);
+      }
+    }
+  };
 
   const getNotificationIcon = (type: string) => {
     switch (type) {
@@ -61,7 +98,7 @@ const NotificationsDropdown: React.FC = () => {
   };
 
   return (
-    <DropdownMenu>
+    <DropdownMenu open={isOpen} onOpenChange={setIsOpen}>
       <DropdownMenuTrigger asChild>
         <Button
           variant="ghost"
@@ -123,13 +160,10 @@ const NotificationsDropdown: React.FC = () => {
                   className={cn(
                     'flex items-start gap-3 p-3 cursor-pointer transition-colors border-b border-white/5 last:border-0',
                     'hover:bg-white/5',
-                    !notification.is_read && 'bg-white/10'
+                    !notification.is_read && 'bg-white/10',
+                    notification.group_id && 'hover:bg-white/10'
                   )}
-                  onClick={() => {
-                    if (!notification.is_read) {
-                      markAsRead(notification.id);
-                    }
-                  }}
+                  onClick={() => handleNotificationClick(notification)}
                 >
                   {/* Icon */}
                   <div className="flex-shrink-0 mt-1">
