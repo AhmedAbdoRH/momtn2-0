@@ -404,6 +404,9 @@ const PhotoCard: React.FC<PhotoCardProps> = ({
     }
   };
 
+  // التحقق مما إذا كان المنشور امتنان كتابي (بدون صورة)
+  const isTextPost = !imageUrl || !imageUrl.trim();
+
   // العرض (render) للمكون
   return (
     <>
@@ -412,18 +415,82 @@ const PhotoCard: React.FC<PhotoCardProps> = ({
         className="relative group overflow-hidden rounded-xl shadow-xl transition-all duration-300"
         onClick={toggleControls} // تبديل إظهار الأزرار عند النقر
       >
-        {/* حاوية الصورة */}
+        {/* حاوية المحتوى - صورة أو امتنان كتابي */}
         <div className="relative overflow-hidden rounded-xl">
-          <img
-            src={imageUrl} // رابط الصورة
-            alt="Gallery" // نص بديل للصورة
-            className="w-full h-auto object-contain transition-transform duration-500 group-hover:scale-105" // تنسيق الصورة مع تأثير تكبير عند التمرير
-            loading="lazy" // تحميل كسول للصورة لتحسين الأداء
-          />
-          {/* تدرج شفاف فوق الصورة يظهر عند إظهار الأزرار */}
-          <div className={`absolute inset-0 bg-gradient-to-b from-black/30 via-transparent to-black/70 transition-opacity duration-300 ${
-            isControlsVisible ? 'opacity-100' : 'opacity-0'
-          }`} />
+          {isTextPost ? (
+            /* === منطق الامتنان الكتابي (Text Post) === */
+            <div className="relative min-h-[200px] flex flex-col">
+              {/* خلفية زجاجية متدرجة */}
+              <div 
+                className="absolute inset-0 bg-gradient-to-br from-white/10 via-white/5 to-white/3"
+                style={{
+                  backdropFilter: 'blur(20px)',
+                  WebkitBackdropFilter: 'blur(20px)',
+                }}
+              />
+              {/* تأثير اللمعة الزجاجية */}
+              <div 
+                className="absolute inset-0 pointer-events-none"
+                style={{
+                  background: 'linear-gradient(135deg, rgba(255,255,255,0.1) 0%, transparent 50%)',
+                  borderTop: '1.5px solid rgba(255,255,255,0.15)',
+                  borderLeft: '1.5px solid rgba(255,255,255,0.15)',
+                  borderRadius: 'inherit',
+                }}
+              />
+              
+              {/* الطبقة العلوية - اسم الألبوم (يظهر عند اللمس) */}
+              <div className={`absolute top-3 right-3 left-3 flex justify-end transition-all duration-300 ${
+                isControlsVisible ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-2'
+              }`}>
+                {hashtags && hashtags.length > 0 && (
+                  <span className="bg-white/20 backdrop-blur-sm text-white text-xs px-3 py-1 rounded-full border border-white/20">
+                    {hashtags[0]}
+                  </span>
+                )}
+              </div>
+
+              {/* الطبقة الوسطى - نص الامتنان (دائماً ظاهر) */}
+              <div className="flex-1 flex items-center justify-center p-6 min-h-[120px]">
+                <p 
+                  className="text-white text-xl md:text-2xl font-bold text-center leading-relaxed"
+                  dir="auto"
+                  style={{ 
+                    textShadow: '0 2px 10px rgba(0,0,0,0.3)',
+                    unicodeBidi: 'plaintext',
+                  }}
+                >
+                  {caption || 'امتنان'}
+                </p>
+              </div>
+
+              {/* الطبقة السفلية - اسم الكاتب والوقت (يظهر عند اللمس) */}
+              <div className={`absolute bottom-3 left-3 right-3 flex items-center justify-between transition-all duration-300 ${
+                isControlsVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2'
+              }`}>
+                <span className="text-white/70 text-xs">
+                  {/* يمكن إضافة التاريخ هنا لاحقاً */}
+                </span>
+                <span className="bg-white/20 backdrop-blur-sm text-white/90 text-xs px-2 py-0.5 rounded">
+                  {getPhotoOwnerName()}
+                </span>
+              </div>
+            </div>
+          ) : (
+            /* === منطق الصورة العادية === */
+            <>
+              <img
+                src={imageUrl} // رابط الصورة
+                alt="Gallery" // نص بديل للصورة
+                className="w-full h-auto object-contain transition-transform duration-500 group-hover:scale-105" // تنسيق الصورة مع تأثير تكبير عند التمرير
+                loading="lazy" // تحميل كسول للصورة لتحسين الأداء
+              />
+              {/* تدرج شفاف فوق الصورة يظهر عند إظهار الأزرار */}
+              <div className={`absolute inset-0 bg-gradient-to-b from-black/30 via-transparent to-black/70 transition-opacity duration-300 ${
+                isControlsVisible ? 'opacity-100' : 'opacity-0'
+              }`} />
+            </>
+          )}
         </div>
         
         {/* زر السحب (drag handle) - موحد لجميع الصور */}
@@ -541,8 +608,8 @@ const PhotoCard: React.FC<PhotoCardProps> = ({
           </span>
         </div>
 
-        {/* عرض الكابشن والهاشتاجات */}
-        {(caption || hashtags.length > 0) && (
+        {/* عرض الكابشن والهاشتاجات - يظهر فقط للصور وليس للامتنان الكتابي */}
+        {!isTextPost && (caption || hashtags.length > 0) && (
           <div className={`absolute left-2 right-2 bottom-14 transition-all duration-300 ${
             isControlsVisible ? 'opacity-100' : 'opacity-0 pointer-events-none'
           }`}>
