@@ -440,7 +440,7 @@ const PhotoCard: React.FC<PhotoCardProps> = ({
               />
               
               {/* الطبقة العلوية - اسم الألبوم (يظهر عند اللمس) */}
-              <div className={`absolute top-3 right-3 left-3 flex justify-end transition-all duration-300 ${
+              <div className={`absolute z-20 top-3 right-3 left-3 flex justify-end transition-all duration-300 ${
                 isControlsVisible ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-2'
               }`}>
                 {hashtags && hashtags.length > 0 && (
@@ -451,7 +451,7 @@ const PhotoCard: React.FC<PhotoCardProps> = ({
               </div>
 
               {/* الطبقة الوسطى - نص الامتنان (دائماً ظاهر) */}
-              <div className="flex-1 flex items-center justify-center p-6 min-h-[120px]">
+              <div className="relative z-10 flex-1 flex items-center justify-center p-6 min-h-[120px]">
                 <p 
                   className="text-white text-xl md:text-2xl font-bold text-center leading-relaxed"
                   dir="auto"
@@ -465,7 +465,7 @@ const PhotoCard: React.FC<PhotoCardProps> = ({
               </div>
 
               {/* الطبقة السفلية - اسم الكاتب والوقت (يظهر عند اللمس) */}
-              <div className={`absolute bottom-3 left-3 right-3 flex items-center justify-between transition-all duration-300 ${
+              <div className={`absolute z-20 bottom-3 left-3 right-3 flex items-center justify-between transition-all duration-300 ${
                 isControlsVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2'
               }`}>
                 <span className="text-white/70 text-xs">
