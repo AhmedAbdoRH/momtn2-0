@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react"; // استيراد useState و useEffect لإدارة الحالة في المكون
-import { GripVertical, Heart, MessageCircle, Trash2, MoreVertical, Plus, Edit3, X, Check, MoreHorizontal } from "lucide-react"; // استيراد أيقونات من مكتبة lucide-react
+import { GripVertical, Heart, MessageCircle, Trash2, MoreVertical, Plus, Edit3, X, Check, MoreHorizontal, Reply } from "lucide-react"; // استيراد أيقونات من مكتبة lucide-react
 import { supabase } from "@/integrations/supabase/client"; // استيراد عميل supabase للتفاعل مع قاعدة البيانات
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "./ui/dialog"; // استيراد مكونات Dialog لعرض نافذة تحرير التعليق والهاشتاجات
 import { toast } from "@/hooks/use-toast"; // استيراد دالة toast لعرض الإشعارات
@@ -26,6 +26,10 @@ interface Comment {
   likes?: number;
   liked_by?: string;
   user: CommentUser;
+  // حقول الردود الفرعية
+  isReply?: boolean;
+  parentCommentId?: string;
+  replyAuthorName?: string | null;
 }
 
 interface PhotoCardProps {
@@ -92,6 +96,10 @@ const PhotoCard: React.FC<PhotoCardProps> = ({
   }, [initialComments]);
   const [showComments, setShowComments] = useState(false); // حالة لإظهار/إخفاء التعليقات
   const [isCommentLoading, setIsCommentLoading] = useState(false); // حالة لتحميل التعليقات
+  
+  // حالات الرد على التعليقات
+  const [replyToCommentId, setReplyToCommentId] = useState<string | null>(null);
+  const [replyToAuthorName, setReplyToAuthorName] = useState<string | null>(null);
 
 
   // دالة لمعالجة الإعجاب بالصورة
@@ -384,11 +392,20 @@ const PhotoCard: React.FC<PhotoCardProps> = ({
     setIsCommentLoading(true);
     
     try {
+      let finalContent = content.trim();
+      
+      // إذا كان رداً على تعليق، نضيف البادئة الخاصة
+      if (replyToCommentId && replyToAuthorName) {
+        finalContent = `@reply|${replyToCommentId}|${replyToAuthorName}|${finalContent}`;
+      }
+      
       setNewComment('');
+      setReplyToCommentId(null);
+      setReplyToAuthorName(null);
       
       // إرسال التعليق للخادم من خلال الدالة الأب
       // PhotoGrid سيتولى التحديث المؤقت بالبيانات الصحيحة
-      await onAddComment(content);
+      await onAddComment(finalContent);
       
     } catch (error) {
       console.error('Error adding comment:', error);
@@ -402,6 +419,63 @@ const PhotoCard: React.FC<PhotoCardProps> = ({
     } finally {
       setIsCommentLoading(false);
     }
+  };
+  
+  // دالة للحصول على اسم المستخدم من التعليق
+  const getCommentDisplayName = (comment: Comment) => {
+    return getDisplayName(comment.user_id, comment.user?.email, comment.user?.full_name);
+  };
+  
+  // تحليل التعليقات وتجميعها إلى تعليقات رئيسية + ردود فرعية
+  const parsedComments: Comment[] = comments.map((comment) => {
+    if (comment.content.startsWith('@reply|')) {
+      const parts = comment.content.split('|');
+      if (parts.length >= 4) {
+        const [, parentId, authorName, ...bodyParts] = parts;
+        const body = bodyParts.join('|');
+        return {
+          ...comment,
+          isReply: true,
+          parentCommentId: parentId,
+          replyAuthorName: authorName,
+          content: body,
+        };
+      }
+    }
+    return {
+      ...comment,
+      isReply: false,
+      parentCommentId: undefined,
+      replyAuthorName: undefined,
+    };
+  });
+
+  // تجميع الردود حسب التعليق الأب
+  const repliesByParent = new Map<string, Comment[]>();
+  parsedComments.forEach((comment) => {
+    if (comment.isReply && comment.parentCommentId) {
+      const list = repliesByParent.get(comment.parentCommentId) || [];
+      list.push(comment);
+      repliesByParent.set(comment.parentCommentId, list);
+    }
+  });
+
+  // التعليقات الرئيسية فقط (غير الردود)
+  const parentComments = parsedComments.filter(
+    (comment) => !comment.isReply || !comment.parentCommentId
+  );
+  
+  // دالة لبدء الرد على تعليق
+  const startReply = (comment: Comment) => {
+    const name = getCommentDisplayName(comment);
+    setReplyToCommentId(comment.id);
+    setReplyToAuthorName(name);
+  };
+  
+  // دالة لإلغاء الرد
+  const cancelReply = () => {
+    setReplyToCommentId(null);
+    setReplyToAuthorName(null);
   };
 
   // التحقق مما إذا كان المنشور امتنان كتابي (بدون صورة)
@@ -645,6 +719,21 @@ const PhotoCard: React.FC<PhotoCardProps> = ({
         showComments ? 'max-h-[500px] opacity-100 mt-1' : 'max-h-0 opacity-0 mt-0'
       }`}>
         <div className="bg-white/5 backdrop-blur-md rounded-xl px-1.5 py-1 space-y-1 border border-white/10">
+          {/* شريط الرد - يظهر عند الرد على تعليق */}
+          {replyToCommentId && replyToAuthorName && (
+            <div className="flex items-center justify-between bg-blue-500/20 border border-blue-500/30 rounded-lg px-3 py-2 mb-2">
+              <button
+                onClick={cancelReply}
+                className="p-1 rounded-full hover:bg-white/10 transition-colors"
+              >
+                <X className="w-4 h-4 text-white/60" />
+              </button>
+              <span className="text-blue-300 text-sm">
+                الرد على <span className="font-medium">{replyToAuthorName}</span>
+              </span>
+            </div>
+          )}
+          
           {/* قسم إضافة تعليق جديد */}
           <div>
             <div className="flex-1">
@@ -669,12 +758,14 @@ const PhotoCard: React.FC<PhotoCardProps> = ({
                   dir="rtl"
                   value={newComment}
                   onChange={(e) => setNewComment(e.target.value)}
-                  placeholder="اكتب تعليقاً..."
+                  placeholder={replyToCommentId ? `الرد على ${replyToAuthorName}...` : "اكتب تعليقاً..."}
                   className="flex-1 bg-white/5 border border-white/20 text-white placeholder-white/50 text-sm rounded-full px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 text-right transition-all"
                   onKeyDown={(e) => {
                     if (e.key === 'Enter' && !e.shiftKey) {
                       e.preventDefault();
                       handleAddComment(newComment);
+                    } else if (e.key === 'Escape' && replyToCommentId) {
+                      cancelReply();
                     }
                   }}
                   style={{ direction: 'rtl' }}
@@ -684,10 +775,12 @@ const PhotoCard: React.FC<PhotoCardProps> = ({
           </div>
 
           {/* عرض التعليقات */}
-          {comments.length > 0 && (
+          {parentComments.length > 0 && (
             <div className="space-y-2 max-h-80 overflow-y-auto pr-2 -mr-2">
-              {comments.map((comment) => (
-                <div key={comment.id} className="group hover:bg-white/5 rounded-lg px-1 py-0.5 transition-all -mx-1">
+              {parentComments.map((comment) => {
+                const replies = repliesByParent.get(comment.id) || [];
+                return (
+                <div key={comment.id} className="group/comment hover:bg-white/5 rounded-lg px-1 py-0.5 transition-all -mx-1">
                   <div className="flex-1 min-w-0">
                     {editingCommentId === comment.id ? (
                       /* وضع التعديل */
@@ -732,7 +825,7 @@ const PhotoCard: React.FC<PhotoCardProps> = ({
                       <div className="bg-white/5 rounded-2xl p-2 relative">
                         {/* زر القائمة المنسدلة للتعليق - يظهر فقط لمالك التعليق */}
                         {comment.user_id === currentUserId && (
-                          <div className="absolute top-2 left-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <div className="absolute top-2 left-2 opacity-0 group-hover/comment:opacity-100 transition-opacity">
                             <DropdownMenu>
                               <DropdownMenuTrigger asChild>
                                 <button 
@@ -771,7 +864,7 @@ const PhotoCard: React.FC<PhotoCardProps> = ({
                         <div className="w-full">
                           <div className="flex justify-end mb-1">
                             <span className="text-blue-300 text-xs font-medium bg-black/10 px-1.5 py-0.5 rounded-md">
-                              {getDisplayName(comment.user_id, comment.user?.email, comment.user?.full_name)}
+                              {getCommentDisplayName(comment)}
                             </span>
                           </div>
                            <p className="text-white text-sm leading-tight whitespace-pre-line text-right -mb-0.5 mt-0.5" dir="auto">
@@ -798,6 +891,18 @@ const PhotoCard: React.FC<PhotoCardProps> = ({
                                    <span className="text-xs">{comment.likes}</span>
                                  )}
                                </button>
+                               
+                               {/* زر الرد على التعليق */}
+                               <button
+                                 onClick={(e) => {
+                                   e.stopPropagation();
+                                   startReply(comment);
+                                 }}
+                                 className="flex items-center gap-1 text-white/60 hover:text-blue-400 transition-colors p-1 rounded-full hover:bg-white/10"
+                               >
+                                 <Reply className="w-3 h-3" />
+                                 <span className="text-xs">رد</span>
+                               </button>
                              </div>
                              <span className="text-white/30 text-[10px]">
                                {formatCommentDate(comment.updated_at)}
@@ -806,14 +911,100 @@ const PhotoCard: React.FC<PhotoCardProps> = ({
                         </div>
                       </div>
                     )}
+                    
+                    {/* الردود الفرعية */}
+                    {replies.length > 0 && (
+                      <div className="mr-3 mt-2 border-r border-white/10 pr-2 space-y-2">
+                        {replies.map((reply) => (
+                          <div key={reply.id} className="group/reply bg-white/3 rounded-xl p-2 relative">
+                            {/* زر القائمة المنسدلة للرد - يظهر فقط لمالك الرد */}
+                            {reply.user_id === currentUserId && (
+                              <div className="absolute top-2 left-2 opacity-0 group-hover/reply:opacity-100 transition-opacity">
+                                <DropdownMenu>
+                                  <DropdownMenuTrigger asChild>
+                                    <button 
+                                      className="p-1 rounded-full hover:bg-white/10 transition-colors"
+                                      onClick={(e) => e.stopPropagation()}
+                                    >
+                                      <MoreHorizontal className="w-3 h-3 text-white/60" />
+                                    </button>
+                                  </DropdownMenuTrigger>
+                                  <DropdownMenuContent align="start" className="bg-gray-800/95 backdrop-blur-xl border-gray-700">
+                                    <DropdownMenuItem 
+                                      className="cursor-pointer text-sm p-3 text-red-400 hover:bg-red-500/10"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleDeleteComment(reply.id);
+                                      }}
+                                    >
+                                      <Trash2 className="w-4 h-4 ml-2" />
+                                      <span>حذف</span>
+                                    </DropdownMenuItem>
+                                  </DropdownMenuContent>
+                                </DropdownMenu>
+                              </div>
+                            )}
+                            
+                            <div className="w-full">
+                              <div className="flex justify-end mb-1">
+                                <span className="text-blue-200 text-[11px] font-medium bg-black/10 px-1.5 py-0.5 rounded-md">
+                                  {getCommentDisplayName(reply)}
+                                </span>
+                              </div>
+                              <p className="text-gray-200 text-[13px] leading-tight whitespace-pre-line text-right" dir="auto">
+                                {reply.content}
+                              </p>
+                              <div className="flex justify-between items-center mt-1">
+                                <div className="flex items-center gap-2">
+                                  {/* زر الإعجاب بالرد */}
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      onLikeComment(reply.id);
+                                    }}
+                                    className="flex items-center gap-1 text-white/50 hover:text-red-400 transition-colors p-1 rounded-full hover:bg-white/10"
+                                  >
+                                    <Heart 
+                                      className={`w-2.5 h-2.5 transition-all ${
+                                        reply.liked_by?.split(',').includes(currentUserId) 
+                                          ? 'fill-red-400 text-red-400' 
+                                          : 'hover:scale-110'
+                                      }`} 
+                                    />
+                                    {(reply.likes || 0) > 0 && (
+                                      <span className="text-[10px]">{reply.likes}</span>
+                                    )}
+                                  </button>
+                                  
+                                  {/* زر الرد على الرد */}
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      startReply(reply);
+                                    }}
+                                    className="flex items-center gap-1 text-white/50 hover:text-blue-400 transition-colors p-1 rounded-full hover:bg-white/10"
+                                  >
+                                    <Reply className="w-2.5 h-2.5" />
+                                    <span className="text-[10px]">رد</span>
+                                  </button>
+                                </div>
+                                <span className="text-white/25 text-[9px]">
+                                  {formatCommentDate(reply.updated_at)}
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 </div>
-              ))}
+              );})}
             </div>
           )}
 
           {/* رسالة عدم وجود تعليقات */}
-          {comments.length === 0 && (
+          {parentComments.length === 0 && (
             <div className="text-center py-8">
               <MessageCircle className="w-12 h-12 text-white/20 mx-auto mb-3" />
               <p className="text-white/40 text-sm">لا توجد تعليقات بعد</p>
