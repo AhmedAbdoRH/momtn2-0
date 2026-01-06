@@ -603,10 +603,12 @@ const PhotoGrid: FC<PhotoGridProps> = ({ closeSidebar, selectedGroupId }): JSX.E
     if (!user?.id) return;
     
     try {
-      // Get current likes count first
+      // Get current photo data first
+      const photo = photos.find(p => p.id === photoId);
+      
       const { data: currentPhoto } = await supabase
         .from('photos')
-        .select('likes')
+        .select('likes, user_id, group_id')
         .eq('id', photoId)
         .single();
 
@@ -621,12 +623,33 @@ const PhotoGrid: FC<PhotoGridProps> = ({ closeSidebar, selectedGroupId }): JSX.E
 
       // Update local state
       setPhotos(prev => 
-        prev.map(photo => 
-          photo.id === photoId 
-            ? { ...photo, likes: photo.likes + 1 } 
-            : photo
+        prev.map(p => 
+          p.id === photoId 
+            ? { ...p, likes: p.likes + 1 } 
+            : p
         )
       );
+
+      // Send notification for like (only if it's not the user's own photo)
+      try {
+        const photoOwnerId = currentPhoto?.user_id || photo?.user_id;
+        const photoGroupId = currentPhoto?.group_id || photo?.group_id;
+        
+        if (photoOwnerId && photoOwnerId !== user.id) {
+          await NotificationsService.saveNotification({
+            user_id: photoOwnerId,
+            type: 'like',
+            title: 'إعجاب جديد',
+            body: `أعجب ${userDisplayName} بصورتك`,
+            sender_id: user.id,
+            sender_name: userDisplayName,
+            group_id: photoGroupId || undefined,
+            data: { photo_id: photoId }
+          });
+        }
+      } catch (notifyError) {
+        console.warn('Could not send like notification:', notifyError);
+      }
 
       toast({
         title: 'تم الإعجاب',
