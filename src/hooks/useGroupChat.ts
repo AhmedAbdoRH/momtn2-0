@@ -10,6 +10,8 @@ export interface GroupMessage {
   content: string;
   created_at: string;
   user_name?: string;
+  user_avatar?: string;
+  likes?: string[]; // Array of user IDs who liked this message
 }
 
 export const useGroupChat = (groupId: string | null) => {
@@ -32,7 +34,7 @@ export const useGroupChat = (groupId: string | null) => {
 
       if (error) throw error;
 
-      // Fetch user names for messages
+      // Fetch user names and avatars for messages
       if (data && data.length > 0) {
         const userIds = [...new Set(data.map(m => m.user_id))];
         const { data: users } = await supabase
@@ -40,11 +42,34 @@ export const useGroupChat = (groupId: string | null) => {
           .select('id, full_name')
           .in('id', userIds);
 
-        const userMap = new Map(users?.map(u => [u.id, u.full_name]) || []);
+        // Fetch avatars from auth metadata
+        const userMap = new Map(users?.map(u => [u.id, { name: u.full_name, avatar: null as string | null }]) || []);
+        
+        // Try to get avatars from profiles table or user_metadata
+        for (const userId of userIds) {
+          try {
+            const { data: profileData } = await supabase
+              .from('profiles')
+              .select('avatar_url')
+              .eq('id', userId)
+              .single();
+            
+            if (profileData?.avatar_url) {
+              const existing = userMap.get(userId);
+              if (existing) {
+                userMap.set(userId, { ...existing, avatar: profileData.avatar_url });
+              }
+            }
+          } catch {
+            // Profile might not exist, continue
+          }
+        }
         
         const messagesWithNames = data.map(m => ({
           ...m,
-          user_name: userMap.get(m.user_id) || 'مستخدم'
+          user_name: userMap.get(m.user_id)?.name || 'مستخدم',
+          user_avatar: userMap.get(m.user_id)?.avatar || undefined,
+          likes: [] // Initialize empty likes array
         }));
         
         setMessages(messagesWithNames);
@@ -119,6 +144,25 @@ export const useGroupChat = (groupId: string | null) => {
     }
   }, []);
 
+  // Toggle like on a message (local only - no DB persistence for now)
+  const toggleLike = useCallback((messageId: string) => {
+    if (!user) return;
+    
+    setMessages(prev => prev.map(m => {
+      if (m.id === messageId) {
+        const likes = m.likes || [];
+        const hasLiked = likes.includes(user.id);
+        return {
+          ...m,
+          likes: hasLiked 
+            ? likes.filter(id => id !== user.id)
+            : [...likes, user.id]
+        };
+      }
+      return m;
+    }));
+  }, [user]);
+
   // Subscribe to realtime updates
   useEffect(() => {
     if (!groupId || !user) return;
@@ -138,16 +182,31 @@ export const useGroupChat = (groupId: string | null) => {
         async (payload) => {
           const newMessage = payload.new as GroupMessage;
           
-          // Fetch user name for new message
+          // Fetch user name and avatar for new message
           const { data: userData } = await supabase
             .from('users')
             .select('full_name')
             .eq('id', newMessage.user_id)
             .single();
           
+          // Try to get avatar
+          let avatarUrl: string | undefined;
+          try {
+            const { data: profileData } = await supabase
+              .from('profiles')
+              .select('avatar_url')
+              .eq('id', newMessage.user_id)
+              .single();
+            avatarUrl = profileData?.avatar_url || undefined;
+          } catch {
+            // Profile might not exist
+          }
+          
           setMessages(prev => [...prev, {
             ...newMessage,
-            user_name: userData?.full_name || 'مستخدم'
+            user_name: userData?.full_name || 'مستخدم',
+            user_avatar: avatarUrl,
+            likes: []
           }]);
         }
       )
@@ -177,6 +236,7 @@ export const useGroupChat = (groupId: string | null) => {
     sending,
     sendMessage,
     deleteMessage,
+    toggleLike,
     refetch: fetchMessages
   };
 };
