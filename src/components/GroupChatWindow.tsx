@@ -1,8 +1,9 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { X, Send, Trash2 } from 'lucide-react';
+import { X, Send, Trash2, Heart } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useGroupChat, GroupMessage } from '@/hooks/useGroupChat';
 import { useAuth } from '@/components/AuthProvider';
 import { cn } from '@/lib/utils';
@@ -19,7 +20,7 @@ const GroupChatWindow: React.FC<GroupChatWindowProps> = ({
   onClose
 }) => {
   const { user } = useAuth();
-  const { messages, loading, sending, sendMessage, deleteMessage } = useGroupChat(groupId);
+  const { messages, loading, sending, sendMessage, deleteMessage, toggleLike } = useGroupChat(groupId);
   const [messageText, setMessageText] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -43,6 +44,16 @@ const GroupChatWindow: React.FC<GroupChatWindowProps> = ({
     }
   };
 
+  const handleSendHeart = async () => {
+    if (sending) return;
+    await sendMessage('❤️');
+  };
+
+  const getInitials = (name?: string) => {
+    if (!name) return '؟';
+    return name.split(' ').map(n => n[0]).join('').substring(0, 2);
+  };
+
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
@@ -59,6 +70,7 @@ const GroupChatWindow: React.FC<GroupChatWindowProps> = ({
   };
 
   const isMyMessage = (message: GroupMessage) => message.user_id === user?.id;
+  const hasLiked = (message: GroupMessage) => message.likes?.includes(user?.id || '') || false;
 
   return (
     <div className="fixed inset-4 md:inset-10 z-50 flex flex-col bg-gray-900/95 backdrop-blur-xl rounded-2xl shadow-2xl border border-white/10 overflow-hidden">
@@ -93,13 +105,23 @@ const GroupChatWindow: React.FC<GroupChatWindowProps> = ({
               <div
                 key={message.id}
                 className={cn(
-                  "flex",
-                  isMyMessage(message) ? "justify-start" : "justify-end"
+                  "flex items-end gap-2",
+                  isMyMessage(message) ? "flex-row" : "flex-row-reverse"
                 )}
               >
+                {/* Avatar */}
+                {!isMyMessage(message) && (
+                  <Avatar className="w-8 h-8 flex-shrink-0">
+                    <AvatarImage src={message.user_avatar} />
+                    <AvatarFallback className="bg-gray-600 text-white text-xs">
+                      {getInitials(message.user_name)}
+                    </AvatarFallback>
+                  </Avatar>
+                )}
+                
                 <div
                   className={cn(
-                    "max-w-[80%] rounded-2xl px-4 py-2 group relative",
+                    "max-w-[75%] rounded-2xl px-4 py-2 group relative",
                     isMyMessage(message)
                       ? "bg-[#d94550] text-white rounded-br-sm"
                       : "bg-gray-700 text-white rounded-bl-sm"
@@ -117,16 +139,41 @@ const GroupChatWindow: React.FC<GroupChatWindowProps> = ({
                     <span className="text-[10px] text-white/50">
                       {formatTime(message.created_at)}
                     </span>
-                    {isMyMessage(message) && (
+                    <div className="flex items-center gap-1">
+                      {/* Heart reaction */}
                       <button
-                        onClick={() => deleteMessage(message.id)}
-                        className="opacity-0 group-hover:opacity-100 transition-opacity text-white/50 hover:text-white"
+                        onClick={() => toggleLike(message.id)}
+                        className={cn(
+                          "transition-all",
+                          hasLiked(message) ? "text-red-500" : "opacity-0 group-hover:opacity-100 text-white/50 hover:text-red-400"
+                        )}
                       >
-                        <Trash2 className="w-3 h-3" />
+                        <Heart className={cn("w-3 h-3", hasLiked(message) && "fill-current")} />
                       </button>
-                    )}
+                      {(message.likes?.length || 0) > 0 && (
+                        <span className="text-[10px] text-red-400">{message.likes?.length}</span>
+                      )}
+                      {isMyMessage(message) && (
+                        <button
+                          onClick={() => deleteMessage(message.id)}
+                          className="opacity-0 group-hover:opacity-100 transition-opacity text-white/50 hover:text-white mr-1"
+                        >
+                          <Trash2 className="w-3 h-3" />
+                        </button>
+                      )}
+                    </div>
                   </div>
                 </div>
+                
+                {/* My avatar */}
+                {isMyMessage(message) && (
+                  <Avatar className="w-8 h-8 flex-shrink-0">
+                    <AvatarImage src={message.user_avatar} />
+                    <AvatarFallback className="bg-[#d94550] text-white text-xs">
+                      {getInitials(message.user_name)}
+                    </AvatarFallback>
+                  </Avatar>
+                )}
               </div>
             ))}
             <div ref={messagesEndRef} />
@@ -147,14 +194,21 @@ const GroupChatWindow: React.FC<GroupChatWindowProps> = ({
             disabled={sending}
           />
           <Button
-            onClick={handleSend}
-            disabled={!messageText.trim() || sending}
-            className="bg-[#d94550] hover:bg-[#d94550]/90 text-white px-4"
+            onClick={messageText.trim() ? handleSend : handleSendHeart}
+            disabled={sending}
+            className={cn(
+              "px-4 transition-colors",
+              messageText.trim() 
+                ? "bg-[#d94550] hover:bg-[#d94550]/90 text-white"
+                : "bg-pink-500 hover:bg-pink-600 text-white"
+            )}
           >
             {sending ? (
               <div className="animate-spin w-4 h-4 border-2 border-white/20 border-t-white rounded-full" />
-            ) : (
+            ) : messageText.trim() ? (
               <Send className="w-4 h-4" />
+            ) : (
+              <Heart className="w-4 h-4 fill-current" />
             )}
           </Button>
         </div>
