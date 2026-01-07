@@ -1,26 +1,30 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../components/ui/tabs";
 import { ContributorsList } from "../components/ContributorsList";
 import { BackgroundSettings } from "../components/BackgroundSettings";
 import { Button } from "../components/ui/button";
-import { ArrowLeft, MessageSquare, User, Users } from "lucide-react";
+import { ArrowLeft, MessageSquare, User, Camera, Loader2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Input } from "../components/ui/input";
 import { Label } from "../components/ui/label";
 import { useAuth } from "../components/AuthProvider";
 import { useToast } from "../hooks/use-toast";
 import { supabase } from "../integrations/supabase/client";
+import { Avatar, AvatarFallback, AvatarImage } from "../components/ui/avatar";
 
 const SettingsPage = () => {
   const [activeTab, setActiveTab] = useState("general");
   const [greetingMessage, setGreetingMessage] = useState("");
   const [displayName, setDisplayName] = useState("");
   const [isUpdatingName, setIsUpdatingName] = useState(false);
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const navigate = useNavigate();
   const { user } = useAuth();
   const { toast } = useToast();
 
-  // Load saved greeting message and display name
+  // Load saved greeting message, display name, and avatar
   useEffect(() => {
     if (user) {
       const savedGreeting = localStorage.getItem(`userGreeting_${user.id}`) || 
@@ -29,6 +33,11 @@ const SettingsPage = () => {
       
       // Load display name from database
       loadDisplayName();
+      
+      // Load avatar URL from user_metadata
+      if (user.user_metadata?.avatar_url) {
+        setAvatarUrl(user.user_metadata.avatar_url);
+      }
     }
   }, [user]);
 
@@ -98,6 +107,97 @@ const SettingsPage = () => {
     } catch (err) {
       console.error('Error updating display name in database:', err);
     }
+  };
+
+  const handleAvatarClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !user) return;
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      toast({
+        title: "خطأ",
+        description: "يرجى اختيار ملف صورة صالح",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    // Validate file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      toast({
+        title: "خطأ",
+        description: "حجم الصورة يجب أن يكون أقل من 5 ميجابايت",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setIsUploadingAvatar(true);
+    try {
+      // Create unique file name
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${user.id}-${Date.now()}.${fileExt}`;
+      const filePath = `${user.id}/${fileName}`;
+
+      // Upload to Supabase Storage
+      const { error: uploadError } = await supabase.storage
+        .from('avatars')
+        .upload(filePath, file, { upsert: true });
+
+      if (uploadError) throw uploadError;
+
+      // Get public URL
+      const { data: { publicUrl } } = supabase.storage
+        .from('avatars')
+        .getPublicUrl(filePath);
+
+      // Update user metadata with avatar URL
+      const { error: updateError } = await supabase.auth.updateUser({
+        data: { avatar_url: publicUrl }
+      });
+
+      if (updateError) throw updateError;
+
+      setAvatarUrl(publicUrl);
+
+      // Dispatch event to notify other components
+      window.dispatchEvent(new CustomEvent('avatarUpdated', { 
+        detail: { avatarUrl: publicUrl } 
+      }));
+
+      toast({
+        title: "تم التحديث",
+        description: "تم تغيير صورة الملف الشخصي بنجاح"
+      });
+    } catch (error) {
+      console.error('Error uploading avatar:', error);
+      toast({
+        title: "خطأ",
+        description: "حدث خطأ أثناء رفع الصورة",
+        variant: "destructive"
+      });
+    } finally {
+      setIsUploadingAvatar(false);
+      // Reset file input
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    }
+  };
+
+  const getInitials = () => {
+    if (displayName) {
+      return displayName.slice(0, 2).toUpperCase();
+    }
+    if (user?.email) {
+      return user.email.slice(0, 2).toUpperCase();
+    }
+    return 'U';
   };
 
   const handleGreetingChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -214,6 +314,60 @@ const SettingsPage = () => {
           </TabsList>
 
           <TabsContent value="general" className="space-y-8">
+            {/* Profile Picture Section */}
+            <section className="bg-gradient-to-br from-black/60 to-black/40 p-6 rounded-xl shadow-lg backdrop-blur-md border border-white/10">
+              <h2 className="text-2xl font-semibold mb-6 text-white text-right flex items-center gap-2 justify-end">
+                <Camera className="w-6 h-6" />
+                صورة الملف الشخصي
+              </h2>
+              <div className="flex flex-col items-center gap-4">
+                <div className="relative group">
+                  <Avatar className="w-24 h-24 border-2 border-white/20">
+                    <AvatarImage src={avatarUrl || undefined} alt="صورة الملف الشخصي" />
+                    <AvatarFallback className="bg-gradient-to-br from-blue-600 to-purple-600 text-white text-2xl font-bold">
+                      {getInitials()}
+                    </AvatarFallback>
+                  </Avatar>
+                  <button
+                    onClick={handleAvatarClick}
+                    disabled={isUploadingAvatar}
+                    className="absolute inset-0 flex items-center justify-center bg-black/50 rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-200 cursor-pointer disabled:cursor-not-allowed"
+                  >
+                    {isUploadingAvatar ? (
+                      <Loader2 className="w-8 h-8 text-white animate-spin" />
+                    ) : (
+                      <Camera className="w-8 h-8 text-white" />
+                    )}
+                  </button>
+                </div>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  onChange={handleAvatarChange}
+                  className="hidden"
+                />
+                <Button
+                  onClick={handleAvatarClick}
+                  disabled={isUploadingAvatar}
+                  variant="outline"
+                  className="text-white border-white/20 hover:bg-white/10"
+                >
+                  {isUploadingAvatar ? (
+                    <div className="flex items-center gap-2">
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      جاري الرفع...
+                    </div>
+                  ) : (
+                    'تغيير الصورة'
+                  )}
+                </Button>
+                <p className="text-xs text-gray-400 text-center">
+                  الحد الأقصى للحجم: 5 ميجابايت
+                </p>
+              </div>
+            </section>
+
             {/* Display Name Section */}
             <section className="bg-gradient-to-br from-black/60 to-black/40 p-6 rounded-xl shadow-lg backdrop-blur-md border border-white/10">
               <h2 className="text-2xl font-semibold mb-6 text-white text-right flex items-center gap-2 justify-end">
@@ -244,10 +398,7 @@ const SettingsPage = () => {
                 >
                   {isUpdatingName ? (
                     <div className="flex items-center gap-2">
-                      <svg className="animate-spin h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                      </svg>
+                      <Loader2 className="w-5 h-5 animate-spin" />
                       جاري التحديث...
                     </div>
                   ) : (
