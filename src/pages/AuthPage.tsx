@@ -6,6 +6,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Navigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
+import AppDownloadPopup from '@/components/AppDownloadPopup';
 
 const AuthPage = () => {
   const [mode, setMode] = useState<'signIn' | 'signUp' | 'resetPassword'>('signIn');
@@ -268,8 +269,10 @@ const AuthPage = () => {
   };
   
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#2D1F3D] via-[#1A1F2C] to-[#3D1F2C] flex items-center justify-center p-4">
-      <div className="max-w-md w-full space-y-6 bg-gray-900/60 backdrop-blur-xl p-6 rounded-2xl shadow-xl"> 
+    <>
+      <AppDownloadPopup onContinueToWeb={() => {}} />
+      <div className="min-h-screen bg-gradient-to-br from-[#2D1F3D] via-[#1A1F2C] to-[#3D1F2C] flex items-center justify-center p-4">
+        <div className="max-w-md w-full space-y-6 bg-gray-900/60 backdrop-blur-xl p-6 rounded-2xl shadow-xl">
         <div className="text-center">
           <div className="inline-block w-29 h-29">
             <img
@@ -358,6 +361,7 @@ const AuthPage = () => {
         </form>
       </div>
     </div>
+    </>
   );
 };
 
