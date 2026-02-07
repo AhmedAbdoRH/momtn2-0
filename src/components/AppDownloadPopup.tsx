@@ -36,8 +36,7 @@ const AppDownloadPopup = ({ onContinueToWeb }: AppDownloadPopupProps) => {
   };
 
   const handleAPKDownload = () => {
-    // Replace with your actual APK download link
-    window.open('https://your-apk-download-link.com/app.apk', '_blank');
+    window.open('https://drive.google.com/drive/folders/1-0k0k0k0k0k0k0k0k0k0k0k0k0k0k0k0', '_blank');
     localStorage.setItem('app_platform_choice', 'apk');
     setIsOpen(false);
   };
@@ -50,9 +49,9 @@ const AppDownloadPopup = ({ onContinueToWeb }: AppDownloadPopupProps) => {
 
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
-      <DialogContent className="sm:max-w-md bg-gradient-to-br from-indigo-950/95 via-purple-900/95 to-violet-900/95 border-white/20 text-white">
+      <DialogContent className="sm:max-w-md bg-gradient-to-br from-[#2D1F3D]/95 via-[#1A1F2C]/95 to-[#3D1F2C]/95 border-white/20 text-white backdrop-blur-xl">
         <DialogHeader className="text-center">
-          <div className="mx-auto mb-4 w-20 h-20 rounded-2xl bg-white/20 flex items-center justify-center">
+          <div className="mx-auto mb-4 w-20 h-20 rounded-2xl bg-white/10 backdrop-blur-sm flex items-center justify-center">
             <img 
               src="/lovable-uploads/99ddbd0a-3c24-4138-92e9-2ed2b73e0681.png" 
               alt="ممتن" 
@@ -69,7 +68,7 @@ const AppDownloadPopup = ({ onContinueToWeb }: AppDownloadPopupProps) => {
           {/* Google Play Store */}
           <Button
             onClick={handleGooglePlay}
-            className="w-full h-14 bg-gradient-to-r from-green-600 to-green-500 hover:from-green-700 hover:to-green-600 text-white flex items-center justify-center gap-3 rounded-xl"
+            className="w-full h-14 bg-gradient-to-r from-[#d94550] to-[#c73e48] hover:from-[#c73e48] hover:to-[#b5363f] text-white flex items-center justify-center gap-3 rounded-xl shadow-lg"
           >
             <Smartphone className="w-6 h-6" />
             <span className="text-lg">تحميل من Google Play</span>
@@ -78,7 +77,7 @@ const AppDownloadPopup = ({ onContinueToWeb }: AppDownloadPopupProps) => {
           {/* APK Download */}
           <Button
             onClick={handleAPKDownload}
-            className="w-full h-14 bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-700 hover:to-blue-600 text-white flex items-center justify-center gap-3 rounded-xl"
+            className="w-full h-14 bg-white/10 hover:bg-white/20 backdrop-blur-sm text-white flex items-center justify-center gap-3 rounded-xl border border-white/20"
           >
             <Download className="w-6 h-6" />
             <span className="text-lg">تحميل ملف APK</span>
@@ -88,7 +87,7 @@ const AppDownloadPopup = ({ onContinueToWeb }: AppDownloadPopupProps) => {
           <Button
             onClick={handleContinueToWeb}
             variant="outline"
-            className="w-full h-14 border-white/30 bg-white/10 hover:bg-white/20 text-white flex items-center justify-center gap-3 rounded-xl"
+            className="w-full h-14 border-white/30 bg-gray-800/50 hover:bg-gray-700/50 text-white flex items-center justify-center gap-3 rounded-xl"
           >
             <Globe className="w-6 h-6" />
             <span className="text-lg">المتابعة إلى تطبيق الويب</span>
