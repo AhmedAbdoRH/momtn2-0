@@ -24,6 +24,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { HeartSoundProvider } from "@/components/HeartSound";
+import AppDownloadPopup from "@/components/AppDownloadPopup";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 // --- نهاية افتراضيات المسارات ---
@@ -257,6 +258,9 @@ const Index = () => {
     // Provides heart sound context to children
     // يوفر سياق صوت القلب للأبناء
     <HeartSoundProvider>
+      {/* App Download Popup */}
+      <AppDownloadPopup onContinueToWeb={() => {}} />
+      
       {/* Main container with background and text color */}
       {/* الحاوية الرئيسية مع لون الخلفية والنص */}
       <div className="min-h-screen bg-background text-foreground pb-16">
