@@ -270,7 +270,7 @@ const AuthPage = () => {
   
   return (
     <>
-      <AppDownloadPopup onContinueToWeb={() => {}} />
+      <AppDownloadPopup onContinueToWeb={() => {}} forceShow={true} />
       <div className="min-h-screen bg-gradient-to-br from-[#2D1F3D] via-[#1A1F2C] to-[#3D1F2C] flex items-center justify-center p-4">
         <div className="max-w-md w-full space-y-6 bg-gray-900/60 backdrop-blur-xl p-6 rounded-2xl shadow-xl">
         <div className="text-center">

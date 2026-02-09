@@ -11,12 +11,19 @@ import { Download, Globe } from 'lucide-react';
 
 interface AppDownloadPopupProps {
   onContinueToWeb: () => void;
+  forceShow?: boolean;
 }
 
-const AppDownloadPopup = ({ onContinueToWeb }: AppDownloadPopupProps) => {
+const AppDownloadPopup = ({ onContinueToWeb, forceShow = false }: AppDownloadPopupProps) => {
   const [isOpen, setIsOpen] = useState(false);
 
   useEffect(() => {
+    // If forceShow is true, always show the popup
+    if (forceShow) {
+      setIsOpen(true);
+      return;
+    }
+    
     // Check if user has already made a choice
     const hasChosenPlatform = localStorage.getItem('app_platform_choice');
     
@@ -26,7 +33,7 @@ const AppDownloadPopup = ({ onContinueToWeb }: AppDownloadPopupProps) => {
     if (!hasChosenPlatform && !isStandalone) {
       setIsOpen(true);
     }
-  }, []);
+  }, [forceShow]);
 
   const handleAPKDownload = () => {
     window.open('https://drive.google.com/drive/folders/1ka58Yn9iUKkz9ax5tltTaQ2xtOUgnE3Z', '_blank');
