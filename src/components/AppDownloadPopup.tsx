@@ -7,7 +7,7 @@ import {
   DialogDescription,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Download, Globe, Smartphone } from 'lucide-react';
+import { Download, Globe } from 'lucide-react';
 
 interface AppDownloadPopupProps {
   onContinueToWeb: () => void;
@@ -28,15 +28,8 @@ const AppDownloadPopup = ({ onContinueToWeb }: AppDownloadPopupProps) => {
     }
   }, []);
 
-  const handleGooglePlay = () => {
-    // Replace with your actual Google Play Store link
-    window.open('https://play.google.com/store/apps/details?id=app.lovable.fbe0f561815444a49b10d5d0ee84e4da', '_blank');
-    localStorage.setItem('app_platform_choice', 'google_play');
-    setIsOpen(false);
-  };
-
   const handleAPKDownload = () => {
-    window.open('https://drive.google.com/drive/folders/1-0k0k0k0k0k0k0k0k0k0k0k0k0k0k0k0', '_blank');
+    window.open('https://drive.google.com/drive/folders/1ka58Yn9iUKkz9ax5tltTaQ2xtOUgnE3Z', '_blank');
     localStorage.setItem('app_platform_choice', 'apk');
     setIsOpen(false);
   };
@@ -65,22 +58,13 @@ const AppDownloadPopup = ({ onContinueToWeb }: AppDownloadPopupProps) => {
         </DialogHeader>
         
         <div className="flex flex-col gap-3 mt-4">
-          {/* Google Play Store */}
-          <Button
-            onClick={handleGooglePlay}
-            className="w-full h-14 bg-gradient-to-r from-[#d94550] to-[#c73e48] hover:from-[#c73e48] hover:to-[#b5363f] text-white flex items-center justify-center gap-3 rounded-xl shadow-lg"
-          >
-            <Smartphone className="w-6 h-6" />
-            <span className="text-lg">تحميل من Google Play</span>
-          </Button>
-
           {/* APK Download */}
           <Button
             onClick={handleAPKDownload}
-            className="w-full h-14 bg-white/10 hover:bg-white/20 backdrop-blur-sm text-white flex items-center justify-center gap-3 rounded-xl border border-white/20"
+            className="w-full h-14 bg-gradient-to-r from-[#d94550] to-[#c73e48] hover:from-[#c73e48] hover:to-[#b5363f] text-white flex items-center justify-center gap-3 rounded-xl shadow-lg"
           >
             <Download className="w-6 h-6" />
-            <span className="text-lg">تحميل ملف APK</span>
+            <span className="text-lg">تحميل التطبيق APK</span>
           </Button>
 
           {/* Continue to Web */}

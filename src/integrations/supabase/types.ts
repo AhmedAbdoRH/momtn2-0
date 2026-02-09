@@ -218,6 +218,7 @@ export type Database = {
           group_id: string
           id: string
           image_url: string | null
+          image_urls: string[] | null
           likes: Json | null
           reply_to_message_id: string | null
           user_id: string
@@ -228,6 +229,7 @@ export type Database = {
           group_id: string
           id?: string
           image_url?: string | null
+          image_urls?: string[] | null
           likes?: Json | null
           reply_to_message_id?: string | null
           user_id: string
@@ -238,6 +240,7 @@ export type Database = {
           group_id?: string
           id?: string
           image_url?: string | null
+          image_urls?: string[] | null
           likes?: Json | null
           reply_to_message_id?: string | null
           user_id?: string
@@ -353,6 +356,7 @@ export type Database = {
           hashtags: string[] | null
           id: string
           image_url: string
+          image_urls: string[] | null
           likes: number
           order: number | null
           updated_at: string | null
@@ -365,6 +369,7 @@ export type Database = {
           hashtags?: string[] | null
           id?: string
           image_url: string
+          image_urls?: string[] | null
           likes?: number
           order?: number | null
           updated_at?: string | null
@@ -377,6 +382,7 @@ export type Database = {
           hashtags?: string[] | null
           id?: string
           image_url?: string
+          image_urls?: string[] | null
           likes?: number
           order?: number | null
           updated_at?: string | null
