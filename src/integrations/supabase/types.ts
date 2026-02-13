@@ -359,6 +359,7 @@ export type Database = {
           image_urls: string[] | null
           likes: number
           order: number | null
+          sort_order: number | null
           updated_at: string | null
           user_id: string
         }
@@ -372,6 +373,7 @@ export type Database = {
           image_urls?: string[] | null
           likes?: number
           order?: number | null
+          sort_order?: number | null
           updated_at?: string | null
           user_id: string
         }
@@ -385,6 +387,7 @@ export type Database = {
           image_urls?: string[] | null
           likes?: number
           order?: number | null
+          sort_order?: number | null
           updated_at?: string | null
           user_id?: string
         }
