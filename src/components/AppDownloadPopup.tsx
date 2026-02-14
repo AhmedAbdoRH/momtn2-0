@@ -1,146 +1,165 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  Feather, 
-  Users, 
-  Heart, 
-  MessageCircle, 
-  Calendar, 
-  Camera, 
-  LineChart, 
-  Download, 
-  Globe 
-} from 'lucide-react';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+import { Download, Globe, Feather, Users, HeartHandshake, Zap, CalendarHeart } from 'lucide-react';
 
-// قائمة المميزات السبعة مع توحيد اللون للهوية البصرية (اللون الأحمر الخاص بممتن)
+interface AppDownloadPopupProps {
+  onContinueToWeb: () => void;
+  forceShow?: boolean;
+}
+
 const features = [
   {
     icon: Feather,
-    title: 'سجل نعمك وتذكرها',
-    description: 'مساحة خاصة وهادئة لتدوين اللحظات التي تشعر بالامتنان لها يومياً.',
-    color: 'bg-[#d94550]/15 text-[#d94550]'
+    title: 'دوّن امتنانك',
+    description: 'مساحة خاصة وهادئة لتدوين اللحظات والأشياء التي تشعر بالامتنان لها',
   },
   {
     icon: Users,
-    title: ' انشئ مساحات مشتركة',
-    description: 'أنشئ مجموعاتك الخاصة مع العائلة أو الأصدقاء لمشاركة مشاعر الامتنان معاً.',
-    color: 'bg-[#d94550]/15 text-[#d94550]'
+    title: 'مساحات مشتركة للأحبة',
+    description: 'أنشئ مجموعاتك الخاصة مع العائلة أو الأصدقاء لمشاركة لحظاتكم السعيدة',
   },
   {
-    icon: Heart,
-    title: 'تفاعل مع الذكريات',
-    description: 'شارك أحباءك لحظاتهم بتفاعلات وتعليقات تبني روابط إنسانية أعمق وأصدق.',
-    color: 'bg-[#d94550]/15 text-[#d94550]'
+    icon: HeartHandshake,
+    title: 'تفاعل بصدق',
+    description: 'شارك أحباءك لحظاتهم بتفاعلات وتعليقات تبني روابط إنسانية أعمق',
   },
   {
-    icon: MessageCircle,
-    title: 'تواصل مع احبائك',
-    description: 'محادثات فورية وسريعة للتواصل المباشر مع أعضاء مجموعاتك في أي وقت.',
-    color: 'bg-[#d94550]/15 text-[#d94550]'
+    icon: Zap,
+    title: 'تواصل مباشر',
+    description: 'محادثات فورية وسريعة للتواصل المباشر مع أعضاء مجموعاتك',
   },
   {
-    icon: Calendar,
-    title: 'تواصل اجتماعي حقيقي',
-    description: 'خطط للقاءات حقيقية واصنعوا ذكريات تستحق التدوين بعيداً عن الشاشات.',
-    color: 'bg-[#d94550]/15 text-[#d94550]'
-  },
-  {
-    icon: Camera,
-    title: ' وثق ذكرياتك واحفظها ',
-    description: 'أضف الصور التي تعبر عن نعمك ليكون سجل امتنانك مرجعاً بصرياً ملهماً.',
-    color: 'bg-[#d94550]/15 text-[#d94550]'
+    icon: CalendarHeart,
+    title: 'يلا سوا',
+    description: 'حوّل الامتنان إلى واقع؛ خطط للقاءات حقيقية واصنعوا ذكريات تستحق التدوين',
   },
 ];
 
-const App = () => {
+const AppDownloadPopup = ({ onContinueToWeb, forceShow = false }: AppDownloadPopupProps) => {
+  const [isOpen, setIsOpen] = useState(false);
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [isOpen, setIsOpen] = useState(true);
 
   const nextFeature = useCallback(() => {
     setCurrentIndex((prev) => (prev + 1) % features.length);
   }, []);
 
   useEffect(() => {
-    const timer = setInterval(nextFeature, 4000);
+    if (!isOpen) return;
+    const timer = setInterval(nextFeature, 3500);
     return () => clearInterval(timer);
-  }, [nextFeature]);
+  }, [isOpen, nextFeature]);
 
-  if (!isOpen) return null;
+  useEffect(() => {
+    if (forceShow) {
+      setIsOpen(true);
+      return;
+    }
+    const hasChosenPlatform = localStorage.getItem('app_platform_choice');
+    const isStandalone = window.matchMedia('(display-mode: standalone)').matches;
+    if (!hasChosenPlatform && !isStandalone) {
+      setIsOpen(true);
+    }
+  }, [forceShow]);
+
+  const handleAPKDownload = () => {
+    window.open('https://drive.google.com/drive/folders/1ka58Yn9iUKkz9ax5tltTaQ2xtOUgnE3Z', '_blank');
+    localStorage.setItem('app_platform_choice', 'apk');
+    setIsOpen(false);
+  };
+
+  const handleContinueToWeb = () => {
+    localStorage.setItem('app_platform_choice', 'web');
+    setIsOpen(false);
+    onContinueToWeb();
+  };
+
+  const currentFeature = features[currentIndex];
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-md" dir="rtl">
-      <motion.div 
-        initial={{ scale: 0.9, opacity: 0 }}
-        animate={{ scale: 1, opacity: 1 }}
-        className="relative w-full max-w-md overflow-hidden bg-gradient-to-br from-[#1a1625] via-[#2d1b2d] to-[#1a1625] border border-white/10 text-white shadow-[0_20px_50px_rgba(0,0,0,0.5)] rounded-[2.5rem]"
-      >
-        <div className="p-8 pb-2 text-center">
-          {/* الشعار */}
-          <motion.div 
-            initial={{ y: -20, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            className="mx-auto w-20 h-20 rounded-2xl bg-white/5 backdrop-blur-md border border-white/10 flex items-center justify-center p-3 shadow-inner mb-8"
-          >
+    <Dialog open={isOpen} onOpenChange={setIsOpen}>
+      <DialogContent className="sm:max-w-md bg-gradient-to-br from-[#2D1F3D]/95 via-[#1A1F2C]/95 to-[#3D1F2C]/95 border-white/20 text-white backdrop-blur-xl">
+        <DialogHeader className="text-center">
+          <div className="mx-auto mb-3 w-16 h-16 rounded-2xl bg-white/10 backdrop-blur-sm flex items-center justify-center">
             <img 
               src="/lovable-uploads/99ddbd0a-3c24-4138-92e9-2ed2b73e0681.png" 
               alt="ممتن" 
-              className="w-full h-full object-contain rounded-xl"
-              onError={(e) => e.target.src = 'https://placehold.co/100x100?text=M'}
+              className="w-12 h-12 rounded-xl"
             />
-          </motion.div>
-
-          {/* الكروت المتحركة - الآن بلون موحد */}
-          <div className="relative min-h-[180px] flex items-center justify-center mb-4">
-            <AnimatePresence mode="wait">
-              <motion.div
-                key={currentIndex}
-                initial={{ y: 20, opacity: 0 }}
-                animate={{ y: 0, opacity: 1 }}
-                exit={{ y: -20, opacity: 0 }}
-                transition={{ duration: 0.5, ease: "easeInOut" }}
-                className="w-full flex flex-col items-center px-4"
-              >
-                <div className={`w-16 h-16 rounded-full ${features[currentIndex].color} flex items-center justify-center mb-5 shadow-lg border border-[#d94550]/10`}>
-                  {React.createElement(features[currentIndex].icon, { size: 30 })}
-                </div>
-                <h3 className="text-xl font-bold mb-2 text-white tracking-tight">
-                  {features[currentIndex].title}
-                </h3>
-                <p className="text-white/50 leading-relaxed text-sm max-w-[90%]">
-                  {features[currentIndex].description}
-                </p>
-              </motion.div>
-            </AnimatePresence>
           </div>
+          <DialogTitle className="text-2xl text-white">مرحباً بك في ممتن</DialogTitle>
+          <DialogDescription className="text-white/70">
+            اكتشف مميزات التطبيق
+          </DialogDescription>
+        </DialogHeader>
+
+        {/* Animated Feature Carousel */}
+        <div className="relative min-h-[140px] flex items-center justify-center my-2" dir="rtl">
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={currentIndex}
+              initial={{ y: 20, opacity: 0, scale: 0.95 }}
+              animate={{ y: 0, opacity: 1, scale: 1 }}
+              exit={{ y: -20, opacity: 0, scale: 0.95 }}
+              transition={{ duration: 0.4, ease: "easeInOut" }}
+              className="absolute inset-0 flex flex-col items-center justify-center text-center px-6"
+            >
+              <div className="w-14 h-14 rounded-2xl bg-[#d94550]/15 border border-[#d94550]/20 flex items-center justify-center mb-4">
+                <currentFeature.icon className="w-7 h-7 text-[#d94550]" />
+              </div>
+              <h4 className="text-lg font-bold text-white mb-1.5">{currentFeature.title}</h4>
+              <p className="text-sm text-white/55 leading-relaxed max-w-[85%]">{currentFeature.description}</p>
+            </motion.div>
+          </AnimatePresence>
         </div>
 
-        {/* أزرار الإجراءات */}
-        <div className="p-8 pt-2 space-y-4">
-          <button
-            onClick={() => console.log('Downloading...')}
-            className="w-full h-14 bg-gradient-to-r from-[#d94550] to-[#c73e48] hover:shadow-[0_0_30px_rgba(217,69,80,0.3)] text-white flex items-center justify-center gap-3 rounded-2xl shadow-lg font-bold transition-all duration-300 transform hover:-translate-y-1 active:scale-95"
+        {/* Dots Indicator */}
+        <div className="flex justify-center gap-1.5 mb-1">
+          {features.map((_, i) => (
+            <button
+              key={i}
+              onClick={() => setCurrentIndex(i)}
+              className={`h-1.5 rounded-full transition-all duration-300 ${
+                i === currentIndex 
+                  ? 'w-6 bg-[#d94550]' 
+                  : 'w-1.5 bg-white/20 hover:bg-white/40'
+              }`}
+            />
+          ))}
+        </div>
+        
+        <div className="flex flex-col gap-3 mt-2">
+          <Button
+            onClick={handleAPKDownload}
+            className="w-full h-14 bg-gradient-to-r from-[#d94550] to-[#c73e48] hover:from-[#c73e48] hover:to-[#b5363f] text-white flex items-center justify-center gap-3 rounded-xl shadow-lg"
           >
-            <Download className="w-5 h-5" />
+            <Download className="w-6 h-6" />
             <span className="text-lg">تحميل التطبيق APK</span>
-          </button>
+          </Button>
 
-          <button
-            onClick={() => setIsOpen(false)} 
-            className="w-full text-white/30 hover:text-white/60 flex items-center justify-center gap-2 text-xs transition-colors py-2"
+          <Button
+            onClick={handleContinueToWeb}
+            variant="outline"
+            className="w-full h-14 border-white/30 bg-gray-800/50 hover:bg-gray-700/50 text-white flex items-center justify-center gap-3 rounded-xl"
           >
-            <Globe size={14} />
-            الاستمرار عبر نسخة الويب
-          </button>
-
-          <div className="flex justify-center pt-2 opacity-10">
-             <p className="text-[9px] uppercase tracking-[0.4em] font-light">
-               Momtan Digital Experience
-             </p>
-          </div>
+            <Globe className="w-6 h-6" />
+            <span className="text-lg">المتابعة إلى تطبيق الويب</span>
+          </Button>
         </div>
-      </motion.div>
-    </div>
+
+        <p className="text-center text-white/50 text-sm mt-1">
+          يمكنك تغيير اختيارك لاحقاً من الإعدادات
+        </p>
+      </DialogContent>
+    </Dialog>
   );
 };
 
-export default App;
+export default AppDownloadPopup;
