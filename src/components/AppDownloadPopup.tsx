@@ -87,12 +87,11 @@ const AppDownloadPopup = ({ onContinueToWeb, forceShow = false }: AppDownloadPop
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogContent className="sm:max-w-md bg-gradient-to-br from-[#2D1F3D]/95 via-[#1A1F2C]/95 to-[#3D1F2C]/95 border-white/20 text-white backdrop-blur-xl">
         <DialogHeader className="text-center">
-          <div className="mx-auto mb-3 w-16 h-16 rounded-2xl bg-white/10 backdrop-blur-sm flex items-center justify-center">
+          <div className="mx-auto mb-3 flex items-center justify-center">
             <img
               src="/lovable-uploads/99ddbd0a-3c24-4138-92e9-2ed2b73e0681.png"
               alt="ممتن"
-              className="w-12 h-12 rounded-xl" />
-
+              className="w-20 h-20 rounded-2xl" />
           </div>
         </DialogHeader>
 
