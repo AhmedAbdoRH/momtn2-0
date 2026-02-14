@@ -94,11 +94,6 @@ const AppDownloadPopup = ({ onContinueToWeb, forceShow = false }: AppDownloadPop
               className="w-12 h-12 rounded-xl"
             />
           </div>
-          <DialogTitle className="text-2xl text-white">مرحباً بك في ممتن</DialogTitle>
-          <DialogDescription className="text-white/70">
-            اكتشف مميزات التطبيق
-          </DialogDescription>
-        </DialogHeader>
 
         {/* Animated Feature Carousel */}
         <div className="relative min-h-[140px] flex items-center justify-center my-2" dir="rtl">
