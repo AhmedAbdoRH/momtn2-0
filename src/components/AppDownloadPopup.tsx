@@ -7,29 +7,51 @@ import {
   DialogDescription,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Download, Globe } from 'lucide-react';
+import { Download, Globe, Feather, Users, HeartHandshake, Zap, CalendarHeart } from 'lucide-react';
 
 interface AppDownloadPopupProps {
   onContinueToWeb: () => void;
   forceShow?: boolean;
 }
 
+const features = [
+  {
+    icon: Feather,
+    title: 'دوّن امتنانك',
+    description: 'مساحة خاصة وهادئة لتدوين اللحظات والأشياء التي تشعر بالامتنان لها',
+  },
+  {
+    icon: Users,
+    title: 'مساحات مشتركة للأحبة',
+    description: 'أنشئ مجموعاتك الخاصة مع العائلة أو الأصدقاء لمشاركة لحظاتكم السعيدة',
+  },
+  {
+    icon: HeartHandshake,
+    title: 'تفاعل بصدق',
+    description: 'شارك أحباءك لحظاتهم بتفاعلات وتعليقات تبني روابط إنسانية أعمق',
+  },
+  {
+    icon: Zap,
+    title: 'تواصل مباشر',
+    description: 'محادثات فورية وسريعة للتواصل المباشر مع أعضاء مجموعاتك',
+  },
+  {
+    icon: CalendarHeart,
+    title: 'يلا سوا',
+    description: 'حوّل الامتنان إلى واقع؛ خطط للقاءات حقيقية واصنعوا ذكريات تستحق التدوين',
+  },
+];
+
 const AppDownloadPopup = ({ onContinueToWeb, forceShow = false }: AppDownloadPopupProps) => {
   const [isOpen, setIsOpen] = useState(false);
 
   useEffect(() => {
-    // If forceShow is true, always show the popup
     if (forceShow) {
       setIsOpen(true);
       return;
     }
-    
-    // Check if user has already made a choice
     const hasChosenPlatform = localStorage.getItem('app_platform_choice');
-    
-    // Check if running as installed PWA
     const isStandalone = window.matchMedia('(display-mode: standalone)').matches;
-    
     if (!hasChosenPlatform && !isStandalone) {
       setIsOpen(true);
     }
@@ -49,23 +71,40 @@ const AppDownloadPopup = ({ onContinueToWeb, forceShow = false }: AppDownloadPop
 
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
-      <DialogContent className="sm:max-w-md bg-gradient-to-br from-[#2D1F3D]/95 via-[#1A1F2C]/95 to-[#3D1F2C]/95 border-white/20 text-white backdrop-blur-xl">
+      <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto bg-gradient-to-br from-[#2D1F3D]/95 via-[#1A1F2C]/95 to-[#3D1F2C]/95 border-white/20 text-white backdrop-blur-xl">
         <DialogHeader className="text-center">
-          <div className="mx-auto mb-4 w-20 h-20 rounded-2xl bg-white/10 backdrop-blur-sm flex items-center justify-center">
+          <div className="mx-auto mb-3 w-16 h-16 rounded-2xl bg-white/10 backdrop-blur-sm flex items-center justify-center">
             <img 
               src="/lovable-uploads/99ddbd0a-3c24-4138-92e9-2ed2b73e0681.png" 
               alt="ممتن" 
-              className="w-16 h-16 rounded-xl"
+              className="w-12 h-12 rounded-xl"
             />
           </div>
           <DialogTitle className="text-2xl text-white">مرحباً بك في ممتن</DialogTitle>
           <DialogDescription className="text-white/70">
-            اختر طريقة استخدام التطبيق
+            اكتشف مميزات التطبيق
           </DialogDescription>
         </DialogHeader>
+
+        {/* Features */}
+        <div className="flex flex-col gap-2.5 mt-2" dir="rtl">
+          {features.map((feature, index) => (
+            <div
+              key={index}
+              className="flex items-start gap-3 p-3 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 transition-colors"
+            >
+              <div className="shrink-0 w-9 h-9 rounded-lg bg-[#d94550]/20 flex items-center justify-center mt-0.5">
+                <feature.icon className="w-4.5 h-4.5 text-[#d94550]" />
+              </div>
+              <div className="min-w-0">
+                <h4 className="text-sm font-semibold text-white leading-tight">{feature.title}</h4>
+                <p className="text-xs text-white/60 mt-0.5 leading-relaxed">{feature.description}</p>
+              </div>
+            </div>
+          ))}
+        </div>
         
-        <div className="flex flex-col gap-3 mt-4">
-          {/* APK Download */}
+        <div className="flex flex-col gap-3 mt-3">
           <Button
             onClick={handleAPKDownload}
             className="w-full h-14 bg-gradient-to-r from-[#d94550] to-[#c73e48] hover:from-[#c73e48] hover:to-[#b5363f] text-white flex items-center justify-center gap-3 rounded-xl shadow-lg"
@@ -74,7 +113,6 @@ const AppDownloadPopup = ({ onContinueToWeb, forceShow = false }: AppDownloadPop
             <span className="text-lg">تحميل التطبيق APK</span>
           </Button>
 
-          {/* Continue to Web */}
           <Button
             onClick={handleContinueToWeb}
             variant="outline"
@@ -85,7 +123,7 @@ const AppDownloadPopup = ({ onContinueToWeb, forceShow = false }: AppDownloadPop
           </Button>
         </div>
 
-        <p className="text-center text-white/50 text-sm mt-4">
+        <p className="text-center text-white/50 text-sm mt-2">
           يمكنك تغيير اختيارك لاحقاً من الإعدادات
         </p>
       </DialogContent>
