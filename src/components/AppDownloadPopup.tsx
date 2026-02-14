@@ -94,7 +94,6 @@ const AppDownloadPopup = ({ onContinueToWeb, forceShow = false }: AppDownloadPop
               className="w-12 h-12 rounded-xl"
             />
           </div>
-        </DialogHeader>
 
         {/* Animated Feature Carousel */}
         <div className="relative min-h-[140px] flex items-center justify-center my-2" dir="rtl">
@@ -137,7 +136,7 @@ const AppDownloadPopup = ({ onContinueToWeb, forceShow = false }: AppDownloadPop
             className="w-full h-14 bg-gradient-to-r from-[#d94550] to-[#c73e48] hover:from-[#c73e48] hover:to-[#b5363f] text-white flex items-center justify-center gap-3 rounded-xl shadow-lg"
           >
             <Download className="w-6 h-6" />
-            <span className="text-lg">تحميل التطبيق APK</span>
+            <span className="text-lg">تحميل تطبيق الأندرويد</span>
           </Button>
 
           <Button
@@ -149,10 +148,6 @@ const AppDownloadPopup = ({ onContinueToWeb, forceShow = false }: AppDownloadPop
             <span className="text-lg">المتابعة إلى تطبيق الويب</span>
           </Button>
         </div>
-
-        <p className="text-center text-white/50 text-sm mt-1">
-          يمكنك تغيير اختيارك لاحقاً من الإعدادات
-        </p>
       </DialogContent>
     </Dialog>
   );
