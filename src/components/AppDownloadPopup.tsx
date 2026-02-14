@@ -94,6 +94,7 @@ const AppDownloadPopup = ({ onContinueToWeb, forceShow = false }: AppDownloadPop
               className="w-12 h-12 rounded-xl"
             />
           </div>
+        </DialogHeader>
 
         {/* Animated Feature Carousel */}
         <div className="relative min-h-[140px] flex items-center justify-center my-2" dir="rtl">
