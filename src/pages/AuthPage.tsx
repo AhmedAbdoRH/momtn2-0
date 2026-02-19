@@ -362,6 +362,8 @@ const AuthPage = () => {
           <div className="text-center mt-2">
             <a
               href="/privacy-policy"
+              target="_blank"
+              rel="noopener noreferrer"
               className="text-xs text-white/30 hover:text-white/50 transition-colors"
             >
               سياسة الخصوصية
