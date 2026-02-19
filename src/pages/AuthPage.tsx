@@ -358,6 +358,15 @@ const AuthPage = () => {
                   : 'العودة إلى تسجيل الدخول'}
             </button>
           </div>
+
+          <div className="text-center mt-2">
+            <a
+              href="/privacy-policy"
+              className="text-xs text-white/30 hover:text-white/50 transition-colors"
+            >
+              سياسة الخصوصية
+            </a>
+          </div>
         </form>
       </div>
     </div>
