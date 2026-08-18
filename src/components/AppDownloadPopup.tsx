@@ -70,7 +70,7 @@ const AppDownloadPopup = ({ onContinueToWeb, forceShow = false }: AppDownloadPop
   }, [forceShow]);
 
   const handleAPKDownload = () => {
-    window.open('https://www.dropbox.com/scl/fi/yyuyzdix7cdubdlmqsen6/Momtn-App-v1.2.8.apk?rlkey=7rgrp7csrc23ns2wkso069yya&st=sdg1rzf7&dl=0', '_blank');
+    window.open('https://www.dropbox.com/scl/fi/yyuyzdix7cdubdlmqsen6/Momtn-App-v1.2.8.apk?rlkey=7rgrp7csrc23ns2wkso069yya&st=sdg1rzf7&e=1&dl=1', '_blank');
     localStorage.setItem('app_platform_choice', 'apk');
     setIsOpen(false);
   };
