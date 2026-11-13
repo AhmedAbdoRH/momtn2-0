@@ -12,6 +12,7 @@ import Index from "./pages/Index";
 import SettingsPage from "./pages/SettingsPage";
 import InstallPage from "./pages/InstallPage";
 import PrivacyPolicyPage from "./pages/PrivacyPolicyPage";
+import JoinPage from "./pages/JoinPage";
 import { useEffect } from "react";
 import { applyGradientById } from "./components/BackgroundSettings";
 import "./App.css";
@@ -79,6 +80,8 @@ function App() {
             />
             <Route path="/install" element={<InstallPage />} />
             <Route path="/privacy-policy" element={<PrivacyPolicyPage />} />
+            <Route path="/join/:inviteCode" element={<JoinPage />} />
+            <Route path="/join" element={<JoinPage />} />
             <Route path="/404" element={<NotFound />} />
             <Route path="*" element={<Navigate to="/404" />} />
           </Routes>
