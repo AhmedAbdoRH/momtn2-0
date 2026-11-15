@@ -5,13 +5,14 @@ import { Heart, Copy, Check, ExternalLink, Download } from 'lucide-react';
 import { toast } from 'sonner';
 
 export default function JoinPage() {
-  const { inviteCode: paramCode } = useParams<{ inviteCode?: string }>();
+  const { inviteCode: paramCode, '*': wildcardCode } = useParams<{ inviteCode?: string; '*'?: string }>();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const [copied, setCopied] = useState(false);
 
-  // استخراج كود الدعوة من المسار أو من معاملات الاستعلام
-  const code = (paramCode || searchParams.get('code') || '').trim();
+  // استخراج كود الدعوة من المسار أو معاملات الاستعلام
+  const rawCode = (searchParams.get('code') || paramCode || wildcardCode || '').trim();
+  const code = decodeURIComponent(rawCode).trim();
 
   // رابط Chrome Intent الرسمي للأندرويد لفتح التطبيق مباشرة وتجاوز حظر المتصفح
   const androidIntentUrl = code

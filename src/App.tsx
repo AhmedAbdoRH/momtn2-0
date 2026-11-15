@@ -70,6 +70,11 @@ function App() {
             <Route path="/auth" element={<AuthPage />} />
             <Route path="/verify-email" element={<EmailVerificationPage />} />
             <Route path="/reset-password" element={<ResetPasswordPage />} />
+            <Route path="/install" element={<InstallPage />} />
+            <Route path="/privacy-policy" element={<PrivacyPolicyPage />} />
+            <Route path="/join/:inviteCode" element={<JoinPage />} />
+            <Route path="/join/*" element={<JoinPage />} />
+            <Route path="/join" element={<JoinPage />} />
             <Route
               path="/settings"
               element={
@@ -78,10 +83,6 @@ function App() {
                 </ProtectedRoute>
               }
             />
-            <Route path="/install" element={<InstallPage />} />
-            <Route path="/privacy-policy" element={<PrivacyPolicyPage />} />
-            <Route path="/join/:inviteCode" element={<JoinPage />} />
-            <Route path="/join" element={<JoinPage />} />
             <Route path="/404" element={<NotFound />} />
             <Route path="*" element={<Navigate to="/404" />} />
           </Routes>
