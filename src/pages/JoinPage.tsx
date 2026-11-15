@@ -10,23 +10,37 @@ export default function JoinPage() {
   const navigate = useNavigate();
   const [copied, setCopied] = useState(false);
 
-  // Extract invite code from path parameter or query parameter (?code=XYZ)
+  // استخراج كود الدعوة من المسار أو من معاملات الاستعلام
   const code = (paramCode || searchParams.get('code') || '').trim();
-  const appSchemeUrl = code ? `momtn://join/${encodeURIComponent(code)}` : 'momtn://';
+
+  // رابط Chrome Intent الرسمي للأندرويد لفتح التطبيق مباشرة وتجاوز حظر المتصفح
+  const androidIntentUrl = code
+    ? `intent://join/${encodeURIComponent(code)}#Intent;scheme=momtn;package=com.momtn.app;S.browser_fallback_url=https%3A%2F%2Fplay.google.com%2Fstore%2Fapps%2Fdetails%3Fid%3Dcom.momtn.app;end`
+    : `intent://#Intent;scheme=momtn;package=com.momtn.app;end`;
+
+  // رابط iOS / Custom Scheme
+  const iosSchemeUrl = code ? `momtn://join/${encodeURIComponent(code)}` : 'momtn://';
+
+  const isAndroid = typeof navigator !== 'undefined' && /Android/i.test(navigator.userAgent);
+  const appLaunchUrl = isAndroid ? androidIntentUrl : iosSchemeUrl;
   const playStoreUrl = 'https://play.google.com/store/apps/details?id=com.momtn.app';
 
   useEffect(() => {
     if (code) {
-      // Try to open the app automatically on mobile devices
       const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
       if (isMobile) {
-        const timeout = setTimeout(() => {
-          window.location.href = appSchemeUrl;
-        }, 400);
-        return () => clearTimeout(timeout);
+        // محاولة الفتح التلقائي عند الدخول
+        const timer = setTimeout(() => {
+          try {
+            window.location.href = appLaunchUrl;
+          } catch (e) {
+            console.error('Auto redirect error:', e);
+          }
+        }, 500);
+        return () => clearTimeout(timer);
       }
     }
-  }, [code, appSchemeUrl]);
+  }, [code, appLaunchUrl]);
 
   const handleCopy = () => {
     if (!code) return;
@@ -34,10 +48,6 @@ export default function JoinPage() {
     setCopied(true);
     toast.success('تم نسخ كود الدعوة');
     setTimeout(() => setCopied(false), 2000);
-  };
-
-  const handleOpenApp = () => {
-    window.location.href = appSchemeUrl;
   };
 
   return (
@@ -79,21 +89,21 @@ export default function JoinPage() {
           </div>
         ) : null}
 
-        {/* Action Buttons */}
+        {/* Action Buttons - Real anchor tags to prevent browser popup blocking */}
         <div className="w-full space-y-3">
-          <Button
-            onClick={handleOpenApp}
-            className="w-full h-12 py-3 bg-gradient-to-r from-[#ff535f] to-[#ff3b4b] hover:from-[#ff3b4b] hover:to-[#ff2839] text-white font-bold rounded-2xl shadow-lg shadow-[#ff535f]/25 transition-all transform active:scale-98 flex items-center justify-center gap-2 text-base"
+          <a
+            href={appLaunchUrl}
+            className="w-full h-12 py-3 bg-gradient-to-r from-[#ff535f] to-[#ff3b4b] hover:from-[#ff3b4b] hover:to-[#ff2839] text-white font-bold rounded-2xl shadow-lg shadow-[#ff535f]/25 transition-all transform active:scale-98 flex items-center justify-center gap-2 text-base no-underline"
           >
             <ExternalLink className="w-5 h-5" />
             فتح في تطبيق ممتن
-          </Button>
+          </a>
 
           <a
             href={playStoreUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="w-full h-12 py-3 bg-white/10 hover:bg-white/15 text-white/90 hover:text-white font-medium rounded-2xl border border-white/10 transition-all flex items-center justify-center gap-2 text-sm"
+            className="w-full h-12 py-3 bg-white/10 hover:bg-white/15 text-white/90 hover:text-white font-medium rounded-2xl border border-white/10 transition-all flex items-center justify-center gap-2 text-sm no-underline"
           >
             <Download className="w-4 h-4" />
             تحميل التطبيق من Google Play
